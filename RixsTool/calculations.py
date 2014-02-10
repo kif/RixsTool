@@ -26,43 +26,9 @@
 #############################################################################*/
 __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 
-from PyMca import PyMcaQt as qt
-import time
-import numpy
+import numpy, time
 
 DEBUG = 1
-
-class OpDispatcher(qt.QObject):
-    sigOperationFinished = qt.pyqtSignal(object)
-
-    def __init__(self, key, idx, parent):
-        qt.QObject.__init__(self, parent)
-        self.__key = key
-        self.__idx = idx
-        self._ops = {}
-
-    def refresh(self, image, key, idx, operation=None):
-        if key != self.__key or idx != self.__idx:
-            return False
-        if operation is None:
-            for operation, func in self._ops.items():
-                startTime = time.time()
-                ddict = func(image)
-                endTime = time.time()
-                deltaT = endTime - startTime
-                print('ImageOp.refresh -- performed %s in %.3f'%
-                      (operation, deltaT))
-                self.sigOperationFinished.emit(ddict)
-        else:
-            func = self._ops[operation]
-            startTime = time.time()
-            ddict = func(image)
-            endTime = time.time()
-            deltaT = endTime - startTime
-            print('ImageOp.refresh -- performed %s in %.3f'%
-                  (operation, deltaT))
-            self.sigOperationFinished.emit(ddict)
-        return True
 
 class ImageOp(object):
     def __init__(self, key, idx, parent):
@@ -71,6 +37,15 @@ class ImageOp(object):
         self.__idx = idx
         self.__parent = parent
         self._ops = {}
+
+    def key(self):
+        return self.__key
+
+    def index(self):
+        return self.__idx
+
+    def parent(self):
+        return self.__parent
 
     def refreshAll(self, key, idx, image, params=None):
         if (key != self.__key) or (idx != self.__idx):
@@ -86,8 +61,7 @@ class ImageOp(object):
             opsList[cnt] = tmpDict['op']
         endTime = time.time()
         deltaT = endTime - startTime
-        print('ImageOp.refreshAll -- performed %s in %.3f'%
-              (operation, deltaT))
+        print('ImageOp.refreshAll -- performed in %.3f'%deltaT)
         # Remove 'op' key/value since it is meaningless after loop
         del(ddict['op'])
         # Use ops list instead
@@ -222,15 +196,9 @@ class Integration(ImageOp):
     def __init__(self, key, idx, parent=None):
         ImageOp.__init__(self, key, idx, parent)
         self._ops = {
-            'axisSum': self.axisSum
+            'axisSum': self.axisSum,
+            'sliceAndSum': self.sliceAndSum
         }
-
-    def bin(self, image, params):
-        binWidthe = params.get('binWidth',10)
-        axis = params.get('axis',-1)
-        print('Integration.binning -- not implemented')
-        ddict = {}
-        return ddict
 
     def axisSum(self, image, params):
         axis = params.get('axis', -1)
@@ -248,6 +216,61 @@ class Integration(ImageOp):
         }
         return ddict
 
+    def sliceAndSum(self, image, params):
+        sumAxis = params.get('sumAxis', 1)
+        sliceAxis = params.get('sliceAxis', 1)
+        params['axis'] = sliceAxis
+        sliceObj = Manipulation(self.key(),
+                                self.index(),
+                                self.parent())
+        slices = sliceObj.slice(image, params)['slices']
+        for slice in slices:
+            print(slice.shape)
+        result = [slice.sum(axis=sumAxis) for slice in slices]
+        ddict = {
+            'op': 'sliceAndSum',
+            'summedSlices': result
+        }
+        return ddict
+
+class Manipulation(ImageOp):
+    def __init__(self, key, idx, parent):
+        ImageOp.__init__(self, key, idx, parent)
+        self._ops = {
+            'slice': self.slice
+        }
+
+    def slice(self, image, params):
+        binWidth = params.get('binWidth', 8)
+        axis = params.get('axis',1)
+        mode = params.get('mode','strict')
+        if axis:
+            size = (image.shape[0],binWidth)
+        else:
+            size = (binWidth,image.shape[1])
+        lim = image.shape[axis]
+        if mode not in ['strict']: # TODO: implement mode that puts surplus cols rows as last element in tmpList
+            raise ValueError('Integration.binning: Unknown mode %s'%mode)
+        if lim%binWidth and mode == 'relaxed':
+            raise Warning('Binning neglects curves at the end')
+        numberOfBins = lim//binWidth
+        tmpList = numberOfBins*[numpy.zeros(size, dtype=image.dtype)]
+        for idx in range(numberOfBins):
+            lower = idx * binWidth
+            upper = lower + binWidth
+            if upper >= lim:
+                break
+            if axis:
+                # Slice along cols (axis==1)
+                tmpList[idx] = numpy.copy(image[:,lower:upper])
+            else:
+                # Slice along rows (axis==0)
+                tmpList[idx] = numpy.copy(image[lower:upper,:])
+        ddict = {
+            'op': 'binning',
+            'slices': tmpList
+        }
+        return ddict
 
 class Stats2D(ImageOp):
     def __init__(self, key, idx, parent=None):
@@ -303,20 +326,21 @@ class Stats2D(ImageOp):
         return ddict
 
 
-class Notifiyer(qt.QObject):
-    def __init__(self):
-        qt.QObject.__init__(self)
+def run_test():
+    import RixsTool.io as io
+    from matplotlib import pyplot as plt
+    a = io.run_test()
+    im = a[15][2][0] # 15th data blob (i.e. [2]), first image
+    if 1:
+        im = im - im.min()
+        im = numpy.where(im <= 140, im, 0)
+    print('im.shape:',im.shape)
+    b = Integration('foo',0)
+    #for elem in b.sliceAndSum(im, {'sumAxis':1, 'binWidth':128})['summedSlices']:
+    #    plt.plot(elem)
+    plt.plot(b.axisSum(im, {})['sum'])
+    plt.show()
 
-    def signalReceived(self, ddict):
-        obj = self.sender()
-        print('Signal received:',ddict)
-        #print('%s : %s'%(str(obj),str(kwargs)))
 
 if __name__ == '__main__':
-    n = Notifiyer()
-    for idx in range(10):
-        key = 'Dummy %d'%idx
-        im = numpy.random.random((2048, 512))
-        s = Stats2D(key, idx)
-        #s.sigOperationFinished.connect(n.signalReceived)
-        s.refresh(im, key, idx)
+    run_test()
