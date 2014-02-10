@@ -32,13 +32,17 @@ from PyMca import PyMcaQt as qt
 from PyMca import PyMcaDirs
 from PyQt4 import uic
 
+# Imports from RixsTool
+from RixsTool.io import EdfInputReader
+from RixsTool.io import InputReader
+
 # Imports from os.path
 from os.path import splitext as OsPathSplitExt
 
 class RIXSMainWindow(qt.QMainWindow):
     def __init__(self, parent=None):
         qt.QMainWindow.__init__(self, parent)
-        uic.loadUi('C:\\Users\\tonn\\lab\\rixs\\RIXS_ui\\mainwindow.ui', self)
+        uic.loadUi('C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\mainwindow.ui', self)
         self.connectActions()
 
     def connectActions(self):
@@ -67,9 +71,10 @@ class RIXSMainWindow(qt.QMainWindow):
         else:
             reader = InputReader()
         reader.refresh(names)
-        for idx, im in enumerate(flatten(reader['Image'])):
+        #for idx, im in enumerate(flatten(reader['Image'])):
+        for idx, im in enumerate(reader['Images']):
             self.imageView.addImage(im)
-            print('Added image:',idx,'\n',im)
+            print('Added image:',idx,' ',type(im))
 
     def saveAnalysis(self):
         print('MainWindow -- saveAnalysis: to be implemented')

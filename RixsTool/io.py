@@ -29,11 +29,8 @@ from PyMca.PyMcaIO.EdfFile import EdfFile
 from os.path import split as OsPathSplit
 from os import access as OsAccess
 from os import R_OK as OS_R_OK
-from collections import defaultdict
 import numpy as np
 import time
-
-flatten = lambda llist: sum(llist, [])
 
 class InputReader(object):
     def __init__(self):
@@ -41,15 +38,6 @@ class InputReader(object):
         self.__fileList = []
         self.__fileDict = {}
         self._srcType = None
-        # Meta
-        # Data
-        # - x
-        # - y
-        # - ScanNo
-        # Pos
-        # - Motornamen
-        # - FileName
-        # - ScanNo
         self.refreshing = False
         self._data = {
             'FileLocations': [],
@@ -58,13 +46,37 @@ class InputReader(object):
             'Images': np.ndarray((0,0,0), dtype=int)
         }
 
-    def __getitem__(self, key):
-        '''
-        Returns a list of the property <key> stored in the self.__data dictionary.
+    def __getitem__(self, idx):
+        """
+        :param idx: Either the index of an image in self.__fileList or a key from InputReader.keys()
+        :type idx: int or str
+
+        idx is int:
+        Returns a tupel containing the corresponding
+        (filename, header, image, file location, numberOfImages)
+
+        idx is str:
+        Returns a list of the property <key> stored in the self._data dictionary.
         The order of the elements is that same as the order of self.__fileList, i.e.
         the order in which the data was added.
-        '''
-        return self._data[key]
+        """
+        if isinstance(idx, str):
+            return self._data[idx]
+        elif isinstance(idx, int):
+            if idx >= len(self):
+                raise IndexError('InputReader index %d out of range(%d)'%(idx, len(self)))
+            key = self.__fileList[idx]
+            data = (key,
+                    self._data['Headers'][idx],
+                    self._data['Images'][idx],
+                    self._data['numImages'][idx],
+                    self._data['FileLocations'][idx])
+            return data
+        else:
+            raise TypeError('InputReader indices must be integers or keys')
+
+    def __len__(self):
+        return len(self.__fileList)
 
     def __readFiles(self, llist):
         if isinstance(self._srcType, type(None)):
@@ -85,10 +97,10 @@ class InputReader(object):
         return True
 
     def _setData(self):
-        '''
+        """
         Fills the self.__data dictionary with the corresponding values. This
-        funtion needs to be reimplemented in every inherited class.
-        '''
+        funtion needs to be reimplemented in every subclass.
+        """
         raise NotImplementedError('Do not instantiate base class')
 
     def getFileList(self):
@@ -144,71 +156,17 @@ class EdfInputReader(InputReader):
         print('EdfInputReader._setData -- Method finished in %.3f s',
               timeEnd - timeStart)
 
-    def getMotorPositions(self, key=None):
-        '''
-        :param key: Name of header item
-        :type key: str
-        :param idx: idx-th scan in self.__fileList
-        :type idx: int
-        '''
-        # Collect all motor names
-        motorNames = set()
-        for elem in flatten(self.getHeaderItem('motor_mne', key)):
-            motorNames.update(elem.split())
-        # Collect all motor positions
-        ret = []
-        for cnt, key in enumerate(self.getFileList()):
-            scans = []
-            ddict = defaultdict(list)
-            # Generate name/pos ddict
-            for name, pos in zip(self.getHeaderItem('motor_mne', cnt),
-                                 self.getHeaderItem('motor_pos', cnt)):
-                namesTmp = name.split()
-                posTmp = pos.split()
-                scans.append(dict(zip(namesTmp, posTmp)))
-            for motorDict in scans:
-                for name in motorNames:
-                    value = float(motorDict.get(name, 'NaN'))
-                    ddict[name].append(value)
-            ret.append(ddict)
-        #for elem in :
-        return ret
-
-    def getHeaderItem(self, key, idx=None, default=None):
-        '''
-        :param key: Name of header item
-        :type key: str
-        :param idx: idx-th scan in self.__fileList
-        :type idx: int
-        '''
-        # Works only if header is dictionary
-        headers = self._data['Headers']
-        llist = []
-        if idx is not None:
-            header = headers[idx]
-            for elem in header:
-                llist.append(elem.get(key, default))
-        else:
-            for header in headers:
-                for elem in range(len(header)):
-                    tmp = []
-                    try:
-                        tmp.append(header[elem][key])
-                    except KeyError:
-                        tmp.append(default)
-                    llist.append(tmp)
-            if len(llist) == 0:
-                llist = None
-        return llist
-
-
-if __name__ == '__main__':
+def run_test():
     rixsImageDir = 'C:\\Users\\tonn\\lab\\rixs\\Images'
     from os import listdir as OsListDir
     from os.path import isfile as OsPathIsFile, join as OsPathJoin
     imageList = [OsPathJoin(rixsImageDir,fn) for fn in OsListDir(rixsImageDir)\
                  if OsPathIsFile(OsPathJoin(rixsImageDir,fn))]
 
-    a = EdfInputReader()
-    a.refresh(imageList)
+    reader = EdfInputReader()
+    reader.refresh(imageList)
+    return reader
+
+if __name__ == '__main__':
+    a = run_test()
     print(a)
