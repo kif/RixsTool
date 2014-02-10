@@ -2,3 +2,7 @@
 ########################
 QTCreator_RixsToolUI/*.*
 .idea/
+
+# Build dir #
+#############
+build/
