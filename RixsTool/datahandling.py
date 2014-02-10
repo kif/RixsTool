@@ -25,6 +25,7 @@
 # is a problem for you.
 #############################################################################*/
 __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
+from RixsTool.calculations import *
 from PyMca import PyMcaQt as qt
 
 class DataHandler(qt.QObject):
@@ -33,13 +34,6 @@ class DataHandler(qt.QObject):
     def __init__(self, reader, parent=None):
         qt.QObject.__init__(self, parent)
         self.db = reader
-        self.getStatistics()
-
-    def __len__(self):
-        return len(self.db)
-
-    def _handleSigScalarUpdate(self, ddict):
-        print('DataHandler._handleSigScalarUpdate -- ddict:',ddict)
 
     def ready(self):
         return not self.db.refreshing
@@ -54,7 +48,22 @@ class DataHandler(qt.QObject):
                 image = imageBlob[jdx]
                 stats = Stats2D(key, jdx, self)
                 self.sigRefresh.connect(stats.refresh)
-                stats.sigScalarUpdate.connect(
-                            self._handleSigScalarUpdate)
                 stats.basics(image)
         return True
+
+
+class OpDispatcher(qt.QObject):
+    sigOpFinished = qt.pyqtSignal(object)
+
+    def __init__(self, key, idx, parent):
+        qt.QObject.__init__(self, parent)
+
+
+class DummyNotifiyer(qt.QObject):
+    def __init__(self):
+        qt.QObject.__init__(self)
+
+    def signalReceived(self, ddict):
+        obj = self.sender()
+        print('Signal received:',ddict)
+        #print('%s : %s'%(str(obj),str(kwargs)))
