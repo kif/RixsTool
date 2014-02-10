@@ -24,7 +24,7 @@
 # Please contact the ESRF industrial unit (industry@esrf.fr) if this license
 # is a problem for you.
 #############################################################################*/
-__author__ = "Tonn Rueter - ESRF Data Analysis"
+__author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 
 from PyMca import PyMcaQt as qt
 import time
