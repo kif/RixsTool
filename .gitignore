@@ -6,3 +6,7 @@ QTCreator_RixsToolUI/*.*
 # Build dir #
 #############
 build/
+
+# Performance Reports #
+#######################
+*.performance
