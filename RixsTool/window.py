@@ -39,6 +39,42 @@ from RixsTool.io import InputReader
 # Imports from os.path
 from os.path import splitext as OsPathSplitExt
 
+class FileSystemBrowser(qt.QWidget):
+    def __init__(self, parent=None):
+        qt.QWidget.__init__(self, parent)
+        uic.loadUi('C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\filesystembrowser.ui', self)
+        # Set working directory
+        self.workingDir = qt.QDir('C:\\Users\\tonn\\lab\\rixs\\Images')
+        if not self.workingDir.isAbsolute():
+            self.workingDir.makeAbsolute()
+        # Monitor the creation/changing of new files
+        self.watcher = qt.QFileSystemWatcher()
+        self.watcher.addPath(self.workingDir.path())
+        # Set up the FS model
+        self.model = qt.QFileSystemModel()
+        self.model.setRootPath(self.workingDir.path())
+        # QTreeView created from ui-file
+        self.fsView.setModel(self.model)
+        self.fsView.setRootIndex(self.model.index(self.workingDir.path()))
+
+        # Connect
+        self.watcher.fileChanged.connect(self._handleFileChanged)
+        self.watcher.directoryChanged.connect(self._handleFileChanged)
+
+        self.connectActions()
+
+    def _handleFileChanged(self, filePath):
+        print('FileSystemBrowser._handleFileChanged called: %s'%str(filePath))
+        return
+
+    def _handleDirectoryChanged(self, dirPath):
+        print('FileSystemBrowser._handleDirectoryChanged called: %s'%str(dirPath))
+        return
+
+    def connectActions(self):
+        print('FileSystemBrowser.connectActions to be implemented..')
+        pass
+
 class RIXSMainWindow(qt.QMainWindow):
     def __init__(self, parent=None):
         qt.QMainWindow.__init__(self, parent)
@@ -85,5 +121,6 @@ class RIXSMainWindow(qt.QMainWindow):
 if __name__ == '__main__':
     app = qt.QApplication([])
     win = RIXSMainWindow()
+    #win = FileSystemBrowser()
     win.show()
     app.exec_()

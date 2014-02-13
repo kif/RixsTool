@@ -34,7 +34,7 @@
      <number>1</number>
     </property>
     <item>
-     <layout class="QGridLayout" name="gridLayout">
+     <layout class="QGridLayout" name="mainLayout">
       <property name="horizontalSpacing">
        <number>0</number>
       </property>
@@ -57,7 +57,7 @@
           <string>Image View</string>
          </attribute>
         </widget>
-        <widget class="PlotWindow" name="spectrumView">
+        <widget class="QWidget" name="spectrumView">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
            <horstretch>0</horstretch>
@@ -67,6 +67,56 @@
          <attribute name="title">
           <string>Spectrum View</string>
          </attribute>
+         <widget class="QWidget" name="horizontalLayoutWidget">
+          <property name="geometry">
+           <rect>
+            <x>-20</x>
+            <y>0</y>
+            <width>841</width>
+            <height>461</height>
+           </rect>
+          </property>
+          <layout class="QHBoxLayout" name="spectrumLayout">
+           <item>
+            <widget class="QSplitter" name="spectrumSplitter">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <widget class="FileSystemBrowser" name="specFileView" native="true">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <zorder>specPlotWindow</zorder>
+              <zorder>specPlotWindow</zorder>
+              <zorder>specPlotWindow</zorder>
+              <zorder>specPlotWindow</zorder>
+             </widget>
+             <widget class="PlotWindow" name="specPlotWindow" native="true">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+             </widget>
+            </widget>
+           </item>
+          </layout>
+         </widget>
+         <zorder>splitter</zorder>
+         <zorder>horizontalLayoutWidget</zorder>
+         <zorder>specPlotWindow</zorder>
+         <zorder>horizontalLayoutWidget</zorder>
+         <zorder>spectrumSplitter</zorder>
         </widget>
        </widget>
       </item>
@@ -183,6 +233,12 @@
    <class>PlotWindow</class>
    <extends>QWidget</extends>
    <header>PyMca.widgets.PlotWindow</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>FileSystemBrowser</class>
+   <extends>QWidget</extends>
+   <header>RixsTool.window</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
