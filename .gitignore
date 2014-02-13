@@ -1,11 +1,12 @@
 # Files from QtCreater #
 ########################
-QTCreator_RixsToolUI/*.*
+QTCreator_RixsToolUI/
 .idea/
 
 # Build dir #
 #############
 build/
+RixsTool/__pycache__/
 
 # Performance Reports #
 #######################
