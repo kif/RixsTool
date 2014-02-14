@@ -29,6 +29,8 @@ __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 import numpy, time
 
 DEBUG = 1
+MATPLOTLIBIMPORT = False
+plt = None
 
 class ImageOp(object):
     def __init__(self, key, idx, parent):
@@ -80,17 +82,83 @@ class ImageOp(object):
               (operation, deltaT))
         return ddict
 
+class Filter(ImageOp):
+    def __init__(self, key, idx, parent=None):
+        ImageOp.__init__(self, key, idx, parent)
+        self._ops = {
+            'bandpass': self.bandPassFilter
+        }
+
+    def bandPassFilter(self, image, params):
+        imMin = image.min()
+        imMax = image.max()
+        lo = params.get('low', imMin)
+        hi = params.get('high', imMax)
+
+        out = numpy.where((lo <= image), image, imMin)
+        out = numpy.where((image <= hi), out, imMin)
+
+        ddict = {
+            'op': 'bandpass',
+            'image': out
+        }
+        return ddict
+
 class Alignment(ImageOp):
     def __init__(self, key, idx, parent=None):
         ImageOp.__init__(self, key, idx, parent)
         self._ops = {
-            'fftAlignment': self.fftAlignment
+            'maxAlignment': self.maxAlignment,
+            'fftAlignment': self.fftAlignment,
+            'centerOfMassAlignment': self.centerOfMassAlignment
         }
 
-    def fftAlignment(self, image, params):
+    def maxAlignment(self, image, params):
+        # TODO: Add normalization flag
         idx0 = params.get('idx0', 0)
-        axis = params.get('axis', -1)
-        portion = params.get('portion', .95)
+        axis = params.get('axis', -1) # Axis defines direction of curves
+        scale = params.get('scale', None)
+
+        if axis < 0:
+            rows, cols = image.shape
+            if rows < cols:
+                axis = 0
+            else:
+                axis = 1
+
+        if axis == 0:
+            nCurves, nPoints = image.shape
+            curves = image
+        elif axis == 1:
+            nPoints, nCurves = image.shape
+            curves = image.T
+        else:
+            raise ValueError('Alignment instance -- Axis must be either -1, 0 or 1')
+
+        shiftList = [float('NaN')] * nCurves
+
+        pos0 = curves[idx0].argmax()
+
+        for idx, y in enumerate(curves):
+            shift = pos0 - y.argmax()
+            shiftList[idx] = shift
+
+        shiftArray = numpy.asarray(shiftList)
+        if scale:
+            shiftArray *= numpy.average(numpy.diff(scale))
+
+        ddict = {
+            'op': 'maxAlignment',
+            'shiftList': shiftArray
+        }
+        return ddict
+
+    def centerOfMassAlignment(self, image, params):
+        idx0 = params.get('idx0', 0)
+        axis = params.get('axis', -1) # Axis defines direction of curves
+        portion = params.get('portion', .80)
+        scale = params.get('scale', None)
+
         # Determine which axis defines curves
         if axis < 0:
             # If axis not specified..
@@ -103,67 +171,140 @@ class Alignment(ImageOp):
 
         if axis == 0:
             nCurves, nPoints = image.shape
+            curves = image
         elif axis == 1:
             nPoints, nCurves = image.shape
+            curves = image.T
         else:
-            raise ValueError('Invalid axis: %d'%axis)
+            raise ValueError('Alignment instance -- Axis must be either -1, 0 or 1')
 
-        # Aquire memory to store shifts
-        shiftList = nCurves * [0.]
+        shiftList = nCurves * [float('NaN')]
 
-        if nCurves < 2:
-            raise ValueError('At least 2 curves needed')
+        y0 = curves[idx0]
+        pos0 = y0.argmax()
+        ymin0, ymax0 = y0.min(), y0.max()
+        normFactor = ymax0-ymin0
+        if float(normFactor) <= 0.:
+            # Curve is constant
+            raise ZeroDivisionError('Alignment.centerOfMass -- Trying to align on constant curve')
+        ynormed0 = (y0-ymin0)/normFactor
 
-        # Sets the curve to which every other
-        # curve is compared to..
-        if axis:
-            y0 = image[idx0,:]
+        threshold = portion * float(ynormed0[pos0])
+        left, right = pos0, pos0
+        while  ynormed0[left] > threshold:
+            left -= 1
+        while  ynormed0[right] > threshold:
+            right += 1
+        if left < 0 or right >= nPoints:
+            raise IndexError('Alignment.centerOfMassAlignment: 0-th index out of range (left: %d, right: %d)'%(left, right))
+        mask = numpy.arange(left, right+1, dtype=int)
+        pos0 = numpy.trapz(ynormed0[mask] * mask) / numpy.trapz(ynormed0[mask])
+
+        for idx, y in enumerate(curves):
+            # Normalize betw. zero an one
+            ymin, ymax = y.min(), y.max()
+            normFactor = ymax-ymin
+            if float(normFactor) <= 0.:
+                # Curve is constant
+                continue
+            ynormed = (y-ymin)/normFactor
+
+            idxMax = ynormed.argmax()
+            left, right = idxMax, idxMax
+            while  ynormed[left] > threshold:
+                left -= 1
+            while  ynormed[right] > threshold:
+                right += 1
+            if left < 0 or right >= nPoints:
+                raise IndexError('Alignment.centerOfMassAlignment: index out of range (left: %d, right: %d)'%(left, right))
+            mask = numpy.arange(left, right+1, dtype=int)
+            print('mask:',mask)
+            shift = pos0 - numpy.trapz(ynormed[mask] * mask) / numpy.trapz(ynormed[mask])
+            if DEBUG:
+                print('\t%d\t%f'%(idx,shift))
+            shiftList[idx] = shift
+
+        shiftArray = numpy.asarray(shiftList)
+        if scale:
+            shiftArray *= numpy.average(numpy.diff(scale))
+        ddict = {
+            'op': 'centerOfMassAlignment',
+            'shiftList': shiftArray
+        }
+        return ddict
+
+    def fftAlignment(self, image, params):
+        idx0 = params.get('idx0', 0)
+        axis = params.get('axis', -1) # Axis defines direction of curves
+        portion = params.get('portion', .80)
+        scale = params.get('scale', None)
+
+        # Determine which axis defines curves
+        if axis < 0:
+            # If axis not specified..
+            rows, cols = image.shape
+            # ..align along smaller axis
+            if rows < cols:
+                axis = 0
+            else:
+                axis = 1
+
+        if axis == 0:
+            nCurves, nPoints = image.shape
+            curves = image
+        elif axis == 1:
+            nPoints, nCurves = image.shape
+            curves = image.T
         else:
-            y0 = image[:,idx0]
+            raise ValueError('Alignment instance -- Axis must be either -1, 0 or 1')
 
-        # Normalize before fft?
-        #y0 = self.normalize(y0)
+        shiftList = nCurves * [float('NaN')]
+
+        y0 = curves[idx0]
         fft0 = numpy.fft.fft(y0)
 
-        # Perform fft Alignment for every other curves
-        if axis:
-            curves = image
-        else:
-            curves = image.T
         for idx, y in enumerate(curves):
+            print('fftAlignment -- y.shape:',y.shape)
             ffty = numpy.fft.fft(y)
             shiftTmp = numpy.fft.ifft(fft0 * ffty.conjugate()).real
             shiftPhase = numpy.zeros(shiftTmp.shape, dtype=shiftTmp.dtype)
             m = shiftTmp.size//2
             shiftPhase[m:] = shiftTmp[:-m]
             shiftPhase[:m] = shiftTmp[-m:]
+
             # Normalize shiftPhase between 0 and 1 to standardize thresholding
-            #shiftPhase = self.normalize(shiftPhase)
             shiftPhaseMin = shiftPhase.min()
             shiftPhaseMax = shiftPhase.max()
-            if not (shiftPhaseMax-shiftPhaseMin > 0):
-                print('Error') # TODO
-                return {}
-            shiftPhase = (shiftPhase-shiftPhaseMin)/(shiftPhaseMax-shiftPhaseMin)
+            normFactor = shiftPhaseMax - shiftPhaseMin
+            if float(normFactor) <= 0.:
+                print('fftAlignment -- \tshiftPhaseMin: %f\n\t\t\tshiftPhaseMax: %f'%\
+                      (shiftPhaseMin, shiftPhaseMax)) # TODO
+                continue
+            shiftPhase = (shiftPhase-shiftPhaseMin)/normFactor
 
             # Thresholding
-            xShiftMax = shiftPhase.argmax()
-            left, right = xShiftMax, xShiftMax
-            threshold = portion * shiftPhaseMax()
-            while (shiftPhase[left] > threshold)&\
-                  (shiftPhase[right] > threshold):
+            idxMax = shiftPhase.argmax()
+            left, right = idxMax, idxMax
+            threshold = portion * shiftPhaseMax
+            while shiftPhase[left] >= threshold:
                 left  -= 1
+            while shiftPhase[right] >= threshold:
                 right += 1
+
             mask = numpy.arange(left, right+1, 1, dtype=int)
-            # The shift is determined by center-of-mass around shiftMax
-            shiftTmp = (shiftPhase[mask] * idx/shiftPhase[mask].sum()).sum()
+            print('mask:',mask)
+            # The shift is determined by center-of-mass around idxMax
+            shiftTmp = numpy.sum((shiftPhase[mask] * idx/shiftPhase[mask].sum()))
             #shift = (shiftTmp - m) * (x[1] - x[0])
             # x-range is pixel count..
+            print('shiftTmp:', shiftTmp)
             shift = (shiftTmp - m)
 
             shiftList[idx] = shift
             if DEBUG:
                 print('\t%d\t%f'%(idx,shift))
+
+
         ddict = {
             'op': 'fftAlignment',
             'shiftList': shiftList
@@ -224,12 +365,36 @@ class Integration(ImageOp):
                                 self.index(),
                                 self.parent())
         slices = sliceObj.slice(image, params)['slices']
-        for slice in slices:
-            print(slice.shape)
         result = [slice.sum(axis=sumAxis) for slice in slices]
         ddict = {
             'op': 'sliceAndSum',
             'summedSlices': result
+        }
+        return ddict
+
+class Normalization(ImageOp):
+    def __init__(self, key, idx, parent=None):
+        ImageOp.__init__(self, key, idx, parent)
+        self._ops = {
+            'zeroToOne': self.zeroToOne
+        }
+
+    def zeroToOne(self, image, params):
+        offset  = image.min()
+        maximum = image.max()
+        normFactor = maximum - offset
+
+        print('zeroToOne, before -- min: %.3f, max: %.3f'%(offset, maximum))
+
+        if normFactor == 0.:
+            normalized = numpy.zeros(shape=image.shape,
+                                     dtype=image.dtype)
+        else:
+            normalized = (image - offset)/normFactor
+        print('zeroToOne, after  -- min: %.3f, max: %.3f'%(normalized.min(),normalized.max()))
+        ddict = {
+            'op': 'zeroToOne',
+            'image': normalized
         }
         return ddict
 
@@ -258,7 +423,7 @@ class Manipulation(ImageOp):
         for idx in range(numberOfBins):
             lower = idx * binWidth
             upper = lower + binWidth
-            if upper >= lim:
+            if upper > lim:
                 break
             if axis:
                 # Slice along cols (axis==1)
@@ -325,22 +490,89 @@ class Stats2D(ImageOp):
         }
         return ddict
 
+def importMatplotLib():
+    global MATPLOTLIBIMPORT, plt
+    try:
+        from matplotlib import pyplot as plt
+        MATPLOTLIBIMPORT = True
+    except ImportError:
+        MATPLOTLIBIMPORT = False
+        print('showImage -- Module matplotlib not found! Abort')
+
+def showImage(image):
+    global MATPLOTLIBIMPORT, plt
+    if not MATPLOTLIBIMPORT:
+        importMatplotLib()
+    plt.imshow(image)
+    plt.show()
+
+def plotImageAlongAxis(image, axis=-1):
+    global MATPLOTLIBIMPORT, plt
+    if not MATPLOTLIBIMPORT:
+        importMatplotLib()
+    if (axis > 1) or (len(image.shape) > 2):
+        raise ValueError('Image must be 2D and axis must be either -1, 0 or 1')
+    nRows, nCols = image.shape()
+
+    # If axis is default value, take longer axis to be x
+    # and loop along smaller axis
+    if axis < 0:
+        loop = numpy.argmax(image.shape)
+
+    for idx in range(image.shape[loop]):
+        if axis:
+            # axis == 1
+            plt.plot(image[idx, :])
+        else:
+            # axis == 0
+            plt.plot(image[:, idx])
+    plt.show()
+
 
 def run_test():
     import RixsTool.io as io
-    from matplotlib import pyplot as plt
+    #from matplotlib import pyplot as plt
     a = io.run_test()
-    im = a[15][2][0] # 15th data blob (i.e. [2]), first image
-    if 1:
-        im = im - im.min()
-        im = numpy.where(im <= 140, im, 0)
-    print('im.shape:',im.shape)
-    b = Integration('foo',0)
-    #for elem in b.sliceAndSum(im, {'sumAxis':1, 'binWidth':128})['summedSlices']:
-    #    plt.plot(elem)
-    plt.plot(b.axisSum(im, {})['sum'])
-    plt.show()
+    #im = a[15][2][0] # 15th data blob (i.e. [2]), first image
+    im = a['Images'][0][:,1:]
+    #print('run_test -- slice.shape:', sliced.shape)
+    key = 'foo'
+    idx = 0
+    #filterObj = Filter(key, idx)
+    #filtered = filterObj.bandPassFilter(im, {'low':im.min(),
+    #                                        'high':im.min()+140})['image']
+
+    #print('filted.shape:', filtered.shape)
+
+    #integrationObj = Integration(key, idx)
+    #sliced = numpy.array(integrationObj.sliceAndSum(filtered, {'sumAxis':1, 'binWidth':64})['summedSlices'])
+
+    #print('filted.shape:', sliced.shape)
+
+    normObj = Normalization(key, idx)
+    #normed = normObj.zeroToOne(sliced, {})['image']
+    #normed = normObj.zeroToOne(filtered, {})['image']
+    normed = normObj.zeroToOne(im, {})['image']
+
+    #showImage(normed)
+
+    #im = numpy.asarray([[0,0,0,.25,.5,2,.5,.25], [0,.5,1,.5,0,0,0,0]])
+
+    alignmentObj = Alignment(key, idx)
+    #shiftList = alignmentObj.centerOfMassAlignment(normed, {})
+    shiftList = alignmentObj.maxAlignment(im, {})
+    print('shiftList:', shiftList)
+    shiftList = alignmentObj.centerOfMassAlignment(im, {})
+    print('shiftList:', shiftList)
+    shiftList = alignmentObj.fftAlignment(im, {})
+    print('shiftList:', shiftList)
+    #for elem in shiftList
+#    for elem in normed:
+#        plt.plot(elem)
+    #plt.plot(b.axisSum(im, {})['sum'])
+#    plt.show()
 
 
 if __name__ == '__main__':
     run_test()
+    print('io.run_test -- Done')
