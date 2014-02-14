@@ -31,6 +31,7 @@ from os import access as OsAccess
 from os import R_OK as OS_R_OK
 import numpy as np
 import time
+import re
 
 class InputReader(object):
     def __init__(self):
@@ -127,6 +128,85 @@ class InputReader(object):
         self._setData()
         self.refreshing = False
 
+class RawTextInputReader(InputReader):
+    def __init__(self):
+        InputReader.__init__(self)
+        self._srcType = open
+
+    def _setData(self):
+        timeStart = time.time()
+        fileDict = self.getFileDict()
+        # Respect the order of self.__fileDict
+        keyList = self.getFileList()
+
+        fileLocs = [fileDict[key].name for key in keyList]
+        rawInput = [fileDict[key].read() for key in keyList]
+
+        headers = len(keyList) * ['']
+        data = len(keyList) * ['']
+        # Look for header
+        print('RawTextInputReader._setData -- looking for headers')
+        for idx, raw in enumerate(rawInput):
+            ### Assume header is enclosed in {} brackets..
+            matchObj = re.match(r'\{.*\}', raw, re.DOTALL)
+            if matchObj:
+                headers[idx] = matchObj.group(0)
+                # Remove header from raw string
+                headerEnd = matchObj.end()+1
+                data[idx] = raw[headerEnd:]
+                print("\tAborting {} header search. Header:",headers[idx])
+                continue
+            ### Match all lines starting with '#'
+            header = ''
+            lines = raw.splitlines(keepends=True)
+            for jdx, line in enumerate(lines):
+                matchObj = re.match(r'^#.*', line)
+                if matchObj:
+                    header += matchObj.group(0)
+                else:
+                    # Reduce raw by header
+                    data[idx] = ''.join(lines[jdx:])
+                    headers[idx] = header
+                    # Once a line is found that does not match
+                    # the pattern, exit 'for line in ...' loop
+                    print("\tAborting # header search. Header:",headers[idx])
+                    break
+            if len(header) > 0:
+                # Header length is non-zero, something must have been
+                # found, continue with next raw string
+                print('\tNo header found')
+                continue
+            headers[idx] = ''
+            data[idx] = raw
+
+        images = len(keyList) * [np.empty(0,dtype=float)]
+        # Get data: At this point it is assumed that if there was
+        # a header in the raw string, it is now removed
+        for idx, raw in enumerate(data):
+            # Remove leading newlines/whitespaces
+            tmp = raw.strip()
+            numRows = len(tmp.splitlines())
+            image = np.fromstring(raw, sep=' ')
+            # Assume column format
+            print('numRows:', numRows)
+            print('len(image):', len(image))
+            #image = image.reshape((len(image)/numRows, numRows))
+            image = image.reshape((numRows, len(image)/numRows))
+            images[idx] = image
+
+        numImages = len(keyList) * [1]
+
+        # Assign to self_data dictionary
+        self._data['FileLocations'] = fileLocs
+        self._data['numImages'] = numImages
+        self._data['Headers'] = headers
+        self._data['Images'] = images
+        timeEnd = time.time()
+        # Approx 1.5s for 17 2048x512 images. Principle part of the time
+        # goes into building the array..
+        print('RawTextInputReader._setData -- Method finished in %.3f s'%\
+              (timeEnd - timeStart))
+
 class EdfInputReader(InputReader):
     def __init__(self):
         InputReader.__init__(self)
@@ -153,20 +233,29 @@ class EdfInputReader(InputReader):
         timeEnd = time.time()
         # Approx 1.5s for 17 2048x512 images. Principle part of the time
         # goes into building the array..
-        print('EdfInputReader._setData -- Method finished in %.3f s',
-              timeEnd - timeStart)
+        print('EdfInputReader._setData -- Method finished in %.3f s'%\
+              (timeEnd - timeStart))
 
 def run_test():
     rixsImageDir = 'C:\\Users\\tonn\\lab\\rixs\\Images'
     from os import listdir as OsListDir
     from os.path import isfile as OsPathIsFile, join as OsPathJoin
-    imageList = [OsPathJoin(rixsImageDir,fn) for fn in OsListDir(rixsImageDir)\
-                 if OsPathIsFile(OsPathJoin(rixsImageDir,fn))]
+    #edfImageList = [OsPathJoin(rixsImageDir,fn) for fn in OsListDir(rixsImageDir)\
+    #             if OsPathIsFile(OsPathJoin(rixsImageDir,fn))][1:]
+    rawImageList = ['C:\\Users\\tonn\\lab\\datasets\\EL9imageNoHeader.txt',
+                    'C:\\Users\\tonn\\lab\\datasets\\EL9imageParaHeader.txt',
+                    'C:\\Users\\tonn\\lab\\datasets\\EL9image.txt']
 
-    reader = EdfInputReader()
-    reader.refresh(imageList)
-    return reader
+    #edfReader = EdfInputReader()
+    #edfReader.refresh(edfImageList)
+    rawReader = RawTextInputReader()
+    rawReader.refresh(rawImageList)
+    return rawReader
+    #return edfReader
 
 if __name__ == '__main__':
     a = run_test()
-    print(a)
+    foo = a['Images'][0]
+    print('foo.shape', foo.shape)
+
+    print('Done!')
