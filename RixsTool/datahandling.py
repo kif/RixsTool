@@ -28,6 +28,41 @@ __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 from RixsTool.calculations import *
 from PyMca import PyMcaQt as qt
 
+DEBUG == 1
+
+class QDirListModel(qt.QAbstractListModel):
+    def __init__(self, parent=None):
+        super(QDirListModel, self).__init__(parent)
+        #self.__directoryList = []
+        self.__directoryList = [qt.QDir('C:\\Users\\tonn\\lab\\rixs\\Images'),
+                                qt.QDir('C:\\Users\\tonn\\lab\\rixs')]
+
+    def __getitem__(self, idx):
+        return self.__directoryList[idx]
+
+    def rowCount(self, modelIndex):
+        return len(self.__directoryList)
+
+    def data(self, modelIndex, role):
+        if modelIndex.isValid():
+            idx = modelIndex.row()
+        else:
+            if DEBUG == 1:
+                print('WorkingDirModel.data -- received invalid index')
+            return None
+        if idx >= len(self.__directoryList):
+            raise IndexError('WorkingDirModel.data -- list index out of range')
+
+        qdir = self.__directoryList[idx]
+        if role == qt.Qt.DisplayRole:
+            dirPath = qdir.absolutePath()
+            return qt.QDir.toNativeSeparators(dirPath)
+        else:
+            if DEBUG == 1:
+                #print('WorkingDirModel.data -- received invalid index')
+                pass
+            return None
+
 class DataHandler(qt.QObject):
     sigRefresh = qt.pyqtSignal(str, int)
 
