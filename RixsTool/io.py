@@ -240,18 +240,18 @@ def run_test():
     rixsImageDir = 'C:\\Users\\tonn\\lab\\rixs\\Images'
     from os import listdir as OsListDir
     from os.path import isfile as OsPathIsFile, join as OsPathJoin
-    #edfImageList = [OsPathJoin(rixsImageDir,fn) for fn in OsListDir(rixsImageDir)\
-    #             if OsPathIsFile(OsPathJoin(rixsImageDir,fn))][1:]
-    rawImageList = ['C:\\Users\\tonn\\lab\\datasets\\EL9imageNoHeader.txt',
-                    'C:\\Users\\tonn\\lab\\datasets\\EL9imageParaHeader.txt',
-                    'C:\\Users\\tonn\\lab\\datasets\\EL9image.txt']
+    edfImageList = [OsPathJoin(rixsImageDir,fn) for fn in OsListDir(rixsImageDir)\
+                 if OsPathIsFile(OsPathJoin(rixsImageDir,fn))][1:]
+    #rawImageList = ['C:\\Users\\tonn\\lab\\datasets\\EL9imageNoHeader.txt',
+    #                'C:\\Users\\tonn\\lab\\datasets\\EL9imageParaHeader.txt',
+    #                'C:\\Users\\tonn\\lab\\datasets\\EL9image.txt']
 
-    #edfReader = EdfInputReader()
-    #edfReader.refresh(edfImageList)
-    rawReader = RawTextInputReader()
-    rawReader.refresh(rawImageList)
-    return rawReader
-    #return edfReader
+    edfReader = EdfInputReader()
+    edfReader.refresh(edfImageList)
+    #rawReader = RawTextInputReader()
+    #rawReader.refresh(rawImageList)
+    #return rawReader
+    return edfReader
 
 if __name__ == '__main__':
     a = run_test()

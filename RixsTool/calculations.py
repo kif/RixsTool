@@ -512,14 +512,13 @@ def plotImageAlongAxis(image, axis=-1):
         importMatplotLib()
     if (axis > 1) or (len(image.shape) > 2):
         raise ValueError('Image must be 2D and axis must be either -1, 0 or 1')
-    nRows, nCols = image.shape()
 
     # If axis is default value, take longer axis to be x
     # and loop along smaller axis
     if axis < 0:
         loop = numpy.argmax(image.shape)
 
-    for idx in range(image.shape[loop]):
+    for idx in range(8):
         if axis:
             # axis == 1
             plt.plot(image[idx, :])
@@ -533,31 +532,31 @@ def run_test():
     import RixsTool.io as io
     #from matplotlib import pyplot as plt
     a = io.run_test()
-    #im = a[15][2][0] # 15th data blob (i.e. [2]), first image
-    im = a['Images'][0][:,1:]
+    im = a[15][2][0] # 15th data blob (i.e. [2]), first image
+    #im = a['Images'][0][:,1:]
     #print('run_test -- slice.shape:', sliced.shape)
     key = 'foo'
     idx = 0
-    #filterObj = Filter(key, idx)
-    #filtered = filterObj.bandPassFilter(im, {'low':im.min(),
-    #                                        'high':im.min()+140})['image']
+    filterObj = Filter(key, idx)
+    filtered = filterObj.bandPassFilter(im, {'low':im.min(),
+                                            'high':im.min()+140})['image']
 
     #print('filted.shape:', filtered.shape)
 
-    #integrationObj = Integration(key, idx)
-    #sliced = numpy.array(integrationObj.sliceAndSum(filtered, {'sumAxis':1, 'binWidth':64})['summedSlices'])
+    integrationObj = Integration(key, idx)
+    sliced = numpy.array(integrationObj.sliceAndSum(filtered, {'sumAxis':1, 'binWidth':64})['summedSlices'])
 
     #print('filted.shape:', sliced.shape)
 
-    normObj = Normalization(key, idx)
+    #normObj = Normalization(key, idx)
     #normed = normObj.zeroToOne(sliced, {})['image']
     #normed = normObj.zeroToOne(filtered, {})['image']
-    normed = normObj.zeroToOne(im, {})['image']
+    #normed = normObj.zeroToOne(im, {})['image']
 
-    #showImage(normed)
+    plotImageAlongAxis(sliced)
 
     #im = numpy.asarray([[0,0,0,.25,.5,2,.5,.25], [0,.5,1,.5,0,0,0,0]])
-
+"""
     alignmentObj = Alignment(key, idx)
     #shiftList = alignmentObj.centerOfMassAlignment(normed, {})
     shiftList = alignmentObj.maxAlignment(im, {})
@@ -571,6 +570,7 @@ def run_test():
 #        plt.plot(elem)
     #plt.plot(b.axisSum(im, {})['sum'])
 #    plt.show()
+"""
 
 
 if __name__ == '__main__':
