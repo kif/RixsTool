@@ -41,6 +41,113 @@ from os.path import splitext as OsPathSplitExt
 
 from RixsTool.datahandling import QDirListModel
 
+DEBUG = 1
+
+class AbstractToolWindow(qt.QDockWidget):
+    acceptSignal = qt.pyqtSignal(object)
+    editFinished = qt.pyqtSignal()
+    editCancelled = qt.pyqtSignal()
+
+    def __init__(self, uiPath=None, parent=None):
+        super(AbstractToolWindow, self).__init__(parent)
+        self._widget = qt.QWidget(parent)
+        self._values = {}
+        self.__uiLoaded = False
+        self.__uiPath = uiPath
+
+    def finished(self):
+        if DEBUG == 1:
+            print("AbstractToolWindow.finished -- To be implemented")
+        self.editFinished.emit()
+        self.destroy(bool_destroyWindow=True,
+                     bool_destroySubWindows=True)
+
+    def hasUI(self):
+        return self.__uiLoaded
+
+    def setUI(self, uiPath=None):
+        if uiPath is None:
+            uiPath = self.__uiPath
+        try:
+            uic.loadUi(uiPath, self._widget)
+            self.__uiLoaded = True
+        except FileNotFoundError:
+            if DEBUG == 1:
+                print('Something went wrong while reading the ui file')
+            self.__uiLoaded = False
+            FileNotFoundError("AbstractToolWindow.setUI -- failed to find ui-file: '%s'"%uiPath)
+        if self.widget() is None:
+            self.setWidget(self._widget)
+
+    def getValues(self):
+        ddict = {}
+        sortedKeys = sorted(self._values.keys())
+        for key in sortedKeys:
+            obj = self._values[key]
+            if isinstance(obj, qt.QPlainTextEdit) or\
+               isinstance(obj, qt.QTextEdit):
+                val = obj.getPlainText()
+            elif isinstance(obj, qt.QLineEdit):
+                val = obj.text()
+            elif isinstance(obj, qt.QCheckBox) or\
+                 isinstance(obj, qt.QRadioButton):
+                val = obj.checkState()
+            elif isinstance(obj, qt.QComboBox):
+                val = obj.currentText()
+            elif isinstance(obj, qt.QAbstractSlider) or\
+                 isinstance(obj, qt.QSpinBox):
+                val = obj.value()
+            else:
+                val = None
+            ddict[key] = val
+        return ddict
+
+    def setValues(self, ddict):
+        success = True
+        for key, val in ddict.items:
+            obj = self._values[key]
+            if isinstance(obj, qt.QPlainTextEdit) or\
+               isinstance(obj, qt.QTextEdit):
+                obj.setPlainText(val)
+            elif isinstance(obj, qt.QLineEdit):
+                obj.setText(val)
+            elif isinstance(obj, qt.QCheckBox) or\
+                 isinstance(obj, qt.QRadioButton):
+                obj.setCheckState(val)
+            elif isinstance(obj, qt.QComboBox):
+                idx = obj.findText(val)
+                obj.setCurrentIndex(idx)
+            elif isinstance(obj, qt.QAbstractSlider) or\
+                 isinstance(obj, qt.QSpinBox):
+                obj.setValue(val)
+            else:
+                if DEBUG == 1:
+                    print("AbstractToolWindow.setValues -- Could not set value for key '%s'"%str(key))
+                # TODO: Raise Exception here?
+                success = False
+        return success
+
+class BandPassFilterWindow(AbstractToolWindow):
+    def __init__(self, parent=None):
+        uiPath = 'C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\bandpassfilter.ui'
+        super(BandPassFilterWindow, self).__init__(uiPath=uiPath,
+                                                   parent=parent)
+        self.setUI()
+
+        self._values = {
+            'upper' : self._widget.upperThreshold,
+            'lower' : self._widget.lowerThreshold,
+            'offset' : self._widget.offsetValue
+        }
+
+        #
+        # Connects
+        #
+        self._widget.buttonApply.clicked.connect(self._handleApply)
+
+    def _handleApply(self):
+        self.acceptSignal.emit(self.getValues())
+
 class FileSystemBrowser(qt.QWidget):
     def __init__(self, parent=None):
         qt.QWidget.__init__(self, parent)
@@ -97,52 +204,17 @@ class FileSystemBrowser(qt.QWidget):
         print('FileSystemBrowser.connectActions to be implemented..')
         pass
 
-class RIXSMainWindow(qt.QMainWindow):
-    def __init__(self, parent=None):
-        qt.QMainWindow.__init__(self, parent)
-        uic.loadUi('C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\mainwindow.ui', self)
-        self.connectActions()
-
-    def connectActions(self):
-        actionList = [(self.openImagesAction, self.openImages),
-                      (self.saveAnalysisAction, self.saveAnalysis),
-                      (self.histogramAction, self.showHistogram)]
-        for action, function in actionList:
-            action.triggered[()].connect(function)
-        print('All Actions connected..')
-
-    def openImages(self):
-        # Open file dialog
-        names = qt.QFileDialog.getOpenFileNames(parent=self,
-                                                caption='Load Image Files',
-                                                directory=PyMcaDirs.inputDir,
-                                                filter=('EDF Files (*.edf *.EDF);;'
-                                                       +'Tiff Files (*.tiff *.TIFF);;'
-                                                       +'All Files (*.*)'))
-        if len(names) == 0:
-            # Nothing to do..
-            return
-        fileName, fileType = OsPathSplitExt(names[-1])
-        print('Filetype:',fileType)
-        if fileType.lower() == '.edf':
-            reader = EdfInputReader()
-        else:
-            reader = InputReader()
-        reader.refresh(names)
-        #for idx, im in enumerate(flatten(reader['Image'])):
-        for idx, im in enumerate(reader['Images']):
-            self.imageView.addImage(im)
-            print('Added image:',idx,' ',type(im))
-
-    def saveAnalysis(self):
-        print('MainWindow -- saveAnalysis: to be implemented')
-
-    def showHistogram(self):
-        print('MainWindow -- showHistogram: to be implemented')
+class DummyNotifier(qt.QObject):
+    def signalReceived(self, val=None):
+        print('DummyNotifier.signal received -- kw:\n',str(val))
 
 if __name__ == '__main__':
     app = qt.QApplication([])
+    #win = BandPassFilterWindow()
+    notifier = DummyNotifier()
     win = RIXSMainWindow()
     #win = FileSystemBrowser()
+    if isinstance(win, AbstractToolWindow):
+        win.acceptSignal.connect(notifier.signalReceived)
     win.show()
     app.exec_()
