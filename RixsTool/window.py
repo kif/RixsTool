@@ -39,20 +39,26 @@ from RixsTool.io import InputReader
 # Imports from os.path
 from os.path import splitext as OsPathSplitExt
 
+from RixsTool.datahandling import QDirListModel
+
 class FileSystemBrowser(qt.QWidget):
     def __init__(self, parent=None):
         qt.QWidget.__init__(self, parent)
         uic.loadUi('C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\filesystembrowser.ui', self)
         # Set working directory
+        self.workingDirCB.setModel(QDirListModel(self))
         self.workingDir = qt.QDir('C:\\Users\\tonn\\lab\\rixs\\Images')
         if not self.workingDir.isAbsolute():
             self.workingDir.makeAbsolute()
+
         # Monitor the creation/changing of new files
         self.watcher = qt.QFileSystemWatcher()
         self.watcher.addPath(self.workingDir.path())
+
         # Set up the FS model
-        self.model = qt.QFileSystemModel()
+        self.model = qt.QFileSystemModel() # Performant alternative to QDirModel
         self.model.setRootPath(self.workingDir.path())
+
         # QTreeView created from ui-file
         self.fsView.setModel(self.model)
         self.fsView.setRootIndex(self.model.index(self.workingDir.path()))
@@ -60,8 +66,24 @@ class FileSystemBrowser(qt.QWidget):
         # Connect
         self.watcher.fileChanged.connect(self._handleFileChanged)
         self.watcher.directoryChanged.connect(self._handleFileChanged)
+        self.workingDirCB.currentIndexChanged.connect(self._handleWorkingDirectoryChanged)
 
         self.connectActions()
+
+    def _handleWorkingDirectoryChanged(self, elem):
+        if isinstance(elem, int):
+            dirModel = self.workingDirCB.model()
+            #elem = dirModel.data(dirModel.createIndex(elem, 0),
+            #                     qt.Qt.DisplayRole)
+            qdir = dirModel[elem]
+        else:
+            qdir = qt.QDir(elem)
+        print(qdir.path())
+        self.model.setRootPath(qdir.path())
+        self.fsView.setRootIndex(self.model.index(qdir.path()))
+        # Clear paths of the watch
+        self.watcher.removePaths(self.watcher.directories())
+        self.watcher.addPath(qdir.path())
 
     def _handleFileChanged(self, filePath):
         print('FileSystemBrowser._handleFileChanged called: %s'%str(filePath))
