@@ -94,12 +94,15 @@
       </layout>
      </item>
      <item row="1" column="0">
-      <widget class="QTreeView" name="fsView">
+      <widget class="DirTree" name="fsView">
        <property name="sizePolicy">
         <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
+       </property>
+       <property name="selectionMode">
+        <enum>QAbstractItemView::ExtendedSelection</enum>
        </property>
        <property name="sortingEnabled">
         <bool>true</bool>
@@ -112,12 +115,15 @@
     </layout>
    </item>
   </layout>
-  <zorder>fsView</zorder>
-  <zorder>fsView</zorder>
-  <zorder>gridLayoutWidget</zorder>
-  <zorder>fsView</zorder>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>DirTree</class>
+   <extends>QTreeView</extends>
+   <header>RixsTool.window</header>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>

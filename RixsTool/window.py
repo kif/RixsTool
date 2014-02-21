@@ -148,6 +148,44 @@ class BandPassFilterWindow(AbstractToolWindow):
     def _handleApply(self):
         self.acceptSignal.emit(self.getValues())
 
+class DirTree(qt.QTreeView):
+    def __init__(self, parent=None):
+        super(DirTree, self).__init__(parent)
+        self.setContextMenuPolicy(qt.Qt.DefaultContextMenu)
+        self.__contextMenu = None
+        self.watcher = qt.QFileSystemWatcher()
+        self.setModel(qt.QFileSystemModel())
+
+    def setContextMenu(self, menu):
+        """
+        :param menu: Contains
+        :type menu: QMenu
+        Sets the context menu of the DirTree that is triggered
+        by a right click on the widget.
+        """
+        self.__contextMenu = menu
+
+    def updatePath(self, path):
+        model = self.model()
+        model.setRootPath(path)
+        newRoot = model.index(path)
+        self.setRootIndex(newRoot)
+        watcherDirs = self.watcher.directories()
+        if len(watcherDirs) > 0:
+            self.watcher.removePaths(watcherDirs)
+        self.watcher.addPath(path)
+
+    def contextMenuEvent(self, event):
+        print('DirTree.contextMenuEvent called')
+        if self.__contextMenu:
+            self.__contextMenu.exec_(event.globalPos())
+
+    def setModel(self, fsModel):
+        if not isinstance(fsModel, qt.QFileSystemModel):
+            raise ValueError('DirTree.setModel -- provided model must be of type QFileSystemModel')
+        else:
+            qt.QTreeView.setModel(self, fsModel)
+
 class FileSystemBrowser(qt.QWidget):
     def __init__(self, parent=None):
         qt.QWidget.__init__(self, parent)
@@ -157,40 +195,68 @@ class FileSystemBrowser(qt.QWidget):
         self.workingDir = qt.QDir('C:\\Users\\tonn\\lab\\rixs\\Images')
         if not self.workingDir.isAbsolute():
             self.workingDir.makeAbsolute()
+        self.fsView.updatePath(self.workingDir.path())
 
-        # Monitor the creation/changing of new files
-        self.watcher = qt.QFileSystemWatcher()
-        self.watcher.addPath(self.workingDir.path())
 
-        # Set up the FS model
-        self.model = qt.QFileSystemModel() # Performant alternative to QDirModel
-        self.model.setRootPath(self.workingDir.path())
-
-        # QTreeView created from ui-file
-        self.fsView.setModel(self.model)
-        self.fsView.setRootIndex(self.model.index(self.workingDir.path()))
-
+        #
         # Connect
-        self.watcher.fileChanged.connect(self._handleFileChanged)
-        self.watcher.directoryChanged.connect(self._handleFileChanged)
+        #
+        self.fsView.watcher.fileChanged.connect(self._handleFileChanged)
+        self.fsView.watcher.directoryChanged.connect(self._handleFileChanged)
         self.workingDirCB.currentIndexChanged.connect(self._handleWorkingDirectoryChanged)
 
+        #
+        # Context menu
+        #
+        treeContextMenu = qt.QMenu(title='File System Context Menu',
+                                   parent=self)
+        openAction = qt.QAction('Open file..', self)
+        openAction.triggered.connect(self.openAction)
+        treeContextMenu.addAction(openAction)
+        self.fsView.setContextMenu(treeContextMenu)
+
+        #
+        # Connects
+        #
         self.connectActions()
+
+    def openAction(self):
+        print('FileSystemBrowser.openAction')
+        return
+
+    def contextMenuEvent(self, event):
+        """
+        :param event:
+        :type event: QContextMenuEvent
+        """
+        if qt.QRect.contains(self.fsView.rect(), event.pos()):
+            print('TreeView.contextMenuEvent called')
+        else:
+            print('FileSystemBrowser.contextMenuEvent called')
 
     def _handleWorkingDirectoryChanged(self, elem):
         if isinstance(elem, int):
             dirModel = self.workingDirCB.model()
-            #elem = dirModel.data(dirModel.createIndex(elem, 0),
-            #                     qt.Qt.DisplayRole)
             qdir = dirModel[elem]
         else:
             qdir = qt.QDir(elem)
-        print(qdir.path())
-        self.model.setRootPath(qdir.path())
-        self.fsView.setRootIndex(self.model.index(qdir.path()))
-        # Clear paths of the watch
-        self.watcher.removePaths(self.watcher.directories())
-        self.watcher.addPath(qdir.path())
+        self.fsView.updatePath(qdir.path())
+
+    def _handleActivated(self, modelIdx):
+        print('FileSystemBrowser.activated')
+        return
+
+    def _handleMouseClick(self, foo):
+        print('FileSystemBrowser._handleLeftClick')
+        return
+
+    def _handleRightClick(self, foo):
+        print('FileSystemBrowser._handleLeftClick')
+        return
+
+    def _handleDoubleClick(self, foo):
+        print('FileSystemBrowser._handleDoubleClick')
+        return
 
     def _handleFileChanged(self, filePath):
         print('FileSystemBrowser._handleFileChanged called: %s'%str(filePath))
@@ -201,7 +267,7 @@ class FileSystemBrowser(qt.QWidget):
         return
 
     def connectActions(self):
-        print('FileSystemBrowser.connectActions to be implemented..')
+        print('FileSystemBrowser.connectActions -- what actions..?!')
         pass
 
 class DummyNotifier(qt.QObject):
@@ -212,8 +278,8 @@ if __name__ == '__main__':
     app = qt.QApplication([])
     #win = BandPassFilterWindow()
     notifier = DummyNotifier()
-    win = RIXSMainWindow()
-    #win = FileSystemBrowser()
+    #win = RIXSMainWindow()
+    win = FileSystemBrowser()
     if isinstance(win, AbstractToolWindow):
         win.acceptSignal.connect(notifier.signalReceived)
     win.show()
