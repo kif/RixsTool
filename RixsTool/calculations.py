@@ -28,6 +28,12 @@ __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 
 import numpy, time
 
+# Numeric routines from PyMca
+from PyMca.Gefit import LeastSquaresFit as LSF
+from PyMca import SpecfitFunctions as SF
+from PyMca.SpecfitFuns import gauss as gaussianModel
+from PyMca import SNIPModule as SNIP
+
 DEBUG = 1
 MATPLOTLIBIMPORT = False
 plt = None
@@ -311,6 +317,134 @@ class Alignment(ImageOp):
         }
         return ddict
 
+    def fitAlignment(self, image, params):
+        idx0 = params.get('idx0', 0)
+        axis = params.get('axis', -1) # Axis defines direction of curves
+        snipWidth = params.get('snipWidth', None)
+        peakSearch = params.get('peakSearch', False)
+
+        #
+        # Determine which axis defines curves
+        # Make shure to convert image to float!!!
+        #
+        if axis < 0:
+            # If axis not specified..
+            rows, cols = image.shape
+            # ..align along smaller axis
+            if rows < cols:
+                axis = 0
+            else:
+                axis = 1
+
+        if axis == 0:
+            nCurves, nPoints = image.shape
+            curves = numpy.float64(image)
+        elif axis == 1:
+            nPoints, nCurves = image.shape
+            curves = numpy.float64(image.T)
+        else:
+            raise ValueError('Alignment instance -- Axis must be either -1, 0 or 1')
+
+        #
+        # Image preprocessing: Snip background
+        #
+        imRows, imCols = image.shape
+        if snipWidth is None:
+            snipWidth = max(imRows, imCols)//10
+        print('snipWidth:',snipWidth)
+        specfitObj = SF.SpecfitFunctions()
+        normObj = Normalization(self.key(), self.index())
+
+        background = numpy.zeros(shape=curves.shape,
+                                 dtype=numpy.float64)
+        for idx, curve in enumerate(curves):
+            background[idx] = SNIP.getSnip1DBackground(curve, snipWidth)
+        subtracted = curves-background
+        normResult = normObj.zeroToOne(image=subtracted,
+                                       params={})
+        normalized = normResult['image']
+
+        """
+        print('curves.shape:', curves.shape)
+        #print('background.shape:', background.shape)
+        print('subtracted.shape:', subtracted.shape)
+
+        plotImageAlongAxis(subtracted)
+        """
+
+        #
+        # Loop through curves: Find peak (max..), Estimate fit params, Perform Gaussian fit
+        #
+        fitList = nCurves * [float('NaN')]
+        if DEBUG == 1:
+            print('Alignment.fitAlignment -- fitting..')
+        for idx, y in enumerate(subtracted):
+            #
+            # Peak search
+            #
+            if peakSearch:
+                try:
+                    # Calculate array with all peak indices
+                    peakIdx = numpy.asarray(specfitObj.seek(y, yscaling=100.),
+                                            dtype=int)
+                    # Extract highest feature
+                    maxIdx = y[peakIdx].argsort()[-1]
+                except IndexError:
+                    if DEBUG == 1:
+                        print('Alignment.fitAlignment -- No peaks found..')
+                    return None
+                except SystemError:
+                    if DEBUG == 1:
+                        print('Alignment.fitAlignment -- Peak search failed. Continue with y maximum')
+                    peakIdx = [y.argmax()]
+                    maxIdx = 0
+            else:
+                peakIdx = [y.argmax()]
+                maxIdx = 0
+            height = float(y[peakIdx][maxIdx]) + curves[idx].min()
+            pos    = float(peakIdx[maxIdx])
+
+            #
+            # Estimate FWHM
+            #
+            fwhmIdx = numpy.nonzero(y >= .5*normalized[idx])[0]
+            # Underestimates FWHM, since carried out on normalized image
+            fwhm = float(fwhmIdx.max()-fwhmIdx.min())
+
+            #
+            # Peak fit: Uses actual data
+            #
+            #xrange = numpy.arange(0, len(y), dtype=y.dtype) # Full range
+            mask = numpy.nonzero(y >= .1*normalized[idx])[0]
+            ydata = curves[idx,mask]
+            #ydata -= ydata.min()
+            try:
+                fitp, chisq, sigma = LSF(gaussianModel,
+                                         numpy.asarray([height, pos, fwhm]),
+                                         xdata=mask,
+                                         ydata=(ydata-ydata.min()))
+                if DEBUG == 1:
+                    print('\tCurve %d -- fitp: %s'%(idx,str(fitp)))
+                    print('\tCurve %d -- chisq: %s'%(idx,str(chisq)))
+                    print('\tCurve %d -- sigma: %s'%(idx,str(sigma)))
+            except numpy.linalg.linalg.LinAlgError:
+                fitp, chisq, sigma = [None, None, None],\
+                                     float('Nan'),\
+                                     float('Nan')
+                if DEBUG == 1:
+                    print('\tCurve %d -- Fit failed!'%idx)
+            fitList[idx] = fitp # ftip is 3-tuple..
+
+
+        posIdx = 1 # ..2nd argument of fitp is peak position
+        shift0 = fitList[idx0][posIdx]
+        shiftList = [shift0-fit[posIdx] for fit in fitList]
+
+        ddict = {
+            'op': 'fitAlignment',
+            'shiftList': shiftList
+        }
+        return ddict
 
 class Interpolation(ImageOp):
     def __init__(self, key, idx, parent=None):
@@ -506,7 +640,7 @@ def showImage(image):
     plt.imshow(image)
     plt.show()
 
-def plotImageAlongAxis(image, axis=-1):
+def plotImageAlongAxis(image, axis=-1, offset=False, returnPlot=False):
     global MATPLOTLIBIMPORT, plt
     if not MATPLOTLIBIMPORT:
         importMatplotLib()
@@ -518,14 +652,22 @@ def plotImageAlongAxis(image, axis=-1):
     if axis < 0:
         loop = numpy.argmax(image.shape)
 
+    yOffset = 0.
     for idx in range(8):
         if axis:
             # axis == 1
-            plt.plot(image[idx, :])
+            curve = image[idx, :]
         else:
             # axis == 0
-            plt.plot(image[:, idx])
-    plt.show()
+            curve = image[:, idx]
+        if offset:
+            yOffset += (curve.max() - curve.min())
+        plt.plot(curve + yOffset)
+
+    if returnPlot:
+        return plt
+    else:
+        plt.show()
 
 
 def run_test():
@@ -553,7 +695,17 @@ def run_test():
     #normed = normObj.zeroToOne(filtered, {})['image']
     #normed = normObj.zeroToOne(im, {})['image']
 
-    plotImageAlongAxis(sliced)
+    alignObj = Alignment(key, idx)
+    fits = alignObj.fitAlignment(sliced,{})['shiftList']
+    #print(alignObj.fftAlignment(sliced,{})) # Not finished
+    maxs = alignObj.maxAlignment(sliced,{})['shiftList']
+
+    print(fits)
+    print(maxs)
+
+    #plt = plotImageAlongAxis(sliced, offset=True, returnPlot=True)
+    #plt.show()
+
 
     #im = numpy.asarray([[0,0,0,.25,.5,2,.5,.25], [0,.5,1,.5,0,0,0,0]])
 """
