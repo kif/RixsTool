@@ -12,6 +12,7 @@ RixsTool/__pycache__/
 #######################
 *.performance
 
-# Notebook #
-############
+# Notes #
+#########
 notebook.py
+practices.txt
