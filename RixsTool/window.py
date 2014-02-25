@@ -37,9 +37,12 @@ from RixsTool.io import EdfInputReader
 from RixsTool.io import InputReader
 
 # Imports from os.path
-from os.path import splitext as OsPathSplitExt
+from os.path import splitext as OsPathSplitext
+from os.path import normpath as OsPathNormpath
 
+from collections import OrderedDict
 from RixsTool.datahandling import QDirListModel
+from RixsTool.datahandling import RixsProject
 
 DEBUG = 1
 
@@ -155,6 +158,11 @@ class DirTree(qt.QTreeView):
         self.__contextMenu = None
         self.watcher = qt.QFileSystemWatcher()
         self.setModel(qt.QFileSystemModel())
+        self.watcher.fileChanged.connect(self.fileChanged)
+
+    def fileChanged(self, path):
+        # TODO: Implement auto update
+        print('DirTree.fileChanged -- path:',path)
 
     def setContextMenu(self, menu):
         """
@@ -187,16 +195,19 @@ class DirTree(qt.QTreeView):
             qt.QTreeView.setModel(self, fsModel)
 
 class FileSystemBrowser(qt.QWidget):
-    def __init__(self, parent=None):
+    addSignal = qt.pyqtSignal(object)
+
+    def __init__(self, parent=None, project=None):
         qt.QWidget.__init__(self, parent)
         uic.loadUi('C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\filesystembrowser.ui', self)
-        # Set working directory
-        self.workingDirCB.setModel(QDirListModel(self))
-        self.workingDir = qt.QDir('C:\\Users\\tonn\\lab\\rixs\\Images')
-        if not self.workingDir.isAbsolute():
-            self.workingDir.makeAbsolute()
-        self.fsView.updatePath(self.workingDir.path())
 
+        if project is None:
+            self.project = RixsProject()
+        else:
+            self.project = project
+
+        # Set default working directory
+        self.workingDirCB.setModel(QDirListModel(self))
 
         #
         # Connect
@@ -206,33 +217,65 @@ class FileSystemBrowser(qt.QWidget):
         self.workingDirCB.currentIndexChanged.connect(self._handleWorkingDirectoryChanged)
 
         #
-        # Context menu
+        # Init and connect context menu for DirTree
         #
         treeContextMenu = qt.QMenu(title='File System Context Menu',
                                    parent=self)
-        openAction = qt.QAction('Open file..', self)
-        openAction.triggered.connect(self.openAction)
-        treeContextMenu.addAction(openAction)
+        addFilesAction = qt.QAction('Add to session', self)
+        addFilesAction.triggered.connect(self.addFiles)
+        treeContextMenu.addAction(addFilesAction)
         self.fsView.setContextMenu(treeContextMenu)
 
-        #
-        # Connects
-        #
-        self.connectActions()
-
-    def openAction(self):
-        print('FileSystemBrowser.openAction')
-        return
-
-    def contextMenuEvent(self, event):
+    def setDir(self, path):
         """
-        :param event:
-        :type event: QContextMenuEvent
+        :param path: Path is added to working directory combo box
+        :type path: str
         """
-        if qt.QRect.contains(self.fsView.rect(), event.pos()):
-            print('TreeView.contextMenuEvent called')
-        else:
-            print('FileSystemBrowser.contextMenuEvent called')
+        model = self.workingDirCB.model()
+        #self.workingDir = qt.QDir('C:\\Users\\tonn\\lab\\rixs\\Images')
+        #if not self.workingDir.isAbsolute():
+        #    self.workingDir.makeAbsolute()
+        #self.fsView.updatePath(self.workingDir.path())
+
+    def setProject(self, newProject):
+        # Make sure to disconnect addSignal
+        if self.project is not None:
+            self.addSignal.disconnect(self.project)
+            if DEBUG == 1:
+                print('FileSystemBrowser.setProject -- Disconnected addSignal from current project')
+        newDir = qt.QDir.absoluteFilePath(newProject.workingDir)
+        if DEBUG == 1:
+            print('FileSystemBrowser.setProject -- Setting project. New WD:', newDir)
+        #self.fsView.updatePath(newDir)
+        self.setDir(newDir)
+        self.addSignal.connect(newProject.addFileInfoList)
+        self.project = newProject
+
+    def getSelectedFiles(self):
+        # QTreeView.selectedIndexes returns list
+        # [Row1Col1, Row1Col2, ..., Row2Col1, ...].
+        # Hence, there is redundant information
+        modelIdxList = self.fsView.selectedIndexes()
+        # Reduce modelIdxList to unique row numbers
+        seen = {}
+        insertPos = 0
+        for item in modelIdxList:
+            if item.row() not in seen:
+                seen[item.row()] = True
+                modelIdxList[insertPos] = item
+                insertPos += 1
+        del modelIdxList[insertPos:]
+        # Get QFileInfo from model indexes
+        fsModel = self.fsView.model()
+        infoList = [fsModel.fileInfo(idx) for idx in modelIdxList]
+        if DEBUG == 1:
+            for elem in infoList:
+                print('\t',elem.absoluteFilePath())
+        return infoList
+
+    def addFiles(self):
+        current = self.getSelectedFiles()
+        self.addSignal.emit(current)
 
     def _handleWorkingDirectoryChanged(self, elem):
         if isinstance(elem, int):
@@ -266,10 +309,6 @@ class FileSystemBrowser(qt.QWidget):
         print('FileSystemBrowser._handleDirectoryChanged called: %s'%str(dirPath))
         return
 
-    def connectActions(self):
-        print('FileSystemBrowser.connectActions -- what actions..?!')
-        pass
-
 class DummyNotifier(qt.QObject):
     def signalReceived(self, val=None):
         print('DummyNotifier.signal received -- kw:\n',str(val))
@@ -278,7 +317,6 @@ if __name__ == '__main__':
     app = qt.QApplication([])
     #win = BandPassFilterWindow()
     notifier = DummyNotifier()
-    #win = RIXSMainWindow()
     win = FileSystemBrowser()
     if isinstance(win, AbstractToolWindow):
         win.acceptSignal.connect(notifier.signalReceived)
