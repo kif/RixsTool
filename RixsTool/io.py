@@ -93,7 +93,8 @@ class InputReader(object):
                 self.__fileList = []
                 self.__fileDict = {}
                 return  False
-            self.__fileList.append(key)
+            if key not in self.__fileList:
+                self.__fileList.append(key)
             self.__fileDict[key] = tmp
         return True
 
@@ -116,10 +117,31 @@ class InputReader(object):
     def getData(self):
         return self._data
 
+    def appendFilename(self, name):
+        self.__fileList.append(name)
+
+    def append(self, llist):
+        """
+        :param llist: List of files to append
+        :type llist: list
+
+        Appends new files to self.__filelist if they
+        are not already present.
+        """
+        self.refreshing = True
+        self.__readFiles(llist)
+        self._setData()
+        self.refreshing = False
+
+
     def refresh(self, llist=None):
         '''
         :param llist: List of files to refresh
         :type llist: list
+
+        Reads all files stored in filelist. If the list
+        parameter is provided, the existing filelist is
+        overwritten.
         '''
         self.refreshing = True
         if llist is None:
