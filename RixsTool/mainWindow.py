@@ -35,10 +35,12 @@ from PyQt4 import uic
 # Imports from RixsTool
 from RixsTool.io import EdfInputReader
 from RixsTool.io import InputReader
+from RixsTool.datahandling import RixsProject
 from RixsTool.window import BandPassFilterWindow
 
 # Imports from os.path
 from os.path import splitext as OsPathSplitExt
+from os.path import normpath as OsPathNormpath
 
 DEBUG = 1
 
@@ -49,6 +51,20 @@ class RIXSMainWindow(qt.QMainWindow):
         self.connectActions()
 
         self.filterWidget = None
+
+        self.projectDict = {}
+
+    def _handleAddSignal(self, fileInfoList):
+        fileNames = [OsPathNormpath(elem.absoluteFilePath()) for elem in fileInfoList]
+        current = self.projectList['Foo Project']
+        current.readImages(fileNames, 'edf')
+        imList = current.getImage(reader=current.imageReaders['edf'],
+                             key='foo',
+                             index=0)
+        for im in imList:
+            print(im[0].shape)
+            self.imageView.addImage(im[0])
+        #print('RIXSMainWindow._handleAddSignal -- Received addSignal:\n\t',fileNames)
 
     def connectActions(self):
         actionList = [(self.openImagesAction, self.openImages),
@@ -87,16 +103,14 @@ class RIXSMainWindow(qt.QMainWindow):
             self.tabWidget.setCurrentWidget(self.imageView)
         if self.filterWidget is None:
             self.filterWidget = BandPassFilterWindow()
-        w = self.centralWidget.width()
-        h = self.centralWidget.height()
+        w = self.centerWidget.width()
+        h = self.centerWidget.height()
         if w > (1.25 * h):
             self.imageView.addDockWidget(qt.Qt.RightDockWidgetArea,
                                          self.filterWidget)
         else:
             self.imageView.addDockWidget(qt.Qt.BottomDockWidgetArea,
                                          self.filterWidget)
-
-
 
     def saveAnalysis(self):
         print('MainWindow -- saveAnalysis: to be implemented')
