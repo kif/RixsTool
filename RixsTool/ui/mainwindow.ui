@@ -46,7 +46,7 @@
         <property name="currentIndex">
          <number>1</number>
         </property>
-        <widget class="PlotWindow" name="imageView">
+        <widget class="ScanWindow" name="imageView">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
            <horstretch>0</horstretch>
@@ -57,7 +57,7 @@
           <string>Image View</string>
          </attribute>
         </widget>
-        <widget class="ScanWindow" name="spectrumView">
+        <widget class="ScanWindow" name="specView">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
            <horstretch>0</horstretch>
@@ -67,8 +67,6 @@
          <attribute name="title">
           <string>Spectrum View</string>
          </attribute>
-         <zorder>horizontalLayoutWidget</zorder>
-         <zorder>fileBrowser</zorder>
         </widget>
        </widget>
       </item>
@@ -164,8 +162,6 @@
       </widget>
      </item>
     </layout>
-    <zorder>fileBrowser</zorder>
-    <zorder>fileBrowser</zorder>
    </widget>
   </widget>
   <action name="openImagesAction">
@@ -241,12 +237,6 @@
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <customwidgets>
-  <customwidget>
-   <class>PlotWindow</class>
-   <extends>QWidget</extends>
-   <header>PyMca.widgets.PlotWindow</header>
-   <container>1</container>
-  </customwidget>
   <customwidget>
    <class>FileSystemBrowser</class>
    <extends>QWidget</extends>

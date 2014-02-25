@@ -78,14 +78,14 @@
         <widget class="QComboBox" name="workingDirCB"/>
        </item>
        <item>
-        <widget class="QToolButton" name="newWorkingDirectoryButton">
+        <widget class="QToolButton" name="setDirButton">
          <property name="text">
           <string>...</string>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QToolButton" name="closeWorkingDirectoryButton">
+        <widget class="QToolButton" name="closeDirButton">
          <property name="text">
           <string>...</string>
          </property>
