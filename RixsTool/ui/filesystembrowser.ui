@@ -78,16 +78,28 @@
         <widget class="QComboBox" name="workingDirCB"/>
        </item>
        <item>
-        <widget class="QToolButton" name="setDirButton">
+        <widget class="QToolButton" name="addDirButton">
          <property name="text">
-          <string>...</string>
+          <string/>
+         </property>
+         <property name="iconSize">
+          <size>
+           <width>16</width>
+           <height>16</height>
+          </size>
+         </property>
+         <property name="shortcut">
+          <string>Ctrl+D</string>
          </property>
         </widget>
        </item>
        <item>
         <widget class="QToolButton" name="closeDirButton">
          <property name="text">
-          <string>...</string>
+          <string/>
+         </property>
+         <property name="shortcut">
+          <string>Ctrl+X</string>
          </property>
         </widget>
        </item>

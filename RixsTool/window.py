@@ -42,6 +42,7 @@ from os.path import normpath as OsPathNormpath
 
 from collections import OrderedDict
 from RixsTool.datahandling import QDirListModel
+from RixsTool.RixsIcons import RixsIconDict
 from RixsTool.datahandling import RixsProject
 
 DEBUG = 1
@@ -201,13 +202,21 @@ class FileSystemBrowser(qt.QWidget):
         qt.QWidget.__init__(self, parent)
         uic.loadUi('C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\filesystembrowser.ui', self)
 
-        if project is None:
-            self.project = RixsProject()
-        else:
-            self.project = project
+        #
+        # Set start directory to qt.QDir.home()
+        #
+        startDir = qt.QDir.home()
+        workingDirModel = QDirListModel(self)
+        self.workingDirCB.setModel(workingDirModel)
+        self.fsView.updatePath(startDir.absolutePath())
 
-        # Set default working directory
-        self.workingDirCB.setModel(QDirListModel(self))
+        #
+        # Init addDir- and closeDirButtons
+        #
+        self.closeDirButton.setEnabled(False)
+        self.addDirButton.setIcon(qt.QIcon(
+                qt.QPixmap.fromImage(RixsIconDict['plus'])))
+        #self.addDirButton.setIconSize(qt.QSize(32, 32))
 
         #
         # Connect
@@ -215,6 +224,9 @@ class FileSystemBrowser(qt.QWidget):
         self.fsView.watcher.fileChanged.connect(self._handleFileChanged)
         self.fsView.watcher.directoryChanged.connect(self._handleFileChanged)
         self.workingDirCB.currentIndexChanged.connect(self._handleWorkingDirectoryChanged)
+
+        self.addDirButton.clicked[()].connect(self.addDir)
+        self.closeDirButton.clicked[()].connect(self.closeDir)
 
         #
         # Init and connect context menu for DirTree
@@ -226,16 +238,59 @@ class FileSystemBrowser(qt.QWidget):
         treeContextMenu.addAction(addFilesAction)
         self.fsView.setContextMenu(treeContextMenu)
 
-    def setDir(self, path):
-        """
-        :param path: Path is added to working directory combo box
-        :type path: str
-        """
+    def closeDir(self, safeClose=True):
+        if safeClose:
+            msg = qt.QMessageBox()
+            msg.setIcon(qt.QMessageBox.Warning)
+            msg.setWindowTitle('Close directory')
+            msg.setText('Are you shure you want to close the current working directory?')
+            msg.setStandardButtons(qt.QMessageBox.Ok | qt.QMessageBox.Cancel)
+            if msg.exec_() == qt.QMessageBox.Cancel:
+                if DEBUG == 1:
+                    print('FileSystemBrowser.closeDir -- Abort')
+                return
+        currentIdx = self.workingDirCB.currentIndex()
+        print('currentIdx:', currentIdx)
         model = self.workingDirCB.model()
-        #self.workingDir = qt.QDir('C:\\Users\\tonn\\lab\\rixs\\Images')
-        #if not self.workingDir.isAbsolute():
-        #    self.workingDir.makeAbsolute()
-        #self.fsView.updatePath(self.workingDir.path())
+        print('model.rowCount:',model.rowCount())
+        print('len(model):',len(model))
+        if model.rowCount() > 0:
+            model.removeDirs(row=currentIdx,
+                             count=1)
+        if model.rowCount() <= 0:
+            self.closeDirButton.setEnabled(False)
+            self.workingDirCB.setCurrentIndex(-1)
+        else:
+            self.workingDirCB.setCurrentIndex(0)
+
+    def addDir(self, path=None):
+        """
+        :param path: New directory to be added
+        :type path: str
+
+        Path is added to working directory combo box and set as new root directory in the view.
+        """
+        if path is None:
+            startDir = self.workingDirCB.currentText()
+            if len(startDir) <= 0:
+                startDir = qt.QDir.home().absolutePath()
+            path = qt.QFileDialog.getExistingDirectory(parent=self,
+                                                       caption='Add directory..',
+                                                       directory=startDir,
+                                                       options=qt.QFileDialog.ShowDirsOnly)
+        path = str(path)
+        if len(path) <= 0:
+            if DEBUG == 1:
+                print('FileSystemBrowser.addDir -- Received empty path. Return.')
+            return
+        newIdx = self.workingDirCB.currentIndex() + 1
+        model = self.workingDirCB.model()
+        model.insertDirs(newIdx, [path])
+        # Update ComboBox and TreeView
+        self.workingDirCB.setCurrentIndex(newIdx)
+        self.fsView.updatePath(path)
+        if not self.closeDirButton.isEnabled():
+            self.closeDirButton.setEnabled(True)
 
     def setProject(self, newProject):
         # Make sure to disconnect addSignal
@@ -280,7 +335,10 @@ class FileSystemBrowser(qt.QWidget):
     def _handleWorkingDirectoryChanged(self, elem):
         if isinstance(elem, int):
             dirModel = self.workingDirCB.model()
-            qdir = dirModel[elem]
+            if len(dirModel) > 0:
+                qdir = dirModel[elem]
+            else:
+                qdir = qt.QDir.home()
         else:
             qdir = qt.QDir(elem)
         self.fsView.updatePath(qdir.path())

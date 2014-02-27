@@ -128,7 +128,7 @@ class QDirListModel(qt.QAbstractListModel):
 
     def flags(self, modelIndex):
         if modelIndex.isValid():
-            return qt.Qt.ItemIsSelectable | qt.Qt.ItemIsEditable
+            return qt.Qt.ItemIsSelectable | qt.Qt.ItemIsEditable | qt.Qt.ItemIsEnabled
         else:
             if DEBUG == 1:
                 print('QDirListModel.flags -- received invalid modelIndex')
