@@ -26,6 +26,15 @@
 #############################################################################*/
 __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 
+def reduce(llist):
+    """
+    :param llist: List of lists
+    :type llist: list
+
+    Unravels a list of lists.
+    """
+    return sum(llist, [])
+
 def unique(seq, ident=''):
     """
     :param seq: Container
@@ -66,6 +75,7 @@ def unique(seq, ident=''):
             seq[insertPos] = item
             insertPos += 1
     del seq[insertPos:]
+
 
 def unitTest_unique():
     #
