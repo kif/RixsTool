@@ -33,7 +33,22 @@ import numpy as np
 import time
 import re
 
-class InputReader(object):
+__doc__ = '''
+ImageReader interface:
+__getitem__(idx):
+    idx is string -> returns all data stored under 'FileLocation', 'Headers', 'Images', ...
+    idx is int -> returns all of the above for a certain key in self.__fileList
+len() -> Returns number of files
+getFileDict() -> Returns dictionary of the low-level input readers (EDFFile, raw, ...)
+keys() -> Returns the handles which identify a reader
+items() -> Returns ['FileLocations', 'numImages', 'Headers', 'Images'], i.e. the self._data headers
+getData() -> Returns all the date (i.e. keys, header, images, ...)
+def append(llist) -> Adds lo cations in llist to fileList
+def appendFilename(name) -> Same as above, but for single string
+refresh(llist=None) -> Reads all the files
+'''
+
+class ImageReader(object):
     def __init__(self):
         object.__init__(self)
         self.__fileList = []
@@ -49,7 +64,7 @@ class InputReader(object):
 
     def __getitem__(self, idx):
         """
-        :param idx: Either the index of an image in self.__fileList or a key from InputReader.keys()
+        :param idx: Either the index of an image in self.__fileList or a key from ImageReader.keys()
         :type idx: int or str
 
         idx is int:
@@ -65,7 +80,7 @@ class InputReader(object):
             return self._data[idx]
         elif isinstance(idx, int):
             if idx >= len(self):
-                raise IndexError('InputReader index %d out of range(%d)'%(idx, len(self)))
+                raise IndexError('ImageReader index %d out of range(%d)'%(idx, len(self)))
             key = self.__fileList[idx]
             data = (key,
                     self._data['Headers'][idx],
@@ -74,7 +89,7 @@ class InputReader(object):
                     self._data['FileLocations'][idx])
             return data
         else:
-            raise TypeError('InputReader indices must be integers or keys')
+            raise TypeError('ImageReader indices must be integers or keys')
 
     def __len__(self):
         return len(self.__fileList)
@@ -89,7 +104,7 @@ class InputReader(object):
         if isinstance(self._srcType, type(None)):
             raise NotImplementedError('Do not instantiate base class')
         for filename in llist:
-            print('InputReader.__readFiles -- reading:',filename)
+            print('ImageReader.__readFiles -- reading:',filename)
             if not OsAccess(filename, OS_R_OK):
                 print("Invalid file '%s'"%filename)
             tmp = self._srcType(filename)
@@ -111,13 +126,13 @@ class InputReader(object):
         """
         raise NotImplementedError('Do not instantiate base class')
 
-    def getFileList(self):
-        return self.__fileList
-
     def getFileDict(self):
         return self.__fileDict
 
     def keys(self):
+        return self.__fileList
+
+    def items(self):
         return self._data.keys()
 
     def getData(self):
@@ -145,6 +160,7 @@ class InputReader(object):
         :param llist: List of files to refresh
         :type llist: list
 
+        # TODO: Do not add file, only refresh those given in llist!
         Reads all files stored in filelist. If the list
         parameter is provided, the existing filelist is
         overwritten.
@@ -156,9 +172,9 @@ class InputReader(object):
         self._setData()
         self.refreshing = False
 
-class RawTextInputReader(InputReader):
+class RawTextInputReader(ImageReader):
     def __init__(self):
-        InputReader.__init__(self)
+        ImageReader.__init__(self)
         self._srcType = open
 
     def _setData(self):
@@ -235,9 +251,9 @@ class RawTextInputReader(InputReader):
         print('RawTextInputReader._setData -- Method finished in %.3f s'%\
               (timeEnd - timeStart))
 
-class EdfInputReader(InputReader):
+class EdfInputReader(ImageReader):
     def __init__(self):
-        InputReader.__init__(self)
+        ImageReader.__init__(self)
         self._srcType = EdfFile
 
     def _setData(self):
