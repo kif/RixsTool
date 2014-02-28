@@ -75,12 +75,32 @@
         </spacer>
        </item>
        <item>
-        <widget class="QComboBox" name="workingDirCB"/>
+        <widget class="QComboBox" name="workingDirCB">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="sizeAdjustPolicy">
+          <enum>QComboBox::AdjustToContents</enum>
+         </property>
+        </widget>
        </item>
        <item>
         <widget class="QToolButton" name="addDirButton">
          <property name="text">
           <string/>
+         </property>
+         <property name="icon">
+          <iconset>
+           <normaloff>../icons/plus.ico</normaloff>../icons/plus.ico</iconset>
          </property>
          <property name="iconSize">
           <size>
@@ -97,6 +117,10 @@
         <widget class="QToolButton" name="closeDirButton">
          <property name="text">
           <string/>
+         </property>
+         <property name="icon">
+          <iconset>
+           <normaloff>../icons/minus.ico</normaloff>../icons/minus.ico</iconset>
          </property>
          <property name="shortcut">
           <string>Ctrl+X</string>

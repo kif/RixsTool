@@ -4,5 +4,6 @@
 <file alias="minus.ico">icons/minus.ico</file>
 <file alias="rixs.ico">icons/rixs.ico</file>
 <file alias="target.ico">icons/target.ico</file>
+<file alias="close.ico">icons/close.ico</file>
 </qresource>
 </RCC>
