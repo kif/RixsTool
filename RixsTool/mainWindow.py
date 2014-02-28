@@ -34,7 +34,7 @@ from PyQt4 import uic
 
 # Imports from RixsTool
 from RixsTool.io import EdfInputReader
-from RixsTool.io import InputReader
+from RixsTool.io import ImageReader
 from RixsTool.datahandling import RixsProject
 from RixsTool.window import BandPassFilterWindow
 

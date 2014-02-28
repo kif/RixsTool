@@ -34,18 +34,29 @@ from PyQt4 import uic
 
 # Imports from RixsTool
 from RixsTool.io import EdfInputReader
-from RixsTool.io import InputReader
+from RixsTool.io import ImageReader
 
 # Imports from os.path
 from os.path import splitext as OsPathSplitext
 from os.path import normpath as OsPathNormpath
 
 from collections import OrderedDict
-from RixsTool.datahandling import QDirListModel
-from RixsTool.RixsIcons import RixsIconDict
+from RixsTool.Models import QDirListModel
 from RixsTool.datahandling import RixsProject
+from RixsTool import RixsIcons
 
 DEBUG = 1
+
+class AbstractToolTitleBar(qt.QWidget):
+
+    __uiPath = 'C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\abtractTitleToolBar.ui'
+
+    def __init__(self, title):
+        super(AbstractToolTitleBar, self).__init__()
+        uic.loadUi(self.__uiPath, self)
+        self.closeButton.setFlat(True)
+        self.setWindowTitle(title)
+
 
 class AbstractToolWindow(qt.QDockWidget):
     acceptSignal = qt.pyqtSignal(object)
@@ -74,14 +85,18 @@ class AbstractToolWindow(qt.QDockWidget):
             uiPath = self.__uiPath
         try:
             uic.loadUi(uiPath, self._widget)
-            self.__uiLoaded = True
         except FileNotFoundError:
-            if DEBUG == 1:
-                print('Something went wrong while reading the ui file')
             self.__uiLoaded = False
-            FileNotFoundError("AbstractToolWindow.setUI -- failed to find ui-file: '%s'"%uiPath)
+            raise FileNotFoundError("AbstractToolWindow.setUI -- failed to find ui-file: '%s'"%uiPath)
+        self.__uiLoaded = True
         if self.widget() is None:
             self.setWidget(self._widget)
+            #
+            # Set the title bar
+            #
+            title = self.windowTitle()
+            titleBar = AbstractToolTitleBar(title)
+            self.setTitleBarWidget(titleBar)
 
     def getValues(self):
         ddict = {}
@@ -144,14 +159,6 @@ class BandPassFilterWindow(AbstractToolWindow):
             'offset' : self._widget.offsetValue
         }
 
-        #
-        # Connects
-        #
-        self._widget.buttonApply.clicked.connect(self._handleApply)
-
-    def _handleApply(self):
-        self.acceptSignal.emit(self.getValues())
-
 class DirTree(qt.QTreeView):
     def __init__(self, parent=None):
         super(DirTree, self).__init__(parent)
@@ -195,6 +202,18 @@ class DirTree(qt.QTreeView):
         else:
             qt.QTreeView.setModel(self, fsModel)
 
+"""
+class RixsProjectModel(qt.QAbstractItemModel, RixsProject):
+    def __init__(self, project, parent=None):
+        # super(...) calls ctors of parent classes in order they are listed..
+        super(RixsProjectModel, self).__init__(self, parent)
+
+    def index(self, row, col, parent = qt.QModelIndex()):
+        return self.createIndex(row, col)
+"""
+
+
+
 class FileSystemBrowser(qt.QWidget):
     addSignal = qt.pyqtSignal(object)
 
@@ -214,8 +233,8 @@ class FileSystemBrowser(qt.QWidget):
         # Init addDir- and closeDirButtons
         #
         self.closeDirButton.setEnabled(False)
-        self.addDirButton.setIcon(qt.QIcon(
-                qt.QPixmap.fromImage(RixsIconDict['plus'])))
+        #self.addDirButton.setIcon(qt.QIcon('C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\icons\\plus.ico'))
+        #self.addDirButton.setIcon(qt.QIcon(':/icons/plus.ico'))
         #self.addDirButton.setIconSize(qt.QSize(32, 32))
 
         #
@@ -373,9 +392,9 @@ class DummyNotifier(qt.QObject):
 
 if __name__ == '__main__':
     app = qt.QApplication([])
-    #win = BandPassFilterWindow()
+    win = BandPassFilterWindow()
     notifier = DummyNotifier()
-    win = FileSystemBrowser()
+    #win = FileSystemBrowser()
     if isinstance(win, AbstractToolWindow):
         win.acceptSignal.connect(notifier.signalReceived)
     win.show()
