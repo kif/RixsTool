@@ -79,6 +79,12 @@ class InputReader(object):
     def __len__(self):
         return len(self.__fileList)
 
+    def __repr__(self):
+        all = [self.__getitem__(idx) for idx in range(len(self))]
+        inputType = str(self._srcType)
+        return '\n\t'.join(['%s %s %s'%(inputType,'instance at',id(self))]+\
+                           ['%s -> %d Image(s)'%(key, numImages) for key, header, image, numImages, loc in all])
+
     def __readFiles(self, llist):
         if isinstance(self._srcType, type(None)):
             raise NotImplementedError('Do not instantiate base class')
@@ -279,5 +285,6 @@ if __name__ == '__main__':
     a = run_test()
     foo = a['Images'][0]
     print('foo.shape', foo.shape)
+    print(a)
 
     print('Done!')
