@@ -1,0 +1,8 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource>
+<file alias="plus.ico">icons/plus.ico</file>
+<file alias="minus.ico">icons/minus.ico</file>
+<file alias="rixs.ico">icons/rixs.ico</file>
+<file alias="target.ico">icons/target.ico</file>
+</qresource>
+</RCC>
