@@ -107,6 +107,7 @@ class ImageReader(object):
             print('ImageReader.__readFiles -- reading:',filename)
             if not OsAccess(filename, OS_R_OK):
                 print("Invalid file '%s'"%filename)
+                continue
             tmp = self._srcType(filename)
             path, key = OsPathSplit(filename)
             if len(key) == 0:
@@ -151,6 +152,7 @@ class ImageReader(object):
         """
         self.refreshing = True
         self.__readFiles(llist)
+        print('InputReader.append -- llist:',str(llist))
         self._setData()
         self.refreshing = False
 
@@ -168,6 +170,7 @@ class ImageReader(object):
         self.refreshing = True
         if llist is None:
             llist = self.__fileList
+        print('InputReader.refresh -- llist:',str(llist))
         self.__readFiles(llist)
         self._setData()
         self.refreshing = False
@@ -181,7 +184,7 @@ class RawTextInputReader(ImageReader):
         timeStart = time.time()
         fileDict = self.getFileDict()
         # Respect the order of self.__fileDict
-        keyList = self.getFileList()
+        keyList = self.keys()
 
         fileLocs = [fileDict[key].name for key in keyList]
         rawInput = [fileDict[key].read() for key in keyList]
@@ -260,7 +263,7 @@ class EdfInputReader(ImageReader):
         timeStart = time.time()
         edfDict = self.getFileDict()
         # Respect the order of self.__fileDict
-        keyList = self.getFileList()
+        keyList = self.keys()
         fileLocs = [edfDict[key].FileName for key in keyList]
         numImages = [edfDict[key].GetNumImages() for key in keyList]
         # Make shure to loop through all scans
