@@ -26,10 +26,131 @@
 #############################################################################*/
 __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 
-from RixsTool.RixsUtils import unique as RixsUtilsUnique
+from RixsTool.Utils import unique as RixsUtilsUnique
+#from RixsTool.datahandling import
 from PyMca import PyMcaQt as qt
 
+from os.path import splitext as OsPathSplitext
+from os import walk as OsWalk
+
 DEBUG = 1
+
+class QContainerTreeModel(qt.QAbstractItemModel):
+    __doc__ = """
+    Structure of RixsProject.groups:
+
+      +---- Ims --+---- Group0: All images per default
+      |           |
+    --+---- Sps   +---- Group1: empty
+      |
+      +---- Sts
+    """
+
+    def __init__(self, root, parent=None):
+        super(QContainerTreeModel, self).__init__(parent)
+        self.rootItem = root
+
+    def getContainer(self, modelIndex):
+        """
+        :param modelIndex: Model index of a container in the model
+        :type modelIndex: QModelIndex
+        :returns: ItemContainer instance at modelIndex.
+        :rtype: ItemContainer
+        """
+        if modelIndex.isValid():
+            item = modelIndex.internalPointer()
+            if item:
+                return item
+        return self.rootItem
+
+    def data(self, modelIndex, role=qt.Qt.DisplayRole):
+        """
+        :param modelIndex: Model index of a container in the model
+        :type modelIndex: QModelIndex
+        :param role: Determines which data is extracted from the container
+        :type role: Qt.ItemDataRole (int)
+        :returns: Requested data or None
+        :rtype: str, QSize, None, ...
+        """
+        if not modelIndex.isValid():
+            return None
+        item = self.getContainer(modelIndex)
+        if role == qt.Qt.DisplayRole:
+            return str(item.data(modelIndex.column()))
+
+    def rowCount(self, parentIndex=qt.QModelIndex(), *args, **kwargs):
+        """
+        :param modelIndex: Model index of a container in the model
+        :type modelIndex: QModelIndex
+        :returns: Number of rows
+        :rtype: int
+        """
+        parent = self.getContainer(parentIndex)
+        return parent.childCount()
+
+    def columnCount(self, parentIndex=qt.QModelIndex(), *args, **kwargs):
+        """
+        :param modelIndex: Model index of a container in the model
+        :type modelIndex: QModelIndex
+        :returns: Number of columns (i.e. attributes) shown
+        :rtype: int
+        """
+        parent = self.getContainer(parentIndex)
+        #return self.rootItem.columnCount()
+        return parent.columnCount()
+
+    def flags(self, modelIndex):
+        """
+        :param modelIndex: Model index of a container in the model
+        :type modelIndex: QModelIndex
+        :returns: Flag indicating how the view can interact with the model
+        :rtype: Qt.ItemFlag
+        """
+        if modelIndex.isValid():
+            return qt.Qt.ItemIsEditable | qt.Qt.ItemIsEnabled | qt.Qt.ItemIsSelectable
+        else:
+            return 0
+
+    def index(self, row, col, parentIndex=qt.QModelIndex(), *args, **kwargs):
+        """
+        :param row: Row in the table of parentIndex
+        :type row: int
+        :param col: Column in the table of parentIndex
+        :type col: int
+        :param parentIndex: Determines the table
+        :type parentIndex: QModelIndex
+        :returns: (Possibly invalid) model index of a container in the model. Invalid model indexes refer to the root
+        :rtype: QModelIndex
+        """
+        if parentIndex.isValid() and parentIndex.column() > 0:
+            return qt.QModelIndex()
+        parent = self.getContainer(parentIndex)
+        try:
+            child = parent.children[row]
+        except IndexError:
+            return qt.QModelIndex()
+        if child:
+            return self.createIndex(row, col, child)
+        else:
+            return qt.QModelIndex()
+
+    def parent(self, modelIndex=qt.QModelIndex()):
+        """
+        :param modelIndex: Model index of a container in the model
+        :type modelIndex: QModelIndex
+        :returns: (Possibly invalid) model index of the parent container. Invalid model indexes refer to the root
+        :rtype: QModelIndex
+        """
+        if not modelIndex.isValid():
+            return qt.QModelIndex()
+
+        child = self.getContainer(modelIndex)
+        parent = child.parent
+
+        if parent == self.rootItem:
+            return qt.QModelIndex()
+
+        return self.createIndex(parent.childNumber(), 0, parent)
 
 class QDirListModel(qt.QAbstractListModel):
     def __init__(self, parent=None):
@@ -164,3 +285,4 @@ def unitTest_QDirListModel():
 
 if __name__ == '__main__':
     unitTest_QDirListModel()
+    unitTest_RixsProjectModel()
