@@ -27,7 +27,7 @@
 __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 
 from RixsTool.Utils import unique as RixsUtilsUnique
-#from RixsTool.datahandling import
+from RixsTool.Datahandling import RixsProject
 from PyMca import PyMcaQt as qt
 
 from os.path import splitext as OsPathSplitext
@@ -74,9 +74,13 @@ class QContainerTreeModel(qt.QAbstractItemModel):
         """
         if not modelIndex.isValid():
             return None
-        item = self.getContainer(modelIndex)
+        container = self.getContainer(modelIndex)
         if role == qt.Qt.DisplayRole:
-            return str(item.data(modelIndex.column()))
+            if not container.hasItem():
+                if modelIndex.column():
+                    return ''
+                return str(container.label)
+            return str(container.data(modelIndex.column()))
 
     def rowCount(self, parentIndex=qt.QModelIndex(), *args, **kwargs):
         """
@@ -283,6 +287,29 @@ def unitTest_QDirListModel():
         print('datahandling.unitTest_QDirListModel -- Failure')
         return False
 
+def unitTest_QContainerTreeModel():
+    directory = r'C:\Users\tonn\lab\mockFolder'
+    project = RixsProject()
+    for result in OsWalk(directory):
+        currentPath = result[0]
+        dirs = result[1]
+        files = result[2]
+        for file in files:
+            root, ext = OsPathSplitext(file)
+            filename = currentPath + '\\' + file
+            if ext.replace('.','') == project.EDF_TYPE:
+                print('Found edf-File:')
+                project.readImage(filename, project.EDF_TYPE)
+                print(type(project.image(file, project.EDF_TYPE)))
+
+    app = qt.QApplication([])
+    win = qt.QTreeView()
+    model = QContainerTreeModel(project.projectRoot, win)
+    win.setModel(model)
+    win.show()
+    app.exec_()
+
+
 if __name__ == '__main__':
-    unitTest_QDirListModel()
-    unitTest_RixsProjectModel()
+    #unitTest_QDirListModel()
+    unitTest_QContainerTreeModel()

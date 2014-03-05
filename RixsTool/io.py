@@ -32,6 +32,7 @@ from os import R_OK as OS_R_OK
 import numpy as np
 import time
 import re
+from RixsTool.DataItem import ImageItem, StackItem
 
 __doc__ = '''
 ImageReader interface:
@@ -82,11 +83,26 @@ class ImageReader(object):
             if idx >= len(self):
                 raise IndexError('ImageReader index %d out of range(%d)'%(idx, len(self)))
             key = self.__fileList[idx]
+            numImages = self._data['numImages'][idx]
             data = (key,
                     self._data['Headers'][idx],
                     self._data['Images'][idx],
                     self._data['numImages'][idx],
                     self._data['FileLocations'][idx])
+            if numImages > 1:
+                data = StackItem(
+                    key=key,
+                    header=self._data['Headers'][idx],
+                    array=self._data['Images'][idx],
+                    fileLocation=self._data['FileLocations'][idx]
+                )
+            else:
+                data = ImageItem(
+                    key=key,
+                    header=self._data['Headers'][idx],
+                    array=self._data['Images'][idx],
+                    fileLocation=self._data['FileLocations'][idx]
+                )
             return data
         else:
             raise TypeError('ImageReader indices must be integers or keys')
