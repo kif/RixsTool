@@ -1,5 +1,5 @@
 #/*##########################################################################
-# Copyright (C) 2004-2014 European Synchrotron Radiation Facility
+# Copyright (C) 2014 European Synchrotron Radiation Facility
 #
 # This file is part of the PyMca X-ray Fluorescence Toolkit developed at
 # the ESRF by the Software group.
@@ -35,7 +35,7 @@ from PyQt4 import uic
 # Imports from RixsTool
 from RixsTool.io import EdfInputReader
 from RixsTool.io import ImageReader
-from RixsTool.datahandling import RixsProject
+from RixsTool.Datahandling import RixsProject
 from RixsTool.window import BandPassFilterWindow
 
 # Imports from os.path
@@ -59,8 +59,8 @@ class RIXSMainWindow(qt.QMainWindow):
         current = self.projectList['Foo Project']
         current.readImages(fileNames, 'edf')
         imList = current.getImage(reader=current.imageReaders['edf'],
-                             key='foo',
-                             index=0)
+                                  key='foo',
+                                  index=0)
         for im in imList:
             print(im[0].shape)
             self.imageView.addImage(im[0])
@@ -91,7 +91,7 @@ class RIXSMainWindow(qt.QMainWindow):
         if fileType.lower() == '.edf':
             reader = EdfInputReader()
         else:
-            reader = InputReader()
+            reader = ImageReader()
         reader.refresh(names)
         #for idx, im in enumerate(flatten(reader['Image'])):
         for idx, im in enumerate(reader['Images']):
