@@ -1,5 +1,5 @@
 #/*##########################################################################
-# Copyright (C) 2004-2014 European Synchrotron Radiation Facility
+# Copyright (C) 2014 European Synchrotron Radiation Facility
 #
 # This file is part of the PyMca X-ray Fluorescence Toolkit developed at
 # the ESRF by the Software group.
@@ -42,7 +42,7 @@ from os.path import normpath as OsPathNormpath
 
 from collections import OrderedDict
 from RixsTool.Models import QDirListModel
-from RixsTool.datahandling import RixsProject
+from RixsTool.Datahandling import RixsProject
 from RixsTool import RixsIcons
 
 DEBUG = 1
