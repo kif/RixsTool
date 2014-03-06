@@ -28,8 +28,7 @@ __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 
 from RixsTool.Utils import unique as RixsUtilsUnique
 from RixsTool.Datahandling import RixsProject
-from RixsTool.ContextMenu import ItemContextMenu, ContainerContextMenu
-import RixsTool.RixsIcons
+from RixsTool.ContextMenu import ItemContextMenu, ContainerContextMenu, RemoveAction, ShowAction, ExpandAction, RenameAction
 from PyMca import PyMcaQt as qt
 
 from os.path import splitext as OsPathSplitext
@@ -38,10 +37,11 @@ from os import walk as OsWalk
 DEBUG = 1
 
 class ProjectView(qt.QTreeView):
-    def __init__(self, project=None, parent=None):
+    def __init__(self, project, parent=None):
         super(ProjectView, self).__init__(parent)
         # TODO: Check if project is instance of RixsProject
         self.project = project
+        self.setSelectionMode(qt.QAbstractItemView.ExtendedSelection)
         self.setContextMenuPolicy(qt.Qt.DefaultContextMenu)
         #self.customContextMenuRequested.connect(self.contextMenuRequest)
 
@@ -50,19 +50,36 @@ class ProjectView(qt.QTreeView):
         if not self.project:
             print('ProjectView.contextMenuEvent -- Project is none')
             return
-        modelIndex = self.indexAt(event.pos())
-        model = self.model()
-        container = model.getContainer(modelIndex)
-        print(container)
-        if container.item():
-            menu = ItemContextMenu()
-            print('ProjectView.contextMenuEvent -- Item detected, menu:',str(menu))
-        else:
+        #modelIndexList = RixsUtilsUnique(self.selectedIndexes(), 'row')
+        modelIndexList = [self.indexAt(event.pos())]
+        print('Length modelIndexList:',len(modelIndexList))
+        if len(modelIndexList) > 1:
             menu = ContainerContextMenu()
-            print('ProjectView.contextMenuEvent -- Container detected, menu:',str(menu))
+            print('ProjectView.contextMenuEvent -- Multiple selection, menu:',str(menu))
+        else:
+            model = self.model()
+            container = model.getContainer(modelIndexList[0])
+            print('Container:',str(container))
+            if container.item():
+                menu = ItemContextMenu()
+                print('ProjectView.contextMenuEvent -- Item detected, menu:',str(menu))
+            else:
+                menu = ContainerContextMenu()
+                print('ProjectView.contextMenuEvent -- Container detected, menu:',str(menu))
         menu.build()
         action = menu.exec_(event.globalPos())
-        print(action)
+        print("ProjectView.contextMenuEvent -- received unknown action '%s'"%str(type(action)))
+        if isinstance(action, RemoveAction):
+            pass
+        elif isinstance(action, ShowAction):
+            pass
+        elif isinstance(action, RenameAction):
+            pass
+        elif isinstance(action, ExpandAction):
+            for modelIndex in modelIndexList:
+                self.expand(modelIndex)
+        else:
+            return
 
 
 class QContainerTreeModel(qt.QAbstractItemModel):

@@ -31,6 +31,30 @@ from PyMca import PyMcaQt as qt
 __doc__ = """
 """
 
+class AbstractAction(qt.QAction):
+    __doc__ = """Base class for actions"""
+    def __init__(self, icon=None, text=None, parent=None):
+        self.__icon = icon
+        self.__text = text
+        if icon and text:
+            super(AbstractAction, self).__init__(icon, text, parent)
+        elif text:
+            super(AbstractAction, self).__init__(text, parent)
+        else:
+            super(AbstractAction, self).__init__(parent)
+
+class RemoveAction(AbstractAction):
+    pass
+
+class ShowAction(AbstractAction):
+    pass
+
+class ExpandAction(AbstractAction):
+    pass
+
+class RenameAction(AbstractAction):
+    pass
+
 class AbstractContextMenu(qt.QMenu):
     __doc__ = """Base class for context menus"""
     def __init__(self, parent=None):
@@ -64,18 +88,17 @@ class ItemContextMenu(AbstractContextMenu):
     def __init__(self, parent=None):
         super(ItemContextMenu, self).__init__(parent)
 
-        showAction =  qt.QAction(
+        showAction =  ShowAction(
+            None,
             'Show item in native format',
             self
         )
-        #showAction.triggered[()].connect(project.showItem)
 
-        removeAction = qt.QAction(
-            qt.QIcon(':/icons/minus.ico'),
+        removeAction = RemoveAction(
+            qt.QIcon(':/minus.ico'),
             'Remove item from project',
             self
         )
-        #removeAction.triggered[()].connect(project.removeItem)
 
         self.actionList = [
             showAction,
@@ -86,21 +109,27 @@ class ContainerContextMenu(AbstractContextMenu):
     def __init__(self, parent=None):
         super(ContainerContextMenu, self).__init__(parent)
 
-        renameGroupAction =  qt.QAction(
+        renameGroupAction =  RenameAction(
+            None,
             'Rename group',
             self
         )
-        #renameGroupAction.triggered[()].connect(project.renameGroup)
 
-        removeGroupAction =  qt.QAction(
-            qt.QIcon(':/icons/minus.ico'),
-            'Remove group',
+        expandGroupAction =  ExpandAction(
+            None,
+            'Expand groups',
             self
         )
-        #removeGroupAction.triggered[()].connect(project.removeGroup)
+
+        removeGroupAction =  RemoveAction(
+            qt.QIcon(qt.QPixmap(':/minus.ico')),
+            'Disband group',
+            self
+        )
 
         self.actionList = [
             renameGroupAction,
+            expandGroupAction,
             removeGroupAction
         ]
 
