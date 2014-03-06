@@ -100,7 +100,7 @@ class ImageReader(object):
                 data = ImageItem(
                     key=key,
                     header=self._data['Headers'][idx],
-                    array=self._data['Images'][idx],
+                    array=np.squeeze(self._data['Images'][idx]),
                     fileLocation=self._data['FileLocations'][idx]
                 )
             return data
