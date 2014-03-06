@@ -28,12 +28,42 @@ __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 
 from RixsTool.Utils import unique as RixsUtilsUnique
 from RixsTool.Datahandling import RixsProject
+from RixsTool.ContextMenu import ItemContextMenu, ContainerContextMenu
+import RixsTool.RixsIcons
 from PyMca import PyMcaQt as qt
 
 from os.path import splitext as OsPathSplitext
 from os import walk as OsWalk
 
 DEBUG = 1
+
+class ProjectView(qt.QTreeView):
+    def __init__(self, project=None, parent=None):
+        super(ProjectView, self).__init__(parent)
+        # TODO: Check if project is instance of RixsProject
+        self.project = project
+        self.setContextMenuPolicy(qt.Qt.DefaultContextMenu)
+        #self.customContextMenuRequested.connect(self.contextMenuRequest)
+
+    def contextMenuEvent(self, event):
+        print('ProjectView.contextMenuEvent -- called')
+        if not self.project:
+            print('ProjectView.contextMenuEvent -- Project is none')
+            return
+        modelIndex = self.indexAt(event.pos())
+        model = self.model()
+        container = model.getContainer(modelIndex)
+        print(container)
+        if container.item():
+            menu = ItemContextMenu()
+            print('ProjectView.contextMenuEvent -- Item detected, menu:',str(menu))
+        else:
+            menu = ContainerContextMenu()
+            print('ProjectView.contextMenuEvent -- Container detected, menu:',str(menu))
+        menu.build()
+        action = menu.exec_(event.globalPos())
+        print(action)
+
 
 class QContainerTreeModel(qt.QAbstractItemModel):
     __doc__ = """
@@ -78,9 +108,29 @@ class QContainerTreeModel(qt.QAbstractItemModel):
         if role == qt.Qt.DisplayRole:
             if not container.hasItem():
                 if modelIndex.column():
+                    # Not in the 0-th column..
                     return ''
                 return str(container.label)
             return str(container.data(modelIndex.column()))
+
+    def headerData(self, section, orientation, role=qt.Qt.DisplayRole):
+        """
+        :param section: Header column
+        :type section: int
+        :param orientation: Determines if header is vertical or horizontal
+        :type orientation: Qt.Orientation (int)
+        :param role: Determines return type
+        :type role: Qt.ItemDataRole (int)
+        :returns: Requested information or None
+        :rtype: str, QSize, None, ...
+        """
+        if section < 0 or self.columnCount() <= section:
+            return None
+        if role == qt.Qt.DisplayRole:
+            headerItem = self.rootItem._data
+            return headerItem[section].upper()
+        else:
+            return None
 
     def rowCount(self, parentIndex=qt.QModelIndex(), *args, **kwargs):
         """
@@ -303,7 +353,7 @@ def unitTest_QContainerTreeModel():
                 print(type(project.image(file, project.EDF_TYPE)))
 
     app = qt.QApplication([])
-    win = qt.QTreeView()
+    win = ProjectView(project)
     model = QContainerTreeModel(project.projectRoot, win)
     win.setModel(model)
     win.show()
