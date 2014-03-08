@@ -62,6 +62,7 @@ class ImageReader(object):
             'Headers': [],
             'Images': np.ndarray((0,0,0), dtype=int)
         }
+        self._items = []
 
     def __getitem__(self, idx):
         """
@@ -136,7 +137,7 @@ class ImageReader(object):
             self.__fileDict[key] = tmp
         return True
 
-    def _setData(self):
+    def _setData(self, llist):
         """
         Fills the self.__data dictionary with the corresponding values. This
         funtion needs to be reimplemented in every subclass.
@@ -169,7 +170,7 @@ class ImageReader(object):
         self.refreshing = True
         self.__readFiles(llist)
         print('InputReader.append -- llist:',str(llist))
-        self._setData()
+        self._setData(llist)
         self.refreshing = False
 
 
@@ -188,7 +189,7 @@ class ImageReader(object):
             llist = self.__fileList
         print('InputReader.refresh -- llist:',str(llist))
         self.__readFiles(llist)
-        self._setData()
+        self._setData(llist)
         self.refreshing = False
 
 class RawTextInputReader(ImageReader):
@@ -275,7 +276,45 @@ class EdfInputReader(ImageReader):
         ImageReader.__init__(self)
         self._srcType = EdfFile
 
-    def _setData(self):
+    def _setData(self, keyList=None):
+        # def __init__(self, key, header, array, fileLocation):
+        timeStart = time.time()
+
+        #
+        # Reference agains self.keys()
+        #
+        keys = self.keys()
+
+        #
+        # Create either ImageItem or StackItem, if single or multiple images are present
+        #
+        for key in keyList:
+            edfReader = edfDict[key]
+            numImages = edfReader.GetNumImages()
+
+
+
+            if numImages == 1:
+                item = ImageItem(
+                    key=key,
+                    header=edfReader.GetHeader(0),
+                    array=edfReader.GetHeader(0),
+                    fileLocation=edfReader.FileName
+                )
+            else:
+                print('EDFInputReader._data -- Unsupported number of images in single EDF file')
+                item = ImageItem(
+                    key=key,
+                    header='',
+                    array=np.zeros((10, 10), dtype=np.uint16),
+                    fileLocation=edfReader.FileName
+                )
+        timeEnd = time.time()
+        print('EdfInputReader._setData -- Method finished in %.3f s'%\
+              (timeEnd - timeStart))
+
+"""
+    def _setData(self, keyList):
         timeStart = time.time()
         edfDict = self.getFileDict()
         # Respect the order of self.__fileDict
@@ -298,6 +337,7 @@ class EdfInputReader(ImageReader):
         # goes into building the array..
         print('EdfInputReader._setData -- Method finished in %.3f s'%\
               (timeEnd - timeStart))
+"""
 
 def run_test():
     rixsImageDir = 'C:\\Users\\tonn\\lab\\rixs\\Images'
