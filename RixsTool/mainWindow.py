@@ -33,9 +33,8 @@ from PyMca import PyMcaDirs
 from PyQt4 import uic
 
 # Imports from RixsTool
-from RixsTool.io import EdfInputReader
-from RixsTool.io import ImageReader
-from RixsTool.Datahandling import RixsProject
+from RixsTool.IO import EdfReader
+from RixsTool.IO import InputReader
 from RixsTool.window import BandPassFilterWindow
 
 # Imports from os.path
@@ -47,7 +46,8 @@ DEBUG = 1
 class RIXSMainWindow(qt.QMainWindow):
     def __init__(self, parent=None):
         qt.QMainWindow.__init__(self, parent)
-        uic.loadUi('C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\mainwindow.ui', self)
+        #uic.loadUi('C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\mainwindow.ui', self)
+        uic.loadUi('/Users/tonn/GIT/RixsTool/RixsTool/ui/mainwindow.ui', self)
         self.connectActions()
 
         self.filterWidget = None
@@ -89,9 +89,9 @@ class RIXSMainWindow(qt.QMainWindow):
         fileName, fileType = OsPathSplitExt(names[-1])
         print('Filetype:',fileType)
         if fileType.lower() == '.edf':
-            reader = EdfInputReader()
+            reader = EdfReader()
         else:
-            reader = ImageReader()
+            reader = InputReader()
         reader.refresh(names)
         #for idx, im in enumerate(flatten(reader['Image'])):
         for idx, im in enumerate(reader['Images']):

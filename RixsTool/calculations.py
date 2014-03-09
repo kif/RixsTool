@@ -26,7 +26,9 @@
 #############################################################################*/
 __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 
-import numpy, time
+import time
+
+import numpy
 
 # Numeric routines from PyMca
 from PyMca.Gefit import LeastSquaresFit as LSF
@@ -671,7 +673,7 @@ def plotImageAlongAxis(image, axis=-1, offset=False, returnPlot=False):
 
 
 def run_test():
-    import RixsTool.io as io
+    import RixsTool.deprecated.ioDeprecated as io
     #from matplotlib import pyplot as plt
     a = io.run_test()
     im = a[15][2][0] # 15th data blob (i.e. [2]), first image

@@ -27,12 +27,13 @@
 __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 
 from RixsTool.Utils import unique as RixsUtilsUnique
-from RixsTool.Datahandling import RixsProject
+#from RixsTool.Datahandling import RixsProject
+from RixsTool.datahandling import RixsProject
 from RixsTool.ContextMenu import ItemContextMenu, ContainerContextMenu, RemoveAction, ShowAction, ExpandAction, RenameAction
 from PyMca import PyMcaQt as qt
-
-from os.path import splitext as OsPathSplitext
-from os import walk as OsWalk
+from os.path import splitext as osPathSplitext
+from os import walk as osWalk
+from os.path import sep as osPathSep
 
 DEBUG = 1
 
@@ -355,15 +356,16 @@ def unitTest_QDirListModel():
         return False
 
 def unitTest_QContainerTreeModel():
-    directory = r'C:\Users\tonn\lab\mockFolder'
+    #directory = r'C:\Users\tonn\lab\mockFolder'
+    directory = '/Users/tonn/DATA/rixs_data/'
     project = RixsProject()
-    for result in OsWalk(directory):
+    for result in osWalk(directory):
         currentPath = result[0]
         dirs = result[1]
         files = result[2]
         for file in files:
-            root, ext = OsPathSplitext(file)
-            filename = currentPath + '\\' + file
+            root, ext = osPathSplitext(file)
+            filename = currentPath + osPathSep + file
             if ext.replace('.','') == project.EDF_TYPE:
                 print('Found edf-File:')
                 project.readImage(filename, project.EDF_TYPE)

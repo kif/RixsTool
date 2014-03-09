@@ -29,27 +29,20 @@ __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 from PyMca import PyMcaQt as qt
 #from PyMca.widgets import ColormapDialog
 #from PyMca import PyMcaFileDialogs # RETURNS '/' as seperator on windows!?
-from PyMca import PyMcaDirs
 from PyQt4 import uic
 
 # Imports from RixsTool
-from RixsTool.io import EdfInputReader
-from RixsTool.io import ImageReader
 
 # Imports from os.path
-from os.path import splitext as OsPathSplitext
-from os.path import normpath as OsPathNormpath
 
-from collections import OrderedDict
 from RixsTool.Models import QDirListModel
-from RixsTool.Datahandling import RixsProject
-from RixsTool import RixsIcons
 
 DEBUG = 1
 
 class AbstractToolTitleBar(qt.QWidget):
 
-    __uiPath = 'C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\abtractTitleToolBar.ui'
+    #__uiPath = 'C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\abtractTitleToolBar.ui'
+    __uiPath = '/Users/tonn/GIT/RixsTool/RixsTool/ui/abtracttitletoolbar.ui'
 
     def __init__(self, title):
         super(AbstractToolTitleBar, self).__init__()
@@ -148,7 +141,8 @@ class AbstractToolWindow(qt.QDockWidget):
 
 class BandPassFilterWindow(AbstractToolWindow):
     def __init__(self, parent=None):
-        uiPath = 'C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\bandpassfilter.ui'
+        #uiPath = 'C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\bandpassfilter.ui'
+        uiPath = '/Users/tonn/GIT/RixsTool/RixsTool/ui/bandpassfilter.ui'
         super(BandPassFilterWindow, self).__init__(uiPath=uiPath,
                                                    parent=parent)
         self.setUI()
@@ -202,16 +196,6 @@ class DirTree(qt.QTreeView):
         else:
             qt.QTreeView.setModel(self, fsModel)
 
-"""
-class RixsProjectModel(qt.QAbstractItemModel, RixsProject):
-    def __init__(self, project, parent=None):
-        # super(...) calls ctors of parent classes in order they are listed..
-        super(RixsProjectModel, self).__init__(self, parent)
-
-    def index(self, row, col, parent = qt.QModelIndex()):
-        return self.createIndex(row, col)
-"""
-
 
 
 class FileSystemBrowser(qt.QWidget):
@@ -219,7 +203,8 @@ class FileSystemBrowser(qt.QWidget):
 
     def __init__(self, parent=None, project=None):
         qt.QWidget.__init__(self, parent)
-        uic.loadUi('C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\filesystembrowser.ui', self)
+        #uic.loadUi('C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\filesystembrowser.ui', self)
+        uic.loadUi('/Users/tonn/GIT/RixsTool/RixsTool/ui/filesystembrowser.ui', self)
 
         #
         # Set start directory to qt.QDir.home()
@@ -392,9 +377,9 @@ class DummyNotifier(qt.QObject):
 
 if __name__ == '__main__':
     app = qt.QApplication([])
-    win = BandPassFilterWindow()
+    #win = BandPassFilterWindow()
     notifier = DummyNotifier()
-    #win = FileSystemBrowser()
+    win = FileSystemBrowser()
     if isinstance(win, AbstractToolWindow):
         win.acceptSignal.connect(notifier.signalReceived)
     win.show()

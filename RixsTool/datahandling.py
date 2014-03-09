@@ -26,10 +26,12 @@
 #############################################################################*/
 __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 
-import RixsTool.io as IO
 from os.path import normpath as OsPathNormpath
 from os.path import splitext as OsPathSplitext
 from os import walk as OsWalk
+
+import RixsTool.IO as IO
+
 
 DEBUG = 1
 
@@ -204,8 +206,7 @@ class RixsProject(object):
         # Image readers
         #
         self.imageReaders = {
-            self.EDF_TYPE : IO.EdfInputReader(),
-            self.RAW_TYPE : IO.RawTextInputReader()
+            self.EDF_TYPE : IO.EdfReader()
         }
 
         #
@@ -214,8 +215,8 @@ class RixsProject(object):
         self.projectRoot = ItemContainer()
         self.projectRoot.addChildren(
             [ItemContainer(parent=self.projectRoot, label=key)\
-             for key in ['Spectra','Images','Stacks']])
-        print('projectRoot.childCount:',self.projectRoot.childCount())
+             for key in ['Spectra', 'Images', 'Stacks']])
+        print('projectRoot.childCount:', self.projectRoot.childCount())
 
     def groupCount(self):
         return self.projectRoot.childCount()
@@ -239,8 +240,7 @@ class RixsProject(object):
         keys = reader.keys()
         if key not in keys:
             raise KeyError("RixsProject.image -- Key '%s' not found"%key)
-        idx = keys.index(key)
-        return reader[idx]
+        return reader.itemDict[key]
 
     def addImage(self, image, node=None):
         if not node:
@@ -256,13 +256,9 @@ class RixsProject(object):
             reader = self.imageReaders.get(imageType, None)
         except KeyError:
             raise ValueError("RixsProject.readImages -- Unknown image Type '%s'"%imageType)
-        keys = reader['FileLocations']
-        reader.refresh([filename])
-        if filename not in keys:
-            keys = reader['FileLocations']
-            print(keys)
-            idx = keys.index(filename)
-            self.addImage(reader[idx])
+        reader.append([filename])
+        last = reader.keys()[-1]
+        self.addImage(reader.itemDict[last])
         return True
 
     def stack(self, key, index):
@@ -289,10 +285,6 @@ class RixsProject(object):
             reader = self.imageReaders[suffix]
             reader.append(name)
             print(reader)
-
-    def keys(self):
-        llist = [reader.getFileList() for reader in self.imageReaders.values()]
-        return sum(llist, [])
 
 def unitTest_RixsProject():
     directory = r'C:\Users\tonn\lab\mockFolder'
