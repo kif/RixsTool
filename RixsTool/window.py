@@ -32,6 +32,7 @@ from PyMca import PyMcaQt as qt
 from PyQt4 import uic
 
 # Imports from RixsTool
+from RixsTool.ContextMenu import FileContextMenu, AddFilesAction
 
 # Imports from os.path
 
@@ -148,16 +149,15 @@ class BandPassFilterWindow(AbstractToolWindow):
         self.setUI()
 
         self._values = {
-            'upper' : self._widget.upperThreshold,
-            'lower' : self._widget.lowerThreshold,
-            'offset' : self._widget.offsetValue
+            'upper': self._widget.upperThreshold,
+            'lower': self._widget.lowerThreshold,
+            'offset': self._widget.offsetValue
         }
 
 class DirTree(qt.QTreeView):
     def __init__(self, parent=None):
         super(DirTree, self).__init__(parent)
         self.setContextMenuPolicy(qt.Qt.DefaultContextMenu)
-        self.__contextMenu = None
         self.watcher = qt.QFileSystemWatcher()
         self.setModel(qt.QFileSystemModel())
         self.watcher.fileChanged.connect(self.fileChanged)
@@ -165,15 +165,6 @@ class DirTree(qt.QTreeView):
     def fileChanged(self, path):
         # TODO: Implement auto update
         print('DirTree.fileChanged -- path:',path)
-
-    def setContextMenu(self, menu):
-        """
-        :param menu: Contains
-        :type menu: QMenu
-        Sets the context menu of the DirTree that is triggered
-        by a right click on the widget.
-        """
-        self.__contextMenu = menu
 
     def updatePath(self, path):
         model = self.model()
@@ -186,9 +177,27 @@ class DirTree(qt.QTreeView):
         self.watcher.addPath(path)
 
     def contextMenuEvent(self, event):
-        print('DirTree.contextMenuEvent called')
-        if self.__contextMenu:
-            self.__contextMenu.exec_(event.globalPos())
+        print('DirTree.contextMenuEvent -- called')
+        #modelIndexList = RixsUtilsUnique(self.selectedIndexes(), 'row')
+        modelIndexList = [self.indexAt(event.pos())]
+        print('Length modelIndexList:', len(modelIndexList))
+
+        model = self.model()
+        fileInfoList = [model.fileInfo(idx) for idx in modelIndexList]
+
+        if all([elem.isFile() for elem in fileInfoList]):
+            menu = FileContextMenu(self)
+            print('DirTree.contextMenuEvent -- All files!')
+        else:
+            print('DirTree.contextMenuEvent -- Not all files!')
+            return
+        menu.build()
+        action = menu.exec_(event.globalPos())
+
+        if isinstance(action, AddFilesAction):
+            pass
+        else:
+            return
 
     def setModel(self, fsModel):
         if not isinstance(fsModel, qt.QFileSystemModel):
@@ -218,9 +227,6 @@ class FileSystemBrowser(qt.QWidget):
         # Init addDir- and closeDirButtons
         #
         self.closeDirButton.setEnabled(False)
-        #self.addDirButton.setIcon(qt.QIcon('C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\icons\\plus.ico'))
-        #self.addDirButton.setIcon(qt.QIcon(':/icons/plus.ico'))
-        #self.addDirButton.setIconSize(qt.QSize(32, 32))
 
         #
         # Connect
@@ -232,15 +238,9 @@ class FileSystemBrowser(qt.QWidget):
         self.addDirButton.clicked[()].connect(self.addDir)
         self.closeDirButton.clicked[()].connect(self.closeDir)
 
-        #
-        # Init and connect context menu for DirTree
-        #
-        treeContextMenu = qt.QMenu(title='File System Context Menu',
-                                   parent=self)
-        addFilesAction = qt.QAction('Add to session', self)
-        addFilesAction.triggered.connect(self.addFiles)
-        treeContextMenu.addAction(addFilesAction)
-        self.fsView.setContextMenu(treeContextMenu)
+    #
+    # Adding/Removing working directories
+    #
 
     def closeDir(self, safeClose=True):
         if safeClose:

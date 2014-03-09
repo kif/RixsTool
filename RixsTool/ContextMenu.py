@@ -31,6 +31,11 @@ from PyMca import PyMcaQt as qt
 __doc__ = """
 """
 
+#
+# AbstractContextMenu class
+#
+
+
 class AbstractAction(qt.QAction):
     __doc__ = """Base class for actions"""
     def __init__(self, icon=None, text=None, parent=None):
@@ -43,17 +48,40 @@ class AbstractAction(qt.QAction):
         else:
             super(AbstractAction, self).__init__(parent)
 
+#
+# Actions concerning the Project View
+#
+
+
 class RemoveAction(AbstractAction):
     pass
+
 
 class ShowAction(AbstractAction):
     pass
 
+
 class ExpandAction(AbstractAction):
     pass
 
+
 class RenameAction(AbstractAction):
     pass
+
+
+#
+# Actions concerning the FileSystemBrowser
+#
+
+
+class AddFilesAction(AbstractAction):
+    pass
+
+
+#
+# AbstractContextMenu class
+#
+
 
 class AbstractContextMenu(qt.QMenu):
     __doc__ = """Base class for context menus"""
@@ -84,6 +112,10 @@ class AbstractContextMenu(qt.QMenu):
             else:
                 raise ValueError("ProjectContextMenu.build -- unknown type '%s' in actionList"%str(type(action)))
 
+#
+# ContextMenus concerning the ProjectView
+#
+
 class ItemContextMenu(AbstractContextMenu):
     def __init__(self, parent=None):
         super(ItemContextMenu, self).__init__(parent)
@@ -104,6 +136,7 @@ class ItemContextMenu(AbstractContextMenu):
             showAction,
             removeAction
         ]
+
 
 class ContainerContextMenu(AbstractContextMenu):
     def __init__(self, parent=None):
@@ -132,6 +165,26 @@ class ContainerContextMenu(AbstractContextMenu):
             expandGroupAction,
             removeGroupAction
         ]
+
+#
+# ContextMenus concerning the FileSystemBrowser
+#
+
+class FileContextMenu(AbstractContextMenu):
+    def __init__(self, parent=None):
+        super(FileContextMenu, self).__init__(parent)
+
+        addToProjectAction = AddFilesAction(
+            qt.QIcon(qt.QPixmap(':/plus.ico')),
+            'Add files to project',
+            self
+        )
+
+        self.actionList = [
+            addToProjectAction
+        ]
+
+
 
 if __name__ == '__main__':
     pass
