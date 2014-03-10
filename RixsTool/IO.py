@@ -40,6 +40,7 @@ import numpy as np
 import time
 from RixsTool.DataItem import ImageItem
 
+
 class InputReader(object):
     def __init__(self):
         self.__readerDict = OrderedDict()
@@ -111,7 +112,6 @@ class InputReader(object):
         self._setData()
         self.refreshing = False
 
-
     def refresh(self):
         '''
         :param llist: List of file names or keys to be refreshed
@@ -121,6 +121,7 @@ class InputReader(object):
         '''
         # TODO: Implement me..
         raise NotImplementedError("InputReader.refresh -- Here is work to be done..")
+
 
 class EdfReader(InputReader):
     def __init__(self):
@@ -172,8 +173,10 @@ class EdfReader(InputReader):
         print('EdfInputReader._setData -- Method finished in %.3f s'%\
               (timeEnd - timeStart))
 
+
 def unitTest_InputReader():
-    rixsImageDir = '/Users/tonn/DATA/rixs_data/Images'
+    #rixsImageDir = '/Users/tonn/DATA/rixs_data/Images'
+    rixsImageDir = '/home/truter/lab/rixs/rixs_data/Images'
     from os import listdir as OsListDir
     from os.path import isfile as OsPathIsFile, join as OsPathJoin
     edfImageList = [OsPathJoin(rixsImageDir, fn) for fn in OsListDir(rixsImageDir)\
@@ -184,7 +187,7 @@ def unitTest_InputReader():
     edfReader.append(edfImageList)
     for elem in zip(edfReader.files(), edfReader.keys()):
         print(elem)
-    print edfReader
+    print(edfReader)
 
 if __name__ == '__main__':
     unitTest_InputReader()
