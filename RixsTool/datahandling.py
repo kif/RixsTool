@@ -28,18 +28,22 @@ __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 
 from os.path import normpath as OsPathNormpath
 from os.path import splitext as OsPathSplitext
+from os.path import sep as OsPathSep
 from os import walk as OsWalk
+from uuid import uuid4
 
 import RixsTool.IO as IO
-
+from RixsTool.DataItem import SpecItem, ScanItem, ImageItem, StackItem
 
 DEBUG = 1
+
 
 class ItemContainer(object):
     def __init__(self, item=None, parent=None, label=None):
         #self._data = data if data is not None else [] # Dict or OrderedDict here?
+        self.__identifier = uuid4()
         self._item = item
-        self._data = ['key','description', 'shape', 'dtype']
+        self._data = ['key', 'description', 'shape', 'dtype']
         self.parent = parent
         self.children = []
         if label:
@@ -48,6 +52,15 @@ class ItemContainer(object):
             self.label = item.key
         else:
             self.label = ''
+
+    #
+    # Compare two containers
+    #
+    def getID(self):
+        return self.__identifier
+
+    def __eq__(self, other):
+        return self.getID() == other.getID()
 
     #
     # Methods acting on ItemContainer.children or ItemContainer.parent
@@ -127,7 +140,7 @@ class ItemContainer(object):
 
     def setItem(self, item):
         """
-        :returns:
+        :returns: Depending on success or failure of the method it returns True or False
         :rtype: None or DataItem
         """
         if len(self.children) and DEBUG >= 1:
@@ -192,21 +205,29 @@ class RixsProject(object):
     typeList = [SPEC_TYPE, EDF_TYPE, RAW_TYPE]
 
     def __init__(self):
-        super(RixsProject, self).__init__()
+        #super(RixsProject, self).__init__()
+        #super(RixsProject, self).__init__()
 
         #
         # Spec readers
         #
         # TODO: Have readers for specfiles..
         self.specReaders = {
-            self.SPEC_TYPE : None
+            self.SPEC_TYPE: None
         }
 
         #
-        # Image readers
+        # TODO: Replace Image readers with input
         #
         self.imageReaders = {
-            self.EDF_TYPE : IO.EdfReader()
+            self.EDF_TYPE: IO.EdfReader()
+        }
+
+        #
+        # Input readers
+        #
+        self.inputReaders = {
+            self.EDF_TYPE: IO.EdfReader()
         }
 
         #
@@ -216,7 +237,7 @@ class RixsProject(object):
         self.projectRoot.addChildren(
             [ItemContainer(parent=self.projectRoot, label=key)\
              for key in ['Spectra', 'Images', 'Stacks']])
-        print('projectRoot.childCount:', self.projectRoot.childCount())
+        print('RixsProject.__init__ -- projectRoot.childCount:', self.projectRoot.childCount())
 
     def groupCount(self):
         return self.projectRoot.childCount()
@@ -242,7 +263,9 @@ class RixsProject(object):
             raise KeyError("RixsProject.image -- Key '%s' not found"%key)
         return reader.itemDict[key]
 
+    """
     def addImage(self, image, node=None):
+        # Remove me?
         if not node:
             node = self.projectRoot.children[1] # TODO: Find better way to access children
         child = ItemContainer(
@@ -250,16 +273,75 @@ class RixsProject(object):
             parent=node
         )
         node.addChildren([child])
+        return child
+    """
 
+    def addItem(self, item):
+        """
+        :param item: Item to be inserted into the project tree
+        :param item: DataItem
+
+        Item is wrapped in :class:`datahandling.ItemContainer` and inserted into the tree.
+        The insertion node depdends on the type of item.
+
+        :returns: Container of item
+        :rtype: ItemContainer
+        """
+        if DEBUG >= 1:
+            print('### RixsProject.addItem -- called ###')
+        if isinstance(item, ScanItem) or isinstance(item, SpecItem):
+            node = self.projectRoot.children[0]
+        elif isinstance(item, ImageItem):
+            node = self.projectRoot.children[1]
+        elif isinstance(item, StackItem):
+            node = self.projectRoot.children[2]
+        else:
+            raise ValueError("RixsProject.addItem -- unknown item type '%s'" % type(item))
+        container = ItemContainer(
+            item=item,
+            parent=node
+        )
+        node.addChildren([container])
+        return container
+
+    def read(self, filename, fileType):
+        """
+        :param filename: File name including path to file
+        :param filename: str
+        :param fileType: Determines which reader is used to access the file
+        :param fileType: str
+
+        RixsProject stores a number of different reader for all sorts of file formats. The file stored under
+        file name is registered with a matching reader.
+
+        :returns: Depeding on success or failure True or False
+        :rtype: bool
+        :raises: KeyError
+        """
+        try:
+            #reader = self.imageReaders.get(fileType, None)
+            reader = self.inputReaders[fileType]
+        except KeyError:
+            # TODO: Ye olde question... raise oder return (False)?
+            raise KeyError("RixsProject.readImages -- Unknown image Type '%s'" % fileType)
+        # TODO: Check if key (i.e. file name w\o path) is already present in tree!
+        reader.append([filename])
+        last = reader.keys()[-1]
+        #self.addItem(reader.itemDict[last])
+        return reader.itemDict[last]
+
+    """
     def readImage(self, filename, imageType):
         try:
-            reader = self.imageReaders.get(imageType, None)
+            #reader = self.imageReaders.get(imageType, None)
+            reader = self.imageReaders[imageType]
         except KeyError:
             raise ValueError("RixsProject.readImages -- Unknown image Type '%s'"%imageType)
         reader.append([filename])
         last = reader.keys()[-1]
         self.addImage(reader.itemDict[last])
         return True
+    """
 
     def stack(self, key, index):
         """
@@ -278,28 +360,36 @@ class RixsProject(object):
             print('RixsProject.addFileInfoList -- received fileInfoList (len: %d)'%\
                   len(fileInfoList))
         for info in fileInfoList:
-            name = OsPathNormpath(info.completeSuffix())
+            #name = OsPathNormpath(info.completeSuffix())
+            #name = OsPathNormpath(str(info.completeSuffix()))
             suffix = str(info.completeSuffix())
-            if suffix.lower not in self.imageReaders.keys():
-                raise ValueError("Unknown filetype: '%s'"%suffix)
+            print(self.imageReaders.keys())
+            if suffix.lower() not in self.imageReaders.keys():
+                raise ValueError("RixsProject.addFileInfoList -- Unknown filetype: '%s'" % suffix)
             reader = self.imageReaders[suffix]
-            reader.append(name)
+            absFilePath = OsPathNormpath(str(info.canonicalFilePath()))
+            reader.append([absFilePath])
             print(reader)
 
+
 def unitTest_RixsProject():
-    directory = r'C:\Users\tonn\lab\mockFolder'
+    #directory = r'C:\Users\tonn\lab\mockFolder\Images'
+    directory = '/home/truter/lab/mock_folder/Images'
     project = RixsProject()
     for result in OsWalk(directory):
         currentPath = result[0]
         dirs = result[1]
         files = result[2]
-        for file in files:
-            root, ext = OsPathSplitext(file)
-            filename = currentPath + '\\' + file
-            if ext.replace('.','') == project.EDF_TYPE:
+        for ffile in files:
+            root, ext = OsPathSplitext(ffile)
+            filename = currentPath + OsPathSep + ffile
+            if ext.replace('.', '') == project.EDF_TYPE:
                 print('Found edf-File:')
-                project.readImage(filename, project.EDF_TYPE)
-                print(type(project.image(file, project.EDF_TYPE)))
+                #project.readImage(filename, project.EDF_TYPE)
+                project.read(filename, project.EDF_TYPE)
+                #print(type(project.image(ffile, project.EDF_TYPE)))
+    for reader in project.inputReaders.values():
+        print(type(reader), reader)
 
 if __name__ == '__main__':
     #unitTest_QDirListModel()
