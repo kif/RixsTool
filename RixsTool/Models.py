@@ -29,7 +29,9 @@ __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 from RixsTool.Utils import unique as RixsUtilsUnique
 #from RixsTool.Datahandling import RixsProject
 from RixsTool.datahandling import RixsProject
-from RixsTool.ContextMenu import ItemContextMenu, ContainerContextMenu, RemoveAction, ShowAction, ExpandAction, RenameAction
+from RixsTool.ContextMenu import ProjectContextMenu, RemoveAction, RemoveItemAction, RemoveContainerAction,\
+    ShowAction, ExpandAction, RenameAction
+from RixsTool.DataItem import SpecItem, ScanItem, ImageItem, StackItem
 from PyMca import PyMcaQt as qt
 from os.path import splitext as osPathSplitext
 from os.path import normpath as OsPathNormpath
@@ -50,31 +52,40 @@ class ProjectView(qt.QTreeView):
 
     def contextMenuEvent(self, event):
         print('ProjectView.contextMenuEvent -- called')
-        if not self.project:
-            print('ProjectView.contextMenuEvent -- Project is none')
+        model = self.model()
+        if not model:
+            print('ProjectView.contextMenuEvent -- Model is none. Abort')
             return
-        #modelIndexList = RixsUtilsUnique(self.selectedIndexes(), 'row')
-        modelIndexList = [self.indexAt(event.pos())]
-        print('Length modelIndexList:',len(modelIndexList))
-        if len(modelIndexList) > 1:
-            menu = ContainerContextMenu()
-            print('ProjectView.contextMenuEvent -- Multiple selection, menu:',str(menu))
+
+        modelIndexList = self.selectedIndexes()
+        RixsUtilsUnique(modelIndexList, "row")
+        containerList = [model.containerAt(idx) for idx in modelIndexList]
+        print('ProjectView.contextMenuEvent -- Received %d element(s)' % len(modelIndexList))
+        for idx in modelIndexList:
+            print('\t', idx.row(), idx.column())
+
+        menu = ProjectContextMenu()
+        if not any([container.hasItem() for container in containerList]):
+            # No DataItem in selection, deactivate actions aimt at DataItems
+            for action in menu.actionList:
+                if isinstance(action, ShowAction) or isinstance(action, RemoveItemAction):
+                    action.setEnabled(False)
         else:
-            model = self.model()
-            container = model.getContainer(modelIndexList[0])
-            print('Container:',str(container))
-            if container.item():
-                menu = ItemContextMenu()
-                print('ProjectView.contextMenuEvent -- Item detected, menu:',str(menu))
-            else:
-                menu = ContainerContextMenu()
-                print('ProjectView.contextMenuEvent -- Container detected, menu:',str(menu))
+            #if not any([container.childCount() for container in containerList]):
+            # No containers in selection, deactivate actions aimt at containers
+            for action in menu.actionList:
+                if isinstance(action, ExpandAction)\
+                        or isinstance(action, RemoveContainerAction)\
+                        or isinstance(action, RenameAction):
+                    action.setEnabled(False)
         menu.build()
         action = menu.exec_(event.globalPos())
-        print("ProjectView.contextMenuEvent -- received unknown action '%s'"%str(type(action)))
+
+        print("ProjectView.contextMenuEvent -- received action '%s'" % str(type(action)))
         if isinstance(action, RemoveAction):
-            # TODO: Call visualization here
-            pass
+            print("\tRemoving item(s)")
+            for idx in modelIndexList:
+                model.removeContainer(idx)
         elif isinstance(action, ShowAction):
             # TODO: Call visualization here
             pass
@@ -108,6 +119,59 @@ class ProjectModel(RixsProject, qt.QAbstractItemModel):
         item = RixsProject.read(self, filename, imageType)
         return self.addItem(item)
 
+    """
+    def removeContainer(self, modelIndex):
+        print('ProjectView.removeContainer -- removing item at:', modelIndex.row(), modelIndex.column())
+        container = self.containerAt(modelIndex)
+
+        row = modelIndex.row()
+        column = modelIndex.column()
+
+        if container.childCount():
+            # Child count is nonzero
+            indexList = [container.children]  # TODO: Get child indexes
+            for idx in indexList:
+                self.removeItem(idx)
+
+        # TODO: Delete item?
+
+        parentIndex = self.parent(modelIndex)
+        parentContainer = self.containerAt(parentIndex)
+        del(parentContainer.children[container.childNumber()])
+
+        del container
+
+        #self.dataChanged.emit(qt.QModelIndex(), qt.QModelIndex())  # Shows "Stack" in place of the item
+        #self.dataChanged.emit(modelIndex, modelIndex)  # Shows "Images" in place of the item
+        #self.dataChanged.emit(parentIndex, parentIndex)  # Shows "Images" in place of the item
+        bottomRight = self.createIndex(modelIndex.row(), modelIndex.column() + self.columnCount(modelIndex))
+        self.dataChanged.emit(modelIndex, bottomRight)
+
+        return True
+    """
+
+    def removeContainer(self, modelIndex):
+        if not modelIndex.isValid():
+            print('Index is invalid')
+            return
+        container = self.containerAt(modelIndex)
+        parentIndex = self.parent(modelIndex)
+
+        self.beginRemoveRows(parentIndex, container.childNumber(), container.childNumber())
+
+        if container.childCount():
+            print('Has children')
+            # Child count is nonzero
+            #  TODO: Get child indexes
+            for child in container.children:
+                del(child)
+
+        parentContainer = self.containerAt(parentIndex)
+        idx = container.childNumber()
+        del(parentContainer.children[idx])
+
+        self.endRemoveRows()
+
     def addItem(self, item):
         """
         :param item:
@@ -124,15 +188,13 @@ class ProjectModel(RixsProject, qt.QAbstractItemModel):
                 print(error)
             return False
 
-        topLeft = self.createIndex(0, 0, container)
-        bottomRight = self.createIndex(0, 0, container)  # TODO: change rows/cols
-
-        # Notify view of changes
-        #self.dataChanged.emit(topLeft, bottomRight)
-        self.dataChanged.emit(self.parent(), self.parent())
+        modelIndex = self.createIndex(container.childNumber(), 0, container)
+        parentIndex = self.parent(modelIndex)
+        self.beginInsertRows(parentIndex, container.childNumber(), container.childNumber())
+        self.endInsertRows()
         return True
 
-    def getContainer(self, modelIndex):
+    def containerAt(self, modelIndex):
         """
         :param modelIndex: Model index of a container in the model
         :type modelIndex: QModelIndex
@@ -156,7 +218,7 @@ class ProjectModel(RixsProject, qt.QAbstractItemModel):
         """
         if not modelIndex.isValid():
             return None
-        container = self.getContainer(modelIndex)
+        container = self.containerAt(modelIndex)
         if role == qt.Qt.DisplayRole:
             if not container.hasItem():
                 if modelIndex.column():
@@ -171,12 +233,10 @@ class ProjectModel(RixsProject, qt.QAbstractItemModel):
         :type modelIndex: QModelIndex
         :param role:
         :type role: Qt.ItemDataRole (int)
-        :returns: True in case of success or False in case of failure
-        :rtype: bool
 
         Changes the attributes of a :class:`ItemContainer`
         """
-        container = self.getContainer(modelIndex)
+        container = self.containerAt(modelIndex)
         if not container.hasItem():
             # Only ItemContainers that contain DataItem can be changed
             return False
@@ -186,7 +246,6 @@ class ProjectModel(RixsProject, qt.QAbstractItemModel):
                 return False
             container.label = str(value) # TODO: Changes label but not item key...
         self.dataChanged.emit(modelIndex, modelIndex)
-        return True
 
 
     def headerData(self, section, orientation, role=qt.Qt.DisplayRole):
@@ -215,7 +274,7 @@ class ProjectModel(RixsProject, qt.QAbstractItemModel):
         :returns: Number of rows
         :rtype: int
         """
-        parent = self.getContainer(parentIndex)
+        parent = self.containerAt(parentIndex)
         return parent.childCount()
 
     def columnCount(self, parentIndex=qt.QModelIndex(), *args, **kwargs):
@@ -225,7 +284,7 @@ class ProjectModel(RixsProject, qt.QAbstractItemModel):
         :returns: Number of columns (i.e. attributes) shown
         :rtype: int
         """
-        parent = self.getContainer(parentIndex)
+        parent = self.containerAt(parentIndex)
         #return self.projectRoot.columnCount()
         return parent.columnCount()
 
@@ -254,7 +313,7 @@ class ProjectModel(RixsProject, qt.QAbstractItemModel):
         """
         if parentIndex.isValid() and parentIndex.column() > 0:
             return qt.QModelIndex()
-        parent = self.getContainer(parentIndex)
+        parent = self.containerAt(parentIndex)
         try:
             child = parent.children[row]
         except IndexError:
@@ -274,7 +333,8 @@ class ProjectModel(RixsProject, qt.QAbstractItemModel):
         if not modelIndex.isValid():
             return qt.QModelIndex()
 
-        child = self.getContainer(modelIndex)
+        child = self.containerAt(modelIndex)
+        #print('ProjectView.parent -- type(child):', type(child), hasattr(child, 'parent'))
         parentContainer = child.parent
 
         if parentContainer == self.projectRoot:
@@ -447,10 +507,21 @@ def unitTest_ProjectModel():
                 project.read(filename, project.EDF_TYPE)
 
     app = qt.QApplication([])
-    win = ProjectView(project)
+    view = ProjectView(project)
     #model = QContainerTreeModel(project.projectRoot, win)
     #win.setModel(model)
-    win.setModel(project)
+    view.setModel(project)
+
+    removeButton = qt.QPushButton("Remove something")
+    #removeButton.clicked.connect(view.removeLastItem)
+
+    layout = qt.QVBoxLayout()
+    layout.addWidget(removeButton)
+    layout.addWidget(view)
+
+    win = qt.QWidget()
+    win.setLayout(layout)
+
     win.show()
     app.exec_()
 
