@@ -65,7 +65,7 @@
      <x>0</x>
      <y>0</y>
      <width>848</width>
-     <height>21</height>
+     <height>24</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -124,16 +124,7 @@
      </sizepolicy>
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout">
-     <property name="leftMargin">
-      <number>2</number>
-     </property>
-     <property name="topMargin">
-      <number>2</number>
-     </property>
-     <property name="rightMargin">
-      <number>2</number>
-     </property>
-     <property name="bottomMargin">
+     <property name="margin">
       <number>2</number>
      </property>
      <item>
@@ -161,20 +152,11 @@
      <property name="spacing">
       <number>2</number>
      </property>
-     <property name="leftMargin">
-      <number>2</number>
-     </property>
-     <property name="topMargin">
-      <number>2</number>
-     </property>
-     <property name="rightMargin">
-      <number>2</number>
-     </property>
-     <property name="bottomMargin">
+     <property name="margin">
       <number>2</number>
      </property>
      <item>
-      <widget class="QTreeView" name="projectBrowser"/>
+      <widget class="ProjectView" name="projectBrowser"/>
      </item>
     </layout>
    </widget>
@@ -263,6 +245,11 @@
    <extends>QWidget</extends>
    <header>PyMca.widgets.ScanWindow</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>ProjectView</class>
+   <extends>QTreeView</extends>
+   <header>RixsTool.Models</header>
   </customwidget>
  </customwidgets>
  <resources/>
