@@ -29,9 +29,6 @@ __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 from RixsTool.Utils import unique as RixsUtilsUnique
 #from RixsTool.Datahandling import RixsProject
 from RixsTool.datahandling import RixsProject
-from RixsTool.ContextMenu import ProjectContextMenu, RemoveAction, RemoveItemAction, RemoveContainerAction,\
-    ShowAction, ExpandAction, RenameAction
-from RixsTool.DataItem import SpecItem, ScanItem, ImageItem, StackItem
 from RixsTool.IO import IODict
 from PyMca import PyMcaQt as qt
 from os.path import splitext as osPathSplitext
@@ -40,64 +37,6 @@ from os import walk as osWalk
 from os.path import sep as osPathSep
 
 DEBUG = 1
-
-
-class ProjectView(qt.QTreeView):
-    def __init__(self, project, parent=None):
-        super(ProjectView, self).__init__(parent)
-        # TODO: Check if project is instance of RixsProject
-        self.project = project
-        self.setSelectionMode(qt.QAbstractItemView.ExtendedSelection)
-        self.setContextMenuPolicy(qt.Qt.DefaultContextMenu)
-        #self.customContextMenuRequested.connect(self.contextMenuRequest)
-
-    def contextMenuEvent(self, event):
-        print('ProjectView.contextMenuEvent -- called')
-        model = self.model()
-        if not model:
-            print('ProjectView.contextMenuEvent -- Model is none. Abort')
-            return
-
-        modelIndexList = self.selectedIndexes()
-        RixsUtilsUnique(modelIndexList, "row")
-        containerList = [model.containerAt(idx) for idx in modelIndexList]
-        print('ProjectView.contextMenuEvent -- Received %d element(s)' % len(modelIndexList))
-        for idx in modelIndexList:
-            print('\t', idx.row(), idx.column())
-
-        menu = ProjectContextMenu()
-        if not any([container.hasItem() for container in containerList]):
-            # No DataItem in selection, deactivate actions aimt at DataItems
-            for action in menu.actionList:
-                if isinstance(action, ShowAction) or isinstance(action, RemoveItemAction):
-                    action.setEnabled(False)
-        else:
-            #if not any([container.childCount() for container in containerList]):
-            # No containers in selection, deactivate actions aimt at containers
-            for action in menu.actionList:
-                if isinstance(action, ExpandAction)\
-                        or isinstance(action, RemoveContainerAction)\
-                        or isinstance(action, RenameAction):
-                    action.setEnabled(False)
-        menu.build()
-        action = menu.exec_(event.globalPos())
-
-        print("ProjectView.contextMenuEvent -- received action '%s'" % str(type(action)))
-        if isinstance(action, RemoveAction):
-            print("\tRemoving item(s)")
-            for idx in modelIndexList:
-                model.removeContainer(idx)
-        elif isinstance(action, ShowAction):
-            # TODO: Call visualization here
-            pass
-        elif isinstance(action, RenameAction):
-            # TODO: Call visualization here
-            pass
-        elif isinstance(action, ExpandAction):
-            for modelIndex in modelIndexList:
-                self.expand(modelIndex)
-        else:
-            return
 
 
 class ProjectModel(RixsProject, qt.QAbstractItemModel):
@@ -113,45 +52,6 @@ class ProjectModel(RixsProject, qt.QAbstractItemModel):
         """
         RixsProject.__init__(self)
         qt.QAbstractItemModel.__init__(self, parent)
-
-    """
-    def read(self, fileName):
-        if DEBUG >= 1:
-            print('### ProjectModel.read -- called ###')
-        itemList = RixsProject.read(self, fileName)
-        #return self.addItem(item)
-        for item in itemList:
-            self.addItem(item)
-
-    def removeContainer(self, modelIndex):
-        print('ProjectView.removeContainer -- removing item at:', modelIndex.row(), modelIndex.column())
-        container = self.containerAt(modelIndex)
-
-        row = modelIndex.row()
-        column = modelIndex.column()
-
-        if container.childCount():
-            # Child count is nonzero
-            indexList = [container.children]  # TODO: Get child indexes
-            for idx in indexList:
-                self.removeItem(idx)
-
-        # TODO: Delete item?
-
-        parentIndex = self.parent(modelIndex)
-        parentContainer = self.containerAt(parentIndex)
-        del(parentContainer.children[container.childNumber()])
-
-        del container
-
-        #self.dataChanged.emit(qt.QModelIndex(), qt.QModelIndex())  # Shows "Stack" in place of the item
-        #self.dataChanged.emit(modelIndex, modelIndex)  # Shows "Images" in place of the item
-        #self.dataChanged.emit(parentIndex, parentIndex)  # Shows "Images" in place of the item
-        bottomRight = self.createIndex(modelIndex.row(), modelIndex.column() + self.columnCount(modelIndex))
-        self.dataChanged.emit(modelIndex, bottomRight)
-
-        return True
-    """
 
     def removeContainer(self, modelIndex):
         if not modelIndex.isValid():
@@ -367,7 +267,6 @@ class ProjectModel(RixsProject, qt.QAbstractItemModel):
             self.addItem(item)
 
 
-
 class QDirListModel(qt.QAbstractListModel):
     def __init__(self, parent=None):
         super(QDirListModel, self).__init__(parent)
@@ -504,8 +403,10 @@ def unitTest_QDirListModel():
 def unitTest_ProjectModel():
     class DummyNotifier(qt.QObject):
         def signalReceived(self, val0=None, val1=None):
-            print('DummyNotifier.signal received -- kw:\n',str(val0), str(val1))
+            print('DummyNotifier.signal received -- kw:\n', str(val0), str(val1))
     dummy = DummyNotifier()
+
+    from RixsTool.window import ProjectView
 
     #directory = r'C:\Users\tonn\lab\mockFolder'  # On windows
     #directory = '/Users/tonn/DATA/rixs_data/'  # On mac
@@ -513,21 +414,23 @@ def unitTest_ProjectModel():
     project = ProjectModel()
     project.dataChanged.connect(dummy.signalReceived)
 
-    for result in osWalk(directory):
-        currentPath = result[0]
-        files = result[2]
-        for ffile in files:
-            root, ext = osPathSplitext(ffile)
-            filename = currentPath + osPathSep + ffile
-            #if ext.replace('.', '') == project.EDF_TYPE:
-            if ext.replace('.', '') == IODict.EDF_TYPE:
-                print('Found edf-File:')
-                llist = project.read(filename)
-                for item in llist:
-                    project.addItem(item)
+    #for result in osWalk(directory):
+    #    currentPath = result[0]
+    #    files = result[2]
+    #    for ffile in files:
+    #        root, ext = osPathSplitext(ffile)
+    #        filename = currentPath + osPathSep + ffile
+    #        #if ext.replace('.', '') == project.EDF_TYPE:
+    #        if ext.replace('.', '') == IODict.EDF_TYPE:
+    #            print('Found edf-File:')
+    #            llist = project.read(filename)
+    #            for item in llist:
+    #                project.addItem(item)
+
+    project.crawl(directory)
 
     app = qt.QApplication([])
-    view = ProjectView(project)
+    view = ProjectView()
     #model = QContainerTreeModel(project.projectRoot, win)
     #win.setModel(model)
     view.setModel(project)
