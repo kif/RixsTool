@@ -39,6 +39,9 @@ from RixsTool.ContextMenu import FileContextMenu, AddFilesAction
 from RixsTool.Models import QDirListModel
 from RixsTool.Models import ProjectModel
 from RixsTool.Utils import unique as RixsUtilsUnique
+from RixsTool.ContextMenu import ProjectContextMenu, RemoveAction, RemoveItemAction, RemoveContainerAction,\
+    ShowAction, ExpandAction, RenameAction
+from RixsTool.datahandling import ItemContainer
 
 DEBUG = 1
 
@@ -101,18 +104,15 @@ class AbstractToolWindow(qt.QDockWidget):
         sortedKeys = sorted(self._values.keys())
         for key in sortedKeys:
             obj = self._values[key]
-            if isinstance(obj, qt.QPlainTextEdit) or\
-               isinstance(obj, qt.QTextEdit):
+            if isinstance(obj, qt.QPlainTextEdit) or isinstance(obj, qt.QTextEdit):
                 val = obj.getPlainText()
             elif isinstance(obj, qt.QLineEdit):
                 val = obj.text()
-            elif isinstance(obj, qt.QCheckBox) or\
-                 isinstance(obj, qt.QRadioButton):
+            elif isinstance(obj, qt.QCheckBox) or isinstance(obj, qt.QRadioButton):
                 val = obj.checkState()
             elif isinstance(obj, qt.QComboBox):
                 val = obj.currentText()
-            elif isinstance(obj, qt.QAbstractSlider) or\
-                 isinstance(obj, qt.QSpinBox):
+            elif isinstance(obj, qt.QAbstractSlider) or isinstance(obj, qt.QSpinBox):
                 val = obj.value()
             else:
                 val = None
@@ -215,6 +215,79 @@ class DirTree(qt.QTreeView):
             raise ValueError('DirTree.setModel -- provided model must be of type QFileSystemModel')
         else:
             qt.QTreeView.setModel(self, fsModel)
+
+
+class ProjectView(qt.QTreeView):
+    showSignal = qt.pyqtSignal(object)
+    #showSpecSignal = qt.pyqtSignal(object)
+    #showStackSignal = qt.pyqtSignal(object)
+
+    def __init__(self, parent=None):
+        super(ProjectView, self).__init__(parent)
+        # TODO: Check if project is instance of RixsProject
+        #self.project = project
+        self.setSelectionMode(qt.QAbstractItemView.ExtendedSelection)
+        self.setContextMenuPolicy(qt.Qt.DefaultContextMenu)
+        #self.customContextMenuRequested.connect(self.contextMenuRequest)
+
+    def _emitShowSignal(self, containerList):
+        """
+        :param list containerList: Contains items selected in the view
+
+        Filters the containers in container list for such that contain a :py:class::`DataItem.DataItem` and emits
+        a list of references to the items.
+        """
+        itemList = [ItemContainer.item(container) for container in filter(ItemContainer.hasItem, containerList)]
+        for item in itemList:
+            print('%s: %s %s' % (item.key(), str(item.shape()), type(item.array)))
+        self.showSignal.emit(itemList)
+
+    def contextMenuEvent(self, event):
+        print('ProjectView.contextMenuEvent -- called')
+        model = self.model()
+        if not model:
+            print('ProjectView.contextMenuEvent -- Model is none. Abort')
+            return
+
+        modelIndexList = self.selectedIndexes()
+        RixsUtilsUnique(modelIndexList, "row")
+        containerList = [model.containerAt(idx) for idx in modelIndexList]
+        print('ProjectView.contextMenuEvent -- Received %d element(s)' % len(modelIndexList))
+        for idx in modelIndexList:
+            print('\t', idx.row(), idx.column())
+
+        menu = ProjectContextMenu()
+        if not any([container.hasItem() for container in containerList]):
+            # No DataItem in selection, deactivate actions aimt at DataItems
+            for action in menu.actionList:
+                if isinstance(action, ShowAction) or isinstance(action, RemoveItemAction):
+                    action.setEnabled(False)
+        else:
+            #if not any([container.childCount() for container in containerList]):
+            # No containers in selection, deactivate actions aimt at containers
+            for action in menu.actionList:
+                if isinstance(action, ExpandAction)\
+                        or isinstance(action, RemoveContainerAction)\
+                        or isinstance(action, RenameAction):
+                    action.setEnabled(False)
+        menu.build()
+        action = menu.exec_(event.globalPos())
+
+        print("ProjectView.contextMenuEvent -- received action '%s'" % str(type(action)))
+        if isinstance(action, RemoveAction):
+            print("\tRemoving item(s)")
+            for idx in modelIndexList:
+                model.removeContainer(idx)
+        elif isinstance(action, ShowAction):
+            self._emitShowSignal(containerList)
+        elif isinstance(action, RenameAction):
+            # TODO: Call visualization here
+            pass
+        elif isinstance(action, ExpandAction):
+            for modelIndex in modelIndexList:
+                self.expand(modelIndex)
+        else:
+            return
 
 
 class FileSystemBrowser(qt.QWidget):
@@ -385,15 +458,24 @@ class DummyNotifier(qt.QObject):
     def signalReceived(self, val=None):
         print('DummyNotifier.signal received -- kw:\n', str(val))
 
-if __name__ == '__main__':
 
+if __name__ == '__main__':
+    from RixsTool.Models import ProjectModel
+
+    directory = '/home/truter/lab/mock_folder'
     proj = ProjectModel()
+    proj.crawl(directory)
 
     app = qt.QApplication([])
     #win = BandPassFilterWindow()
+    #win = FileSystemBrowser()
+    win = ProjectView()
+    win.setModel(proj)
+
     notifier = DummyNotifier()
-    win = FileSystemBrowser()
     if isinstance(win, AbstractToolWindow):
         win.acceptSignal.connect(notifier.signalReceived)
+    elif isinstance(win, ProjectView):
+        win.showSignal.connect(notifier.signalReceived)
     win.show()
     app.exec_()
