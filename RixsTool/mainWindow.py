@@ -36,8 +36,8 @@ from PyQt4 import uic
 from RixsTool.IO import EdfReader
 from RixsTool.IO import InputReader
 from RixsTool.window import BandPassFilterWindow
-from RixsTool.datahandling import RixsProject
 from RixsTool.Models import ProjectModel
+from RixsTool.DataItem import SpecItem, ScanItem, ImageItem, StackItem
 
 # Imports from os.path
 from os.path import splitext as OsPathSplitExt
@@ -62,6 +62,9 @@ class RIXSMainWindow(qt.QMainWindow):
             '<default>': ProjectModel()
         }
         self.setCurrentProject()
+        # Connect is independent from the project (model)
+        self.projectBrowser.showSignal.connect(self._handleShowSignal)
+        self.imageView.toggleLegendWidget()
 
     def setCurrentProject(self, key='<default>'):
         project = self.projectDict.get(key, None)
@@ -70,8 +73,19 @@ class RIXSMainWindow(qt.QMainWindow):
             return
         model = ProjectModel()
         self.fileBrowser.addSignal.connect(model.addFileInfoList)
+        #self.projectBrowser.showSignal.connect(self._handleShowSignal)
         self.projectBrowser.setModel(model)
         self.projectDict[key] = model
+
+    def _handleShowSignal(self, itemList):
+        for item in itemList:
+            if isinstance(item, ImageItem):
+                self.imageView.addImage(
+                    data=item.array,
+                    legend=item.key(),
+                    replace=False
+                )
+        print('RIXSMainWindow._handleShowSignal -- Done!')
 
     def _handleAddSignal(self, fileInfoList):
         fileNames = [OsPathNormpath(elem.absoluteFilePath()) for elem in fileInfoList]

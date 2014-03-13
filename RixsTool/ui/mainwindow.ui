@@ -29,9 +29,9 @@
          <enum>QTabWidget::West</enum>
         </property>
         <property name="currentIndex">
-         <number>1</number>
+         <number>0</number>
         </property>
-        <widget class="ScanWindow" name="imageView">
+        <widget class="PlotWindow" name="imageView">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
            <horstretch>0</horstretch>
@@ -249,7 +249,13 @@
   <customwidget>
    <class>ProjectView</class>
    <extends>QTreeView</extends>
-   <header>RixsTool.Models</header>
+   <header>RixsTool.window</header>
+  </customwidget>
+  <customwidget>
+   <class>PlotWindow</class>
+   <extends>QWidget</extends>
+   <header>PyMca.widgets.PlotWindow</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources/>
