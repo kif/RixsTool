@@ -26,19 +26,51 @@
 #############################################################################*/
 __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 
-from os.path import normpath as OsPathNormpath
+from os.path import abspath as OsAbsPath  # Better than normalized, absolute version of path
 from os.path import splitext as OsPathSplitext
-from os.path import sep as OsPathSep
+from os.path import join as OsPathJoin
 from os import walk as OsWalk
 from uuid import uuid4
 
-import RixsTool.IO as IO
+from RixsTool.IO import IODict
 from RixsTool.DataItem import SpecItem, ScanItem, ImageItem, StackItem
 
 DEBUG = 1
 
 
 class ItemContainer(object):
+    __doc__ = """The :class:`ItemContainer` class is the basic building block of a tree like data structure. Within
+     the tree hierarchy a container can either be a node or a leave. Nodes have zero or more children, while leaves
+     reference an instance of the class :py:class:`DataItem.DataItem`. Both uses of the item container can be
+     distinguished using the :func:`hasItem` respectively :py:func:`hasChildren`. Every item container except for
+     the top most has a parent pointer and a unique identifier. The identifier can savely be assumed to be random and
+     is provided at the moment of instantiation by the :func:`uuid.uuid4`
+
+     .. py:attribute:: __identifier
+
+        Randomly generated identifier for the container
+
+     .. py:attribute:: _item
+
+        Reference to a :py:class:`DataItem.DataItem` instance. None per default
+
+     .. py:attribute:: _data
+
+        List containing the names of attributes of a :py:class:`DataItem.DataItem` that might be of interest for
+        a display (c.f. :py:class:`Models.ProjectView`)
+
+     .. py:attribute:: parent
+
+        :class:`ItemContainer` instance that is higher in the tree hierarchie than the current instance
+
+     .. py:attribute:: children
+
+        List of :class:`ItemContainer` instance that are lower in the tree hierarchie than the current instance
+
+     .. py:attribute:: label
+
+        String naming the container."""
+
     def __init__(self, item=None, parent=None, label=None):
         #self._data = data if data is not None else [] # Dict or OrderedDict here?
         self.__identifier = uuid4()
@@ -65,6 +97,8 @@ class ItemContainer(object):
     #
     # Methods acting on ItemContainer.children or ItemContainer.parent
     #
+    def hasChildren(self):
+        return len(self.children) > 0
 
     def childCount(self):
         return len(self.children)
@@ -94,10 +128,8 @@ class ItemContainer(object):
 
     def setData(self, pos, attr):
         """
-        :param pos: Determines at which position the new column is inserted
-        :type pos: int
-        :param attr: Determines which attribute is displayed in the new column
-        :type pos: str
+        :param int pos: Determines at which position the new column is inserted
+        :param str attr: Determines which attribute is displayed in the new column
         :returns: Depending on success or failure of the method it returns True or False
         :rtype: bool
         """
@@ -112,6 +144,15 @@ class ItemContainer(object):
         return True
 
     def data(self, idx):
+        """
+        :param int idx: Determines which attribute of the item is called
+
+        Gives information stored in an :py:class::`DataItem` by calling a corresponding member function that returns
+        a string representation of said attribute.
+
+        :returns: Depending on success or failure of the method it returns True or False
+        :rtype: bool
+        """
         if (idx < 0) or idx >= len(self._data):
             raise IndexError('ItemContainer.data -- Index out of range')
         attr = self._data[idx]
@@ -126,7 +167,7 @@ class ItemContainer(object):
 
     def hasItem(self):
         """
-        :returns: Checks if the container has an item
+        :returns: Checks if the container item is not None
         :rtype: bool
         """
         return self._item is not None
@@ -140,6 +181,7 @@ class ItemContainer(object):
 
     def setItem(self, item):
         """
+        :param DataItem item:
         :returns: Depending on success or failure of the method it returns True or False
         :rtype: None or DataItem
         """
@@ -155,10 +197,8 @@ class ItemContainer(object):
 
     def addChildren(self, containerList, pos=-1):
         """
-        :param containerList: List of ItemContainers to be added as child
-        :type containerList: list
-        :param pos: Determines where the new children are in ItemContainer.children list. Default: -1, i.e. at the end.
-        :type pos: int
+        :param list containerList: List of ItemContainers to be added as child
+        :param int pos: Determines where the new children are in ItemContainer.children list. Default: -1, i.e. at the end.
         :returns: Depending on success or failure of the method it returns True or False
         :rtype: bool
         """
@@ -176,10 +216,8 @@ class ItemContainer(object):
 
     def removeChildren(self, pos, count=1):
         """
-        :param pos: Children from this position on are deleted
-        :type pos: int
-        :param count: Determines how many children are deleted. Default: 1
-        :type count: int
+        :param int pos: Children from this position on are deleted
+        :param int count: Determines how many children are deleted. Default: 1
         :returns: Depending on success or failure of the method it returns True or False
         :rtype: bool
         """
@@ -192,43 +230,19 @@ class ItemContainer(object):
 
 class RixsProject(object):
 
-    __OPERATION = 'operation'
+    __doc__ = """The :py:class:`RixsProject` class is used to read raw data related to a RIXS measurement. Internally
+    it organizes the raw data in instances of type :py:class:`DataItem.DataItem`. All data items are stored in the
+    project tree, a hierachical data structure. The tree itself consists of instances of type
+    :py:class:`datahandling.ItemContainer`.
 
-    DATA_TYPE = 'data' # -> 1d, 2d or 3d numpy array
-    EDF_TYPE = 'edf'   # -> Wrapper for edf files
-    RAW_TYPE = 'raw'   # -> Wrapper for plaintext data
-
-    # TODO: Use these type too
-    RAW_TYPE = 'spec' # -> Wrapper for spec files
-    SPEC_TYPE = 'stack' # -> Wrapper for spec files
-
-    typeList = [SPEC_TYPE, EDF_TYPE, RAW_TYPE]
+    On the top level, the tree divides the data items in containers depeding on the
+    dimensionality of their data. Two dimensional input for example is treated as an image."""
 
     def __init__(self):
-        #super(RixsProject, self).__init__()
-        #super(RixsProject, self).__init__()
-
-        #
-        # Spec readers
-        #
-        # TODO: Have readers for specfiles..
-        self.specReaders = {
-            self.SPEC_TYPE: None
-        }
-
-        #
-        # TODO: Replace Image readers with input
-        #
-        self.imageReaders = {
-            self.EDF_TYPE: IO.EdfReader()
-        }
-
         #
         # Input readers
         #
-        self.inputReaders = {
-            self.EDF_TYPE: IO.EdfReader()
-        }
+        self.inputReaders = IODict.inputReaderDict()
 
         #
         # Data tree
@@ -242,53 +256,42 @@ class RixsProject(object):
     def groupCount(self):
         return self.projectRoot.childCount()
 
-    def image(self, key, imageType):
+    def image(self, key):
         """
-        :param key: Identifier of the image
-        :type key: str
-        :param imageType: Describtor of image type (edf, raw, ...)
-        :type imageType: str
+        :param str key: Identifier of the image
 
-        Image -> 2D numpy array
+        Image -> 2D numpy array. TODO: Try to cast items in form of 2d ndarray?
 
         :returns: Image from the input reader
         :rtype: ImageItem
         """
-        reader = self.imageReaders.get(imageType, None)
-        if reader is None:
-            raise ValueError("RixsProject.image -- Unknown image type '%s'"%imageType)
-        # User reader interface
-        keys = reader.keys()
-        if key not in keys:
-            raise KeyError("RixsProject.image -- Key '%s' not found"%key)
-        return reader.itemDict[key]
+        raise NotImplementedError('RixsProject.image -- To be implemented')
 
-    """
-    def addImage(self, image, node=None):
-        # Remove me?
-        if not node:
-            node = self.projectRoot.children[1] # TODO: Find better way to access children
-        child = ItemContainer(
-            item=image,
-            parent=node
-        )
-        node.addChildren([child])
-        return child
-    """
+    def stack(self, key):
+        """
+        Stack -> Sequence of images, i.e. 3D numpy array
+        """
+        raise NotImplementedError('RixsProject.stack -- ..to be implemented')
+
+    def spectrum(self, key):
+        """
+        Stack -> Sequence of images, i.e. 3D numpy array
+        """
+        raise NotImplementedError('RixsProject.spectrum -- ..to be implemented')
 
     def addItem(self, item):
         """
-        :param item: Item to be inserted into the project tree
-        :param item: DataItem
+        :param DataItem item: Item to be inserted into the project tree
 
         Item is wrapped in :class:`datahandling.ItemContainer` and inserted into the tree.
         The insertion node depdends on the type of item.
 
         :returns: Container of item
         :rtype: ItemContainer
+        :raises TypeError: if the item type is unknown
         """
         if DEBUG >= 1:
-            print('### RixsProject.addItem -- called ###')
+            print('RixsProject.addItem -- called')
         if isinstance(item, ScanItem) or isinstance(item, SpecItem):
             node = self.projectRoot.children[0]
         elif isinstance(item, ImageItem):
@@ -296,7 +299,7 @@ class RixsProject(object):
         elif isinstance(item, StackItem):
             node = self.projectRoot.children[2]
         else:
-            raise ValueError("RixsProject.addItem -- unknown item type '%s'" % type(item))
+            raise TypeError("RixsProject.addItem -- unknown item type '%s'" % type(item))
         container = ItemContainer(
             item=item,
             parent=node
@@ -304,98 +307,58 @@ class RixsProject(object):
         node.addChildren([container])
         return container
 
-    def read(self, filename, fileType):
+    def read(self, fileName):
         """
-        :param filename: File name including path to file
-        :param filename: str
-        :param fileType: Determines which reader is used to access the file
-        :param fileType: str
+        :param str fileName: File name including path to file
 
         RixsProject stores a number of different reader for all sorts of file formats. The file stored under
         file name is registered with a matching reader.
 
-        :returns: Depeding on success or failure True or False
-        :rtype: bool
-        :raises: KeyError
+        :returns: List of raw data wrapped in :class:`datahandling.ItemContainer`
+        :rtype: list
+        :raises TypeError: if the item type is unknown
         """
-        try:
-            #reader = self.imageReaders.get(fileType, None)
+        # Try to guess filetype
+        name, ext = OsPathSplitext(fileName)
+        fileType = ext.replace('.', '').lower()
+        if fileType in self.inputReaders.keys():
             reader = self.inputReaders[fileType]
-        except KeyError:
-            # TODO: Ye olde question... raise oder return (False)?
-            raise KeyError("RixsProject.readImages -- Unknown image Type '%s'" % fileType)
-        # TODO: Check if key (i.e. file name w\o path) is already present in tree!
-        reader.append([filename])
-        last = reader.keys()[-1]
-        #self.addItem(reader.itemDict[last])
-        return reader.itemDict[last]
+        else:
+            raise TypeError("RixsProject.read -- Unknown file type '%s'" % fileType)
+        itemList = reader.itemize(fileName)
+        return itemList
 
-    """
-    def readImage(self, filename, imageType):
-        try:
-            #reader = self.imageReaders.get(imageType, None)
-            reader = self.imageReaders[imageType]
-        except KeyError:
-            raise ValueError("RixsProject.readImages -- Unknown image Type '%s'"%imageType)
-        reader.append([filename])
-        last = reader.keys()[-1]
-        self.addImage(reader.itemDict[last])
-        return True
-    """
+    def crawl(self, directory):
+        """
+        :param str directory: Root directory for the crawler to start
 
-    def stack(self, key, index):
+        Reads every file of known file type contained in directory and its subdirectories and adds it
+        to the project.
         """
-        Stack -> Sequence of images, i.e. 3D numpy array
-        """
-        raise NotImplementedError('RixsProject.stack -- ..to be implemented')
-
-    def spectrum(self, key, index):
-        """
-        Stack -> Sequence of images, i.e. 3D numpy array
-        """
-        raise NotImplementedError('RixsProject.spectrum -- ..to be implemented')
-
-    def addFileInfoList(self, fileInfoList):
-        if DEBUG == 1:
-            print('RixsProject.addFileInfoList -- received fileInfoList (len: %d)'%\
-                  len(fileInfoList))
-        for info in fileInfoList:
-            #name = OsPathNormpath(info.completeSuffix())
-            #name = OsPathNormpath(str(info.completeSuffix()))
-            suffix = str(info.completeSuffix())
-            print(self.imageReaders.keys())
-            if suffix.lower() not in self.imageReaders.keys():
-                raise ValueError("RixsProject.addFileInfoList -- Unknown filetype: '%s'" % suffix)
-            reader = self.imageReaders[suffix]
-            absFilePath = OsPathNormpath(str(info.canonicalFilePath()))
-            reader.append([absFilePath])
-            print(reader)
+        walk = OsWalk(OsAbsPath(directory))
+        if DEBUG >= 1:
+            print("RixsProject.crawl -- crawling '%s'" % directory)
+        for path, dirs, files in walk:
+            if DEBUG >= 1:
+                print('\tcurrent path:', path)
+            for ffile in files:
+                absName = OsPathJoin(path, ffile)
+                try:
+                    itemList = self.read(absName)
+                except TypeError:
+                    if DEBUG >= 1:
+                        print("RixsProject.crawl -- unkown filetype '%s'" % absName)
+                    continue
+                for item in itemList:
+                    self.addItem(item)
 
 
 def unitTest_RixsProject():
     #directory = r'C:\Users\tonn\lab\mockFolder\Images'
     directory = '/home/truter/lab/mock_folder/Images'
     project = RixsProject()
-    for result in OsWalk(directory):
-        currentPath = result[0]
-        dirs = result[1]
-        files = result[2]
-        for ffile in files:
-            root, ext = OsPathSplitext(ffile)
-            filename = currentPath + OsPathSep + ffile
-            if ext.replace('.', '') == project.EDF_TYPE:
-                print('Found edf-File:')
-                #project.readImage(filename, project.EDF_TYPE)
-                project.read(filename, project.EDF_TYPE)
-                #print(type(project.image(ffile, project.EDF_TYPE)))
-    for reader in project.inputReaders.values():
-        print(type(reader), reader)
+    project.crawl(directory)
+    return
 
 if __name__ == '__main__':
-    #unitTest_QDirListModel()
-    #rixsImageDir = 'C:\\Users\\tonn\\lab\\rixs\\Images'
-    #proj = RixsProject()
-    #edfImageList = [OsPathJoin(rixsImageDir,fn) for fn in OsListDir(rixsImageDir)\
-    #             if OsPathIsFile(OsPathJoin(rixsImageDir,fn))][1:]
-    #proj.readImages(edfImageList, 'edf')
     unitTest_RixsProject()

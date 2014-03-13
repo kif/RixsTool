@@ -32,6 +32,7 @@ from RixsTool.datahandling import RixsProject
 from RixsTool.ContextMenu import ProjectContextMenu, RemoveAction, RemoveItemAction, RemoveContainerAction,\
     ShowAction, ExpandAction, RenameAction
 from RixsTool.DataItem import SpecItem, ScanItem, ImageItem, StackItem
+from RixsTool.IO import IODict
 from PyMca import PyMcaQt as qt
 from os.path import splitext as osPathSplitext
 from os.path import normpath as OsPathNormpath
@@ -113,13 +114,15 @@ class ProjectModel(RixsProject, qt.QAbstractItemModel):
         RixsProject.__init__(self)
         qt.QAbstractItemModel.__init__(self, parent)
 
-    def read(self, filename, imageType):
+    """
+    def read(self, fileName):
         if DEBUG >= 1:
             print('### ProjectModel.read -- called ###')
-        item = RixsProject.read(self, filename, imageType)
-        return self.addItem(item)
+        itemList = RixsProject.read(self, fileName)
+        #return self.addItem(item)
+        for item in itemList:
+            self.addItem(item)
 
-    """
     def removeContainer(self, modelIndex):
         print('ProjectView.removeContainer -- removing item at:', modelIndex.row(), modelIndex.column())
         container = self.containerAt(modelIndex)
@@ -247,7 +250,6 @@ class ProjectModel(RixsProject, qt.QAbstractItemModel):
             container.label = str(value) # TODO: Changes label but not item key...
         self.dataChanged.emit(modelIndex, modelIndex)
 
-
     def headerData(self, section, orientation, role=qt.Qt.DisplayRole):
         """
         :param section: Header column
@@ -271,6 +273,9 @@ class ProjectModel(RixsProject, qt.QAbstractItemModel):
         """
         :param modelIndex: Model index of a container in the model
         :type modelIndex: QModelIndex
+
+        Number of children under the given model index
+
         :returns: Number of rows
         :rtype: int
         """
@@ -281,17 +286,21 @@ class ProjectModel(RixsProject, qt.QAbstractItemModel):
         """
         :param modelIndex: Model index of a container in the model
         :type modelIndex: QModelIndex
+
+        Number of columns of a given model index. Each column displays an information about the model index.
+
         :returns: Number of columns (i.e. attributes) shown
         :rtype: int
         """
         parent = self.containerAt(parentIndex)
-        #return self.projectRoot.columnCount()
         return parent.columnCount()
 
     def flags(self, modelIndex):
         """
-        :param modelIndex: Model index of a container in the model
-        :type modelIndex: QModelIndex
+        :param modelIndex: (QModelIndex) Model index of a container in the model
+
+        Determines what the item stored under models can be used for and how it is displayed.
+
         :returns: Flag indicating how the view can interact with the model
         :rtype: Qt.ItemFlag
         """
@@ -302,12 +311,13 @@ class ProjectModel(RixsProject, qt.QAbstractItemModel):
 
     def index(self, row, col, parentIndex=qt.QModelIndex(), *args, **kwargs):
         """
-        :param row: Row in the table of parentIndex
-        :type row: int
-        :param col: Column in the table of parentIndex
-        :type col: int
-        :param parentIndex: Determines the table
-        :type parentIndex: QModelIndex
+        :param row: (int) Row in the table of parentIndex
+        :param col: (int) Column in the table of parentIndex
+        :param parentIndex: (QModelIndex) Determines the table
+
+        Methods creates a model index under which a particular item in the underlying datastructure
+        can be accessed by the view.
+
         :returns: (Possibly invalid) model index of a container in the model. Invalid model indexes refer to the root
         :rtype: QModelIndex
         """
@@ -325,8 +335,11 @@ class ProjectModel(RixsProject, qt.QAbstractItemModel):
 
     def parent(self, modelIndex=qt.QModelIndex()):
         """
-        :param modelIndex: Model index of a container in the model
-        :type modelIndex: QModelIndex
+        :param modelIndex: (QModelIndex) Model index of a container in the model
+
+        Methods creates a model index under which the parent of a particular item in the underlying datastructure can
+        be accessed by the view.
+
         :returns: (Possibly invalid) model index of the parent container. Invalid model indexes refer to the root
         :rtype: QModelIndex
         """
@@ -345,10 +358,14 @@ class ProjectModel(RixsProject, qt.QAbstractItemModel):
     def addFileInfoList(self, fileInfoList):
         if DEBUG >= 1:
             print('ProjectView.addFileInfoList -- received fileInfoList (len: %d)' % len(fileInfoList))
+        itemList = []
         for info in fileInfoList:
-            suffix = str(info.completeSuffix())
             absFilePath = OsPathNormpath(str(info.canonicalFilePath()))
-            self.read(absFilePath, suffix)
+            #self.read(absFilePath)
+            itemList += RixsProject.read(self, absFilePath)
+        for item in itemList:
+            self.addItem(item)
+
 
 
 class QDirListModel(qt.QAbstractListModel):
@@ -502,9 +519,12 @@ def unitTest_ProjectModel():
         for ffile in files:
             root, ext = osPathSplitext(ffile)
             filename = currentPath + osPathSep + ffile
-            if ext.replace('.', '') == project.EDF_TYPE:
+            #if ext.replace('.', '') == project.EDF_TYPE:
+            if ext.replace('.', '') == IODict.EDF_TYPE:
                 print('Found edf-File:')
-                project.read(filename, project.EDF_TYPE)
+                llist = project.read(filename)
+                for item in llist:
+                    project.addItem(item)
 
     app = qt.QApplication([])
     view = ProjectView(project)
