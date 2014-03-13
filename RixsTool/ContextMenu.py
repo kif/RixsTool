@@ -57,6 +57,14 @@ class RemoveAction(AbstractAction):
     pass
 
 
+class RemoveItemAction(RemoveAction):
+    pass
+
+
+class RemoveContainerAction(RemoveAction):
+    pass
+
+
 class ShowAction(AbstractAction):
     pass
 
@@ -116,59 +124,54 @@ class AbstractContextMenu(qt.QMenu):
 # ContextMenus concerning the ProjectView
 #
 
-class ItemContextMenu(AbstractContextMenu):
-    def __init__(self, parent=None):
-        super(ItemContextMenu, self).__init__(parent)
 
-        showAction =  ShowAction(
+class ProjectContextMenu(AbstractContextMenu):
+    def __init__(self, parent=None):
+        super(ProjectContextMenu, self).__init__(parent)
+
+        showItemAction = ShowAction(
             None,
             'Show item in native format',
             self
         )
 
-        removeAction = RemoveAction(
+        removeItemAction = RemoveItemAction(
             qt.QIcon(':/minus.ico'),
             'Remove item from project',
             self
         )
 
-        self.actionList = [
-            showAction,
-            removeAction
-        ]
-
-
-class ContainerContextMenu(AbstractContextMenu):
-    def __init__(self, parent=None):
-        super(ContainerContextMenu, self).__init__(parent)
-
-        renameGroupAction =  RenameAction(
+        renameContainerAction = RenameAction(
             None,
             'Rename group',
             self
         )
 
-        expandGroupAction =  ExpandAction(
+        expandContainerAction = ExpandAction(
             None,
             'Expand groups',
             self
         )
 
-        removeGroupAction =  RemoveAction(
+        removeContainerAction = RemoveContainerAction(
             qt.QIcon(qt.QPixmap(':/minus.ico')),
             'Disband group',
             self
         )
 
         self.actionList = [
-            renameGroupAction,
-            expandGroupAction,
-            removeGroupAction
+            showItemAction,
+            removeItemAction,
+            'seperator',
+            renameContainerAction,
+            expandContainerAction,
+            removeContainerAction
         ]
 
 #
 # ContextMenus concerning the FileSystemBrowser
 #
+
 
 class FileContextMenu(AbstractContextMenu):
     def __init__(self, parent=None):

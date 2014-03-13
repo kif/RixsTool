@@ -29,9 +29,9 @@
          <enum>QTabWidget::West</enum>
         </property>
         <property name="currentIndex">
-         <number>1</number>
+         <number>0</number>
         </property>
-        <widget class="ScanWindow" name="imageView">
+        <widget class="PlotWindow" name="imageView">
          <property name="sizePolicy">
           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
            <horstretch>0</horstretch>
@@ -65,7 +65,7 @@
      <x>0</x>
      <y>0</y>
      <width>848</width>
-     <height>21</height>
+     <height>24</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -124,16 +124,7 @@
      </sizepolicy>
     </property>
     <layout class="QHBoxLayout" name="horizontalLayout">
-     <property name="leftMargin">
-      <number>2</number>
-     </property>
-     <property name="topMargin">
-      <number>2</number>
-     </property>
-     <property name="rightMargin">
-      <number>2</number>
-     </property>
-     <property name="bottomMargin">
+     <property name="margin">
       <number>2</number>
      </property>
      <item>
@@ -161,20 +152,11 @@
      <property name="spacing">
       <number>2</number>
      </property>
-     <property name="leftMargin">
-      <number>2</number>
-     </property>
-     <property name="topMargin">
-      <number>2</number>
-     </property>
-     <property name="rightMargin">
-      <number>2</number>
-     </property>
-     <property name="bottomMargin">
+     <property name="margin">
       <number>2</number>
      </property>
      <item>
-      <widget class="QTreeView" name="projectBrowser"/>
+      <widget class="ProjectView" name="projectBrowser"/>
      </item>
     </layout>
    </widget>
@@ -262,6 +244,17 @@
    <class>ScanWindow</class>
    <extends>QWidget</extends>
    <header>PyMca.widgets.ScanWindow</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>ProjectView</class>
+   <extends>QTreeView</extends>
+   <header>RixsTool.window</header>
+  </customwidget>
+  <customwidget>
+   <class>PlotWindow</class>
+   <extends>QWidget</extends>
+   <header>PyMca.widgets.PlotWindow</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

@@ -36,6 +36,8 @@ from PyQt4 import uic
 from RixsTool.IO import EdfReader
 from RixsTool.IO import InputReader
 from RixsTool.window import BandPassFilterWindow
+from RixsTool.Models import ProjectModel
+from RixsTool.DataItem import SpecItem, ScanItem, ImageItem, StackItem
 
 # Imports from os.path
 from os.path import splitext as OsPathSplitExt
@@ -43,16 +45,47 @@ from os.path import normpath as OsPathNormpath
 
 DEBUG = 1
 
+
 class RIXSMainWindow(qt.QMainWindow):
     def __init__(self, parent=None):
         qt.QMainWindow.__init__(self, parent)
         #uic.loadUi('C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\mainwindow.ui', self)
-        uic.loadUi('/Users/tonn/GIT/RixsTool/RixsTool/ui/mainwindow.ui', self)
+        #uic.loadUi('/Users/tonn/GIT/RixsTool/RixsTool/ui/mainwindow.ui', self)
+        uic.loadUi('/home/truter/lab/RixsTool/RixsTool/ui/mainwindow.ui', self)
         self.connectActions()
 
         self.filterWidget = None
 
-        self.projectDict = {}
+        # TODO: Can be of type ProjectView...
+        self.projectDict = {
+            '<current>': None,
+            '<default>': ProjectModel()
+        }
+        self.setCurrentProject()
+        # Connect is independent from the project (model)
+        self.projectBrowser.showSignal.connect(self._handleShowSignal)
+        self.imageView.toggleLegendWidget()
+
+    def setCurrentProject(self, key='<default>'):
+        project = self.projectDict.get(key, None)
+        if not project:
+            print('RIXSMainWindow.setCurrentProject -- project not found')
+            return
+        model = ProjectModel()
+        self.fileBrowser.addSignal.connect(model.addFileInfoList)
+        #self.projectBrowser.showSignal.connect(self._handleShowSignal)
+        self.projectBrowser.setModel(model)
+        self.projectDict[key] = model
+
+    def _handleShowSignal(self, itemList):
+        for item in itemList:
+            if isinstance(item, ImageItem):
+                self.imageView.addImage(
+                    data=item.array,
+                    legend=item.key(),
+                    replace=False
+                )
+        print('RIXSMainWindow._handleShowSignal -- Done!')
 
     def _handleAddSignal(self, fileInfoList):
         fileNames = [OsPathNormpath(elem.absoluteFilePath()) for elem in fileInfoList]
@@ -80,9 +113,9 @@ class RIXSMainWindow(qt.QMainWindow):
         names = qt.QFileDialog.getOpenFileNames(parent=self,
                                                 caption='Load Image Files',
                                                 directory=PyMcaDirs.inputDir,
-                                                filter=('EDF Files (*.edf *.EDF);;'
-                                                       +'Tiff Files (*.tiff *.TIFF);;'
-                                                       +'All Files (*.*)'))
+                                                filter=('EDF Files (*.edf *.EDF);;' +
+                                                        'Tiff Files (*.tiff *.TIFF);;' +
+                                                        'All Files (*.*)'))
         if len(names) == 0:
             # Nothing to do..
             return
@@ -118,9 +151,10 @@ class RIXSMainWindow(qt.QMainWindow):
     def showHistogram(self):
         print('MainWindow -- showHistogram: to be implemented')
 
+
 class DummyNotifier(qt.QObject):
     def signalReceived(self, val=None):
-        print('DummyNotifier.signal received -- kw:\n',str(val))
+        print('DummyNotifier.signal received -- kw:\n', str(val))
 
 if __name__ == '__main__':
     app = qt.QApplication([])

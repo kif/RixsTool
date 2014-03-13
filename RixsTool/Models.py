@@ -29,76 +29,75 @@ __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 from RixsTool.Utils import unique as RixsUtilsUnique
 #from RixsTool.Datahandling import RixsProject
 from RixsTool.datahandling import RixsProject
-from RixsTool.ContextMenu import ItemContextMenu, ContainerContextMenu, RemoveAction, ShowAction, ExpandAction, RenameAction
+from RixsTool.IO import IODict
 from PyMca import PyMcaQt as qt
 from os.path import splitext as osPathSplitext
+from os.path import normpath as OsPathNormpath
 from os import walk as osWalk
 from os.path import sep as osPathSep
 
 DEBUG = 1
 
-class ProjectView(qt.QTreeView):
-    def __init__(self, project, parent=None):
-        super(ProjectView, self).__init__(parent)
-        # TODO: Check if project is instance of RixsProject
-        self.project = project
-        self.setSelectionMode(qt.QAbstractItemView.ExtendedSelection)
-        self.setContextMenuPolicy(qt.Qt.DefaultContextMenu)
-        #self.customContextMenuRequested.connect(self.contextMenuRequest)
 
-    def contextMenuEvent(self, event):
-        print('ProjectView.contextMenuEvent -- called')
-        if not self.project:
-            print('ProjectView.contextMenuEvent -- Project is none')
-            return
-        #modelIndexList = RixsUtilsUnique(self.selectedIndexes(), 'row')
-        modelIndexList = [self.indexAt(event.pos())]
-        print('Length modelIndexList:',len(modelIndexList))
-        if len(modelIndexList) > 1:
-            menu = ContainerContextMenu()
-            print('ProjectView.contextMenuEvent -- Multiple selection, menu:',str(menu))
-        else:
-            model = self.model()
-            container = model.getContainer(modelIndexList[0])
-            print('Container:',str(container))
-            if container.item():
-                menu = ItemContextMenu()
-                print('ProjectView.contextMenuEvent -- Item detected, menu:',str(menu))
-            else:
-                menu = ContainerContextMenu()
-                print('ProjectView.contextMenuEvent -- Container detected, menu:',str(menu))
-        menu.build()
-        action = menu.exec_(event.globalPos())
-        print("ProjectView.contextMenuEvent -- received unknown action '%s'"%str(type(action)))
-        if isinstance(action, RemoveAction):
-            pass
-        elif isinstance(action, ShowAction):
-            pass
-        elif isinstance(action, RenameAction):
-            pass
-        elif isinstance(action, ExpandAction):
-            for modelIndex in modelIndexList:
-                self.expand(modelIndex)
-        else:
-            return
-
-
-class QContainerTreeModel(qt.QAbstractItemModel):
+class ProjectModel(RixsProject, qt.QAbstractItemModel):
     __doc__ = """
-    Structure of RixsProject.groups:
-
-      +---- Ims --+---- Group0: All images per default
-      |           |
-    --+---- Sps   +---- Group1: empty
-      |
-      +---- Sts
+    Tree model with :class:`datahandling.RixsProject` as underlying data structure. Implementation of
+    the interface of :class:`QAbstractItemModel`.
     """
 
-    def __init__(self, root, parent=None):
-        super(QContainerTreeModel, self).__init__(parent)
-        self.rootItem = root
+    def __init__(self, parent=None):
+        """
+        :param parent: Parent widget
+        :type parent: QAbstractItemView
+        """
+        RixsProject.__init__(self)
+        qt.QAbstractItemModel.__init__(self, parent)
 
-    def getContainer(self, modelIndex):
+    def removeContainer(self, modelIndex):
+        if not modelIndex.isValid():
+            print('Index is invalid')
+            return
+        container = self.containerAt(modelIndex)
+        parentIndex = self.parent(modelIndex)
+
+        self.beginRemoveRows(parentIndex, container.childNumber(), container.childNumber())
+
+        if container.childCount():
+            print('Has children')
+            # Child count is nonzero
+            #  TODO: Get child indexes
+            for child in container.children:
+                del(child)
+
+        parentContainer = self.containerAt(parentIndex)
+        idx = container.childNumber()
+        del(parentContainer.children[idx])
+
+        self.endRemoveRows()
+
+    def addItem(self, item):
+        """
+        :param item:
+        :type item:
+        """
+        if DEBUG >= 1:
+            print('### ProjectModel.addItem -- called ###')
+        try:
+            container = RixsProject.addItem(self, item)
+        except ValueError as error:
+            # Catch ValueError from base class method RixsProject.addItem
+            # caused by unknown item type (must be ScanItem, ImageItem, ...)
+            if DEBUG >= 1:
+                print(error)
+            return False
+
+        modelIndex = self.createIndex(container.childNumber(), 0, container)
+        parentIndex = self.parent(modelIndex)
+        self.beginInsertRows(parentIndex, container.childNumber(), container.childNumber())
+        self.endInsertRows()
+        return True
+
+    def containerAt(self, modelIndex):
         """
         :param modelIndex: Model index of a container in the model
         :type modelIndex: QModelIndex
@@ -109,7 +108,7 @@ class QContainerTreeModel(qt.QAbstractItemModel):
             item = modelIndex.internalPointer()
             if item:
                 return item
-        return self.rootItem
+        return self.projectRoot
 
     def data(self, modelIndex, role=qt.Qt.DisplayRole):
         """
@@ -122,7 +121,7 @@ class QContainerTreeModel(qt.QAbstractItemModel):
         """
         if not modelIndex.isValid():
             return None
-        container = self.getContainer(modelIndex)
+        container = self.containerAt(modelIndex)
         if role == qt.Qt.DisplayRole:
             if not container.hasItem():
                 if modelIndex.column():
@@ -130,6 +129,26 @@ class QContainerTreeModel(qt.QAbstractItemModel):
                     return ''
                 return str(container.label)
             return str(container.data(modelIndex.column()))
+
+    def setData(self, modelIndex, value, role=qt.Qt.DisplayRole):
+        """
+        :param modelIndex:
+        :type modelIndex: QModelIndex
+        :param role:
+        :type role: Qt.ItemDataRole (int)
+
+        Changes the attributes of a :class:`ItemContainer`
+        """
+        container = self.containerAt(modelIndex)
+        if not container.hasItem():
+            # Only ItemContainers that contain DataItem can be changed
+            return False
+        if role == qt.Qt.DisplayRole:
+            if not modelIndex.column():
+                # Not the 0-th column, change key!
+                return False
+            container.label = str(value) # TODO: Changes label but not item key...
+        self.dataChanged.emit(modelIndex, modelIndex)
 
     def headerData(self, section, orientation, role=qt.Qt.DisplayRole):
         """
@@ -145,7 +164,7 @@ class QContainerTreeModel(qt.QAbstractItemModel):
         if section < 0 or self.columnCount() <= section:
             return None
         if role == qt.Qt.DisplayRole:
-            headerItem = self.rootItem._data
+            headerItem = self.projectRoot._data
             return headerItem[section].upper()
         else:
             return None
@@ -154,27 +173,34 @@ class QContainerTreeModel(qt.QAbstractItemModel):
         """
         :param modelIndex: Model index of a container in the model
         :type modelIndex: QModelIndex
+
+        Number of children under the given model index
+
         :returns: Number of rows
         :rtype: int
         """
-        parent = self.getContainer(parentIndex)
+        parent = self.containerAt(parentIndex)
         return parent.childCount()
 
     def columnCount(self, parentIndex=qt.QModelIndex(), *args, **kwargs):
         """
         :param modelIndex: Model index of a container in the model
         :type modelIndex: QModelIndex
+
+        Number of columns of a given model index. Each column displays an information about the model index.
+
         :returns: Number of columns (i.e. attributes) shown
         :rtype: int
         """
-        parent = self.getContainer(parentIndex)
-        #return self.rootItem.columnCount()
+        parent = self.containerAt(parentIndex)
         return parent.columnCount()
 
     def flags(self, modelIndex):
         """
-        :param modelIndex: Model index of a container in the model
-        :type modelIndex: QModelIndex
+        :param modelIndex: (QModelIndex) Model index of a container in the model
+
+        Determines what the item stored under models can be used for and how it is displayed.
+
         :returns: Flag indicating how the view can interact with the model
         :rtype: Qt.ItemFlag
         """
@@ -185,18 +211,19 @@ class QContainerTreeModel(qt.QAbstractItemModel):
 
     def index(self, row, col, parentIndex=qt.QModelIndex(), *args, **kwargs):
         """
-        :param row: Row in the table of parentIndex
-        :type row: int
-        :param col: Column in the table of parentIndex
-        :type col: int
-        :param parentIndex: Determines the table
-        :type parentIndex: QModelIndex
+        :param row: (int) Row in the table of parentIndex
+        :param col: (int) Column in the table of parentIndex
+        :param parentIndex: (QModelIndex) Determines the table
+
+        Methods creates a model index under which a particular item in the underlying datastructure
+        can be accessed by the view.
+
         :returns: (Possibly invalid) model index of a container in the model. Invalid model indexes refer to the root
         :rtype: QModelIndex
         """
         if parentIndex.isValid() and parentIndex.column() > 0:
             return qt.QModelIndex()
-        parent = self.getContainer(parentIndex)
+        parent = self.containerAt(parentIndex)
         try:
             child = parent.children[row]
         except IndexError:
@@ -208,21 +235,37 @@ class QContainerTreeModel(qt.QAbstractItemModel):
 
     def parent(self, modelIndex=qt.QModelIndex()):
         """
-        :param modelIndex: Model index of a container in the model
-        :type modelIndex: QModelIndex
+        :param modelIndex: (QModelIndex) Model index of a container in the model
+
+        Methods creates a model index under which the parent of a particular item in the underlying datastructure can
+        be accessed by the view.
+
         :returns: (Possibly invalid) model index of the parent container. Invalid model indexes refer to the root
         :rtype: QModelIndex
         """
         if not modelIndex.isValid():
             return qt.QModelIndex()
 
-        child = self.getContainer(modelIndex)
-        parent = child.parent
+        child = self.containerAt(modelIndex)
+        #print('ProjectView.parent -- type(child):', type(child), hasattr(child, 'parent'))
+        parentContainer = child.parent
 
-        if parent == self.rootItem:
+        if parentContainer == self.projectRoot:
             return qt.QModelIndex()
 
-        return self.createIndex(parent.childNumber(), 0, parent)
+        return self.createIndex(parentContainer.childNumber(), 0, parentContainer)
+
+    def addFileInfoList(self, fileInfoList):
+        if DEBUG >= 1:
+            print('ProjectView.addFileInfoList -- received fileInfoList (len: %d)' % len(fileInfoList))
+        itemList = []
+        for info in fileInfoList:
+            absFilePath = OsPathNormpath(str(info.canonicalFilePath()))
+            #self.read(absFilePath)
+            itemList += RixsProject.read(self, absFilePath)
+        for item in itemList:
+            self.addItem(item)
+
 
 class QDirListModel(qt.QAbstractListModel):
     def __init__(self, parent=None):
@@ -257,7 +300,7 @@ class QDirListModel(qt.QAbstractListModel):
         :param directoryList: Carries the new legend information
         :type directoryList: list of either strings or QDirs
         """
-        modelIndex = self.createIndex(row,0)
+        modelIndex = self.createIndex(row,  0)
         count = len(directoryList)
         qt.QAbstractListModel.beginInsertRows(self,
                                               modelIndex,
@@ -292,8 +335,8 @@ class QDirListModel(qt.QAbstractListModel):
             # Nothing to do..
             return True
         if row < 0 or row >= length:
-            raise IndexError('Index out of range -- '
-                            +'idx: %d, len: %d'%(row, length))
+            raise IndexError('Index out of range -- ' +
+                             'idx: %d, len: %d' % (row, length))
         if count == 0:
             return False
         qt.QAbstractListModel.beginRemoveRows(self,
@@ -327,8 +370,9 @@ class QDirListModel(qt.QAbstractListModel):
                 pass
             return None
 
+
 def unitTest_QDirListModel():
-    inp = ['foo/dir','bar\\dir','baz']
+    inp = ['foo/dir', 'bar\\dir', 'baz']
     listModel = QDirListModel()
     listModel.insertDirs(0, inp)
 
@@ -355,30 +399,56 @@ def unitTest_QDirListModel():
         print('datahandling.unitTest_QDirListModel -- Failure')
         return False
 
-def unitTest_QContainerTreeModel():
-    #directory = r'C:\Users\tonn\lab\mockFolder'
-    directory = '/Users/tonn/DATA/rixs_data/'
-    project = RixsProject()
-    for result in osWalk(directory):
-        currentPath = result[0]
-        dirs = result[1]
-        files = result[2]
-        for file in files:
-            root, ext = osPathSplitext(file)
-            filename = currentPath + osPathSep + file
-            if ext.replace('.','') == project.EDF_TYPE:
-                print('Found edf-File:')
-                project.readImage(filename, project.EDF_TYPE)
-                print(type(project.image(file, project.EDF_TYPE)))
+
+def unitTest_ProjectModel():
+    class DummyNotifier(qt.QObject):
+        def signalReceived(self, val0=None, val1=None):
+            print('DummyNotifier.signal received -- kw:\n', str(val0), str(val1))
+    dummy = DummyNotifier()
+
+    from RixsTool.window import ProjectView
+
+    #directory = r'C:\Users\tonn\lab\mockFolder'  # On windows
+    #directory = '/Users/tonn/DATA/rixs_data/'  # On mac
+    directory = '/home/truter/lab/mock_folder'  # On linkarkouli
+    project = ProjectModel()
+    project.dataChanged.connect(dummy.signalReceived)
+
+    #for result in osWalk(directory):
+    #    currentPath = result[0]
+    #    files = result[2]
+    #    for ffile in files:
+    #        root, ext = osPathSplitext(ffile)
+    #        filename = currentPath + osPathSep + ffile
+    #        #if ext.replace('.', '') == project.EDF_TYPE:
+    #        if ext.replace('.', '') == IODict.EDF_TYPE:
+    #            print('Found edf-File:')
+    #            llist = project.read(filename)
+    #            for item in llist:
+    #                project.addItem(item)
+
+    project.crawl(directory)
 
     app = qt.QApplication([])
-    win = ProjectView(project)
-    model = QContainerTreeModel(project.projectRoot, win)
-    win.setModel(model)
+    view = ProjectView()
+    #model = QContainerTreeModel(project.projectRoot, win)
+    #win.setModel(model)
+    view.setModel(project)
+
+    removeButton = qt.QPushButton("Remove something")
+    #removeButton.clicked.connect(view.removeLastItem)
+
+    layout = qt.QVBoxLayout()
+    layout.addWidget(removeButton)
+    layout.addWidget(view)
+
+    win = qt.QWidget()
+    win.setLayout(layout)
+
     win.show()
     app.exec_()
 
 
 if __name__ == '__main__':
     #unitTest_QDirListModel()
-    unitTest_QContainerTreeModel()
+    unitTest_ProjectModel()

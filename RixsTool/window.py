@@ -37,13 +37,20 @@ from RixsTool.ContextMenu import FileContextMenu, AddFilesAction
 # Imports from os.path
 
 from RixsTool.Models import QDirListModel
+from RixsTool.Models import ProjectModel
+from RixsTool.Utils import unique as RixsUtilsUnique
+from RixsTool.ContextMenu import ProjectContextMenu, RemoveAction, RemoveItemAction, RemoveContainerAction,\
+    ShowAction, ExpandAction, RenameAction
+from RixsTool.datahandling import ItemContainer
 
 DEBUG = 1
+
 
 class AbstractToolTitleBar(qt.QWidget):
 
     #__uiPath = 'C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\abtractTitleToolBar.ui'
-    __uiPath = '/Users/tonn/GIT/RixsTool/RixsTool/ui/abtracttitletoolbar.ui'
+    #__uiPath = '/Users/tonn/GIT/RixsTool/RixsTool/ui/abtracttitletoolbar.ui'
+    __uiPath = '/home/truter/lab/RixsTool/RixsTool/ui/abtracttitletoolbar.ui'
 
     def __init__(self, title):
         super(AbstractToolTitleBar, self).__init__()
@@ -97,18 +104,15 @@ class AbstractToolWindow(qt.QDockWidget):
         sortedKeys = sorted(self._values.keys())
         for key in sortedKeys:
             obj = self._values[key]
-            if isinstance(obj, qt.QPlainTextEdit) or\
-               isinstance(obj, qt.QTextEdit):
+            if isinstance(obj, qt.QPlainTextEdit) or isinstance(obj, qt.QTextEdit):
                 val = obj.getPlainText()
             elif isinstance(obj, qt.QLineEdit):
                 val = obj.text()
-            elif isinstance(obj, qt.QCheckBox) or\
-                 isinstance(obj, qt.QRadioButton):
+            elif isinstance(obj, qt.QCheckBox) or isinstance(obj, qt.QRadioButton):
                 val = obj.checkState()
             elif isinstance(obj, qt.QComboBox):
                 val = obj.currentText()
-            elif isinstance(obj, qt.QAbstractSlider) or\
-                 isinstance(obj, qt.QSpinBox):
+            elif isinstance(obj, qt.QAbstractSlider) or isinstance(obj, qt.QSpinBox):
                 val = obj.value()
             else:
                 val = None
@@ -119,19 +123,16 @@ class AbstractToolWindow(qt.QDockWidget):
         success = True
         for key, val in ddict.items:
             obj = self._values[key]
-            if isinstance(obj, qt.QPlainTextEdit) or\
-               isinstance(obj, qt.QTextEdit):
+            if isinstance(obj, qt.QPlainTextEdit) or isinstance(obj, qt.QTextEdit):
                 obj.setPlainText(val)
             elif isinstance(obj, qt.QLineEdit):
                 obj.setText(val)
-            elif isinstance(obj, qt.QCheckBox) or\
-                 isinstance(obj, qt.QRadioButton):
+            elif isinstance(obj, qt.QCheckBox) or isinstance(obj, qt.QRadioButton):
                 obj.setCheckState(val)
             elif isinstance(obj, qt.QComboBox):
                 idx = obj.findText(val)
                 obj.setCurrentIndex(idx)
-            elif isinstance(obj, qt.QAbstractSlider) or\
-                 isinstance(obj, qt.QSpinBox):
+            elif isinstance(obj, qt.QAbstractSlider) or isinstance(obj, qt.QSpinBox):
                 obj.setValue(val)
             else:
                 if DEBUG == 1:
@@ -140,10 +141,12 @@ class AbstractToolWindow(qt.QDockWidget):
                 success = False
         return success
 
+
 class BandPassFilterWindow(AbstractToolWindow):
     def __init__(self, parent=None):
         #uiPath = 'C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\bandpassfilter.ui'
-        uiPath = '/Users/tonn/GIT/RixsTool/RixsTool/ui/bandpassfilter.ui'
+        #uiPath = '/Users/tonn/GIT/RixsTool/RixsTool/ui/bandpassfilter.ui'
+        uiPath = '/home/truter/lab/RixsTool/RixsTool/ui/bandpassfilter.ui'
         super(BandPassFilterWindow, self).__init__(uiPath=uiPath,
                                                    parent=parent)
         self.setUI()
@@ -154,17 +157,22 @@ class BandPassFilterWindow(AbstractToolWindow):
             'offset': self._widget.offsetValue
         }
 
+
 class DirTree(qt.QTreeView):
-    def __init__(self, parent=None):
+    def __init__(self, parent):
         super(DirTree, self).__init__(parent)
         self.setContextMenuPolicy(qt.Qt.DefaultContextMenu)
         self.watcher = qt.QFileSystemWatcher()
         self.setModel(qt.QFileSystemModel())
         self.watcher.fileChanged.connect(self.fileChanged)
+        if hasattr(parent, 'handleContextMenuAction'):
+            self.callback = parent.handleContextMenuAction
+        else:
+            self.callback = None
 
     def fileChanged(self, path):
         # TODO: Implement auto update
-        print('DirTree.fileChanged -- path:',path)
+        print('DirTree.fileChanged -- path:', path)
 
     def updatePath(self, path):
         model = self.model()
@@ -178,8 +186,9 @@ class DirTree(qt.QTreeView):
 
     def contextMenuEvent(self, event):
         print('DirTree.contextMenuEvent -- called')
-        #modelIndexList = RixsUtilsUnique(self.selectedIndexes(), 'row')
-        modelIndexList = [self.indexAt(event.pos())]
+        modelIndexList = self.selectedIndexes()
+        RixsUtilsUnique(modelIndexList, "row")
+        #modelIndexList = [self.indexAt(event.pos())]
         print('Length modelIndexList:', len(modelIndexList))
 
         model = self.model()
@@ -194,10 +203,12 @@ class DirTree(qt.QTreeView):
         menu.build()
         action = menu.exec_(event.globalPos())
 
-        if isinstance(action, AddFilesAction):
-            pass
-        else:
-            return
+        if action:
+            if self.callback:
+                self.callback(action, {'fileInfoList': fileInfoList})
+            else:
+                raise AttributeError("DirTree.contextMenuEvent -- callback not set")
+        return
 
     def setModel(self, fsModel):
         if not isinstance(fsModel, qt.QFileSystemModel):
@@ -206,19 +217,93 @@ class DirTree(qt.QTreeView):
             qt.QTreeView.setModel(self, fsModel)
 
 
+class ProjectView(qt.QTreeView):
+    showSignal = qt.pyqtSignal(object)
+    #showSpecSignal = qt.pyqtSignal(object)
+    #showStackSignal = qt.pyqtSignal(object)
+
+    def __init__(self, parent=None):
+        super(ProjectView, self).__init__(parent)
+        # TODO: Check if project is instance of RixsProject
+        #self.project = project
+        self.setSelectionMode(qt.QAbstractItemView.ExtendedSelection)
+        self.setContextMenuPolicy(qt.Qt.DefaultContextMenu)
+        #self.customContextMenuRequested.connect(self.contextMenuRequest)
+
+    def _emitShowSignal(self, containerList):
+        """
+        :param list containerList: Contains items selected in the view
+
+        Filters the containers in container list for such that contain a :py:class::`DataItem.DataItem` and emits
+        a list of references to the items.
+        """
+        itemList = [ItemContainer.item(container) for container in filter(ItemContainer.hasItem, containerList)]
+        for item in itemList:
+            print('%s: %s %s' % (item.key(), str(item.shape()), type(item.array)))
+        self.showSignal.emit(itemList)
+
+    def contextMenuEvent(self, event):
+        print('ProjectView.contextMenuEvent -- called')
+        model = self.model()
+        if not model:
+            print('ProjectView.contextMenuEvent -- Model is none. Abort')
+            return
+
+        modelIndexList = self.selectedIndexes()
+        RixsUtilsUnique(modelIndexList, "row")
+        containerList = [model.containerAt(idx) for idx in modelIndexList]
+        print('ProjectView.contextMenuEvent -- Received %d element(s)' % len(modelIndexList))
+        for idx in modelIndexList:
+            print('\t', idx.row(), idx.column())
+
+        menu = ProjectContextMenu()
+        if not any([container.hasItem() for container in containerList]):
+            # No DataItem in selection, deactivate actions aimt at DataItems
+            for action in menu.actionList:
+                if isinstance(action, ShowAction) or isinstance(action, RemoveItemAction):
+                    action.setEnabled(False)
+        else:
+            #if not any([container.childCount() for container in containerList]):
+            # No containers in selection, deactivate actions aimt at containers
+            for action in menu.actionList:
+                if isinstance(action, ExpandAction)\
+                        or isinstance(action, RemoveContainerAction)\
+                        or isinstance(action, RenameAction):
+                    action.setEnabled(False)
+        menu.build()
+        action = menu.exec_(event.globalPos())
+
+        print("ProjectView.contextMenuEvent -- received action '%s'" % str(type(action)))
+        if isinstance(action, RemoveAction):
+            print("\tRemoving item(s)")
+            for idx in modelIndexList:
+                model.removeContainer(idx)
+        elif isinstance(action, ShowAction):
+            self._emitShowSignal(containerList)
+        elif isinstance(action, RenameAction):
+            # TODO: Call visualization here
+            pass
+        elif isinstance(action, ExpandAction):
+            for modelIndex in modelIndexList:
+                self.expand(modelIndex)
+        else:
+            return
+
 
 class FileSystemBrowser(qt.QWidget):
     addSignal = qt.pyqtSignal(object)
 
-    def __init__(self, parent=None, project=None):
+    def __init__(self, parent=None):
         qt.QWidget.__init__(self, parent)
         #uic.loadUi('C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\filesystembrowser.ui', self)
-        uic.loadUi('/Users/tonn/GIT/RixsTool/RixsTool/ui/filesystembrowser.ui', self)
+        #uic.loadUi('/Users/tonn/GIT/RixsTool/RixsTool/ui/filesystembrowser.ui', self)
+        uic.loadUi('/home/truter/lab/RixsTool/RixsTool/ui/filesystembrowser.ui', self)
 
         #
         # Set start directory to qt.QDir.home()
         #
-        startDir = qt.QDir.home()
+        # TODO: change startDir = qt.QDir.home()
+        startDir = qt.QDir('/home/truter/lab/mock_folder/')
         workingDirModel = QDirListModel(self)
         self.workingDirCB.setModel(workingDirModel)
         self.fsView.updatePath(startDir.absolutePath())
@@ -237,6 +322,16 @@ class FileSystemBrowser(qt.QWidget):
 
         self.addDirButton.clicked[()].connect(self.addDir)
         self.closeDirButton.clicked[()].connect(self.closeDir)
+
+    def handleContextMenuAction(self, obj, param=None):
+        # Change to treeCallback and except qfileinfos directly
+        if not param:
+            param = {}
+        if isinstance(obj, AddFilesAction):
+            fileInfoList = param.get('fileInfoList', None)
+            if fileInfoList:
+                self.addSignal.emit(fileInfoList)
+        print('FileSystemBrowser.handleContextMenuAction -- finished!')
 
     #
     # Adding/Removing working directories
@@ -296,20 +391,6 @@ class FileSystemBrowser(qt.QWidget):
         if not self.closeDirButton.isEnabled():
             self.closeDirButton.setEnabled(True)
 
-    def setProject(self, newProject):
-        # Make sure to disconnect addSignal
-        if self.project is not None:
-            self.addSignal.disconnect(self.project)
-            if DEBUG == 1:
-                print('FileSystemBrowser.setProject -- Disconnected addSignal from current project')
-        newDir = qt.QDir.absoluteFilePath(newProject.workingDir)
-        if DEBUG == 1:
-            print('FileSystemBrowser.setProject -- Setting project. New WD:', newDir)
-        #self.fsView.updatePath(newDir)
-        self.setDir(newDir)
-        self.addSignal.connect(newProject.addFileInfoList)
-        self.project = newProject
-
     def getSelectedFiles(self):
         # QTreeView.selectedIndexes returns list
         # [Row1Col1, Row1Col2, ..., Row2Col1, ...].
@@ -333,6 +414,7 @@ class FileSystemBrowser(qt.QWidget):
         return infoList
 
     def addFiles(self):
+        # TODO: remove me
         current = self.getSelectedFiles()
         self.addSignal.emit(current)
 
@@ -371,16 +453,29 @@ class FileSystemBrowser(qt.QWidget):
         print('FileSystemBrowser._handleDirectoryChanged called: %s'%str(dirPath))
         return
 
+
 class DummyNotifier(qt.QObject):
     def signalReceived(self, val=None):
-        print('DummyNotifier.signal received -- kw:\n',str(val))
+        print('DummyNotifier.signal received -- kw:\n', str(val))
+
 
 if __name__ == '__main__':
+    from RixsTool.Models import ProjectModel
+
+    directory = '/home/truter/lab/mock_folder'
+    proj = ProjectModel()
+    proj.crawl(directory)
+
     app = qt.QApplication([])
     #win = BandPassFilterWindow()
+    #win = FileSystemBrowser()
+    win = ProjectView()
+    win.setModel(proj)
+
     notifier = DummyNotifier()
-    win = FileSystemBrowser()
     if isinstance(win, AbstractToolWindow):
         win.acceptSignal.connect(notifier.signalReceived)
+    elif isinstance(win, ProjectView):
+        win.showSignal.connect(notifier.signalReceived)
     win.show()
     app.exec_()
