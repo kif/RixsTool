@@ -35,14 +35,17 @@ class DataItem(object):
 
     def __init__(self, key, header, array, fileLocation):
         super(DataItem, self).__init__()
-        self.key = key
+        self._key = key
         self.header = header
         self.array = array
         self.fileLocation = fileLocation
         self.__identifier = uuid4()
 
+    def __repr__(self):
+        return '%s: %s %s' % (self.key(), str(self.shape()), type(self.array))
+
     def key(self):
-        return self.key
+        return self._key
 
     def description(self):
         return self.interpretation
