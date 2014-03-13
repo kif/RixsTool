@@ -26,12 +26,6 @@
 #############################################################################*/
 __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 
-import sys
-
-if sys.version > '2.4':
-    from collections import OrderedDict
-else:
-    from RixsTool.OrderedDict import OrderedDict
 from PyMca.PyMcaIO.EdfFile import EdfFile
 from os.path import split as OsPathSplit
 from os import access as OsAccess
@@ -40,87 +34,73 @@ import numpy as np
 import time
 from RixsTool.DataItem import ImageItem
 
+DEBUG = 1
+
+
+class IODict(object):
+    EDF_TYPE = 'edf'    # -> Wrapper for edf files
+    RAW_TYPE = 'raw'    # -> Wrapper for plaintext data
+
+    # TODO: Use these type too
+    SPEC_TYPE = 'stack'  # -> Wrapper for spec files
+
+    @staticmethod
+    def inputReaderDict():
+        ddict = {
+            IODict.EDF_TYPE: EdfReader()
+        }
+        return ddict
+
 
 class InputReader(object):
     def __init__(self):
-        self.__readerDict = OrderedDict()
-        self.itemDict = OrderedDict()
         self._srcType = None
-        self.__active = False
+        self.key = ''
+        self.reader = None
 
     def __len__(self):
         return len(self.keys())
 
     def __repr__(self):
         inputType = str(self._srcType)
-        return '\n\t'.join(['%s %s %s' % (inputType, 'instance at', id(self))] +
-                           ['%s -> shape %s' % (item.key, str(item.shape())) for item in self.items() if item])
+        return '%s %s %s' % (inputType, 'instance at', id(self))
 
-    def keys(self):
-        return self.itemDict.keys()
-
-    def items(self):
-        return self.itemDict.values()
-
-    def files(self):
-        return self.__readerDict.keys()
-
-    def readers(self):
-        return self.__readerDict.values()
-
-    def __initReaders(self, llist):
+    def __initReader(self, fileName):
         """
-        :param llist: List of full filename including path
-        :type llist: list
+        :param fileName: absolute file name
+        :type fileName: str
 
-
+        Creates reader instance and sets the key.
         """
         if isinstance(self._srcType, type(None)):
             raise NotImplementedError('InputReader.__initReaders -- Do not instantiate base class')
-        for filename in llist:
-            print('InputReader.__initReaders -- reading:', filename)
-            if not OsAccess(filename, OS_R_OK):
-                print("Invalid file '%s'" % filename)
-                continue
-            path, key = OsPathSplit(filename)
-            if len(key) == 0:
-                print('InputReader.__initReaders -- len(key) == 0, This should not happen!')
-                continue
-            if filename not in self.__readerDict.keys():
-                self.__readerDict[filename] = self._srcType(filename)
-                self.itemDict[key] = None
+        if DEBUG >= 1:
+            print("InputReader.__initReaders -- reading: '%s'" % fileName)
+        if not OsAccess(fileName, OS_R_OK):
+            return False
+        path, name = OsPathSplit(fileName)
+        self.key = name
+        self.reader = self._srcType(fileName)
         return True
 
-    def _setData(self, llist):
+    def itemize(self, fileName):
         """
-        Fills the self.__data dictionary with the corresponding values. This
-        funtion needs to be reimplemented in every subclass.
+        :param fileName: File name including absolute path to the file
+        :type fileName: str
+
+        Method serves as interface between the different reader types and the DataItem container class.
+        :func:`InputReader.itemize` must be reimplemented in every child class.
+
+        :raises ValueError: In case the file is inaccessible
+        :raises NotImplementedError: In case the base class is instantiated
         """
-        raise NotImplementedError('InputReader._setData -- Do not instantiate base class')
-
-    def append(self, llist):
-        """
-        :param llist: List of files to append
-        :type llist: list
-
-        Appends new files to self.__filelist if they
-        are not already present.
-        """
-        print('InputReader.append -- llist:',str(llist))
-        self.refreshing = True
-        self.__initReaders(llist)
-        self._setData()
-        self.refreshing = False
-
-    def refresh(self):
-        '''
-        :param llist: List of file names or keys to be refreshed
-        :type llist: list
-
-        Resets the entries given in llist if stored in the internal dictionaries
-        '''
-        # TODO: Implement me..
-        raise NotImplementedError("InputReader.refresh -- Here is work to be done..")
+        try:
+            success = self.__initReader(fileName)
+        except NotImplementedError:
+            # Reraise error from correct function
+            raise NotImplementedError('InputReader.itemize -- Do not instantiate base class')
+        if not success:
+            raise ValueError("InputReader.itemize -- Invalid file '%s'" % fileName)
 
 
 class EdfReader(InputReader):
@@ -128,50 +108,34 @@ class EdfReader(InputReader):
         super(EdfReader, self).__init__()
         self._srcType = EdfFile
 
-    def _setData(self):
-        # def __init__(self, key, header, array, fileLocation):
+    def itemize(self, fileName):
         timeStart = time.time()
+        InputReader.itemize(self, fileName)
 
-        #
-        # Consistency check
-        #
-        if len(self.items()) != len(self.readers()):
-            raise IndexError('EdfReader._setData -- Inequal amount of readers and items')
-
-
-        #
-        # Create either ImageItem or StackItem, if single or multiple images are present
-        #
-        updateDict = OrderedDict()
-        for key, item, reader in zip(self.keys(), self.items(), self.readers()):
-            if item:
-                continue
-
-            numImages = reader.GetNumImages()
-
-            if numImages == 1:
-                arr = reader.GetData(0)
-                newItem = ImageItem(
-                    key=key,
-                    header=reader.GetHeader(0),
-                    array=np.ascontiguousarray(arr, arr.dtype),
-                    fileLocation=reader.FileName
-                )
-            else:
-                print('EDFInputReader._data -- Unsupported number of images in single EDF file')
-                newItem = ImageItem(
-                    key=key,
-                    header='',
-                    array=np.zeros((10, 10), dtype=np.uint16),
-                    fileLocation=reader.FileName
-                )
-
-            updateDict[key] = newItem
-        self.itemDict.update(updateDict)
+        numImages = self.reader.GetNumImages()
+        llist = []
+        if numImages > 1:
+            raise NotImplementedError('EdfReader.itemize -- No support for edfs containing multiple images')
+            #for idx in range(numImages):
+            #    arr = reader.GetData(idx)
+            #    newItem = ImageItem(
+            #        key=key,
+            #        header=reader.GetHeader(0),
+            #        array=np.ascontiguousarray(arr, arr.dtype),
+            #        fileLocation=reader.FileName
+            #    )
+        else:
+            arr = self.reader.GetData(0)
+            newItem = ImageItem(
+                key=self.key,
+                header=self.reader.GetHeader(0),
+                array=np.ascontiguousarray(arr, arr.dtype),
+                fileLocation=self.reader.FileName)
+            llist += [newItem]
 
         timeEnd = time.time()
-        print('EdfInputReader._setData -- Method finished in %.3f s'%\
-              (timeEnd - timeStart))
+        print('EdfInputReader.itemize -- Method finished in %.3f s' % (timeEnd - timeStart))
+        return llist
 
 
 def unitTest_InputReader():
@@ -183,10 +147,8 @@ def unitTest_InputReader():
                     if OsPathIsFile(OsPathJoin(rixsImageDir, fn))][1:]
 
     edfReader = EdfReader()
-    #edfReader = InputReader()
-    edfReader.append(edfImageList)
-    for elem in zip(edfReader.files(), edfReader.keys()):
-        print(elem)
+    for elem in sum([edfReader.itemize(fn) for fn in edfImageList], []):
+        print elem.key
     print(edfReader)
 
 if __name__ == '__main__':
