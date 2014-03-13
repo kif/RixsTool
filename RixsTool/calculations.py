@@ -36,9 +36,17 @@ from PyMca import SpecfitFunctions as SF
 from PyMca.SpecfitFuns import gauss as gaussianModel
 from PyMca import SNIPModule as SNIP
 
+# IO and Datahandling from RixsTool
+from RixsTool.datahandling import RixsProject
+from os.path import normpath as OsPathNormpath
+from os.path import splitext as OsPathSplitext
+from os.path import sep as OsPathSep
+from os import walk as OsWalk
+
 DEBUG = 1
 MATPLOTLIBIMPORT = False
 plt = None
+
 
 class ImageOp(object):
     def __init__(self, key, idx, parent):
@@ -71,7 +79,7 @@ class ImageOp(object):
             opsList[cnt] = tmpDict['op']
         endTime = time.time()
         deltaT = endTime - startTime
-        print('ImageOp.refreshAll -- performed in %.3f'%deltaT)
+        print('ImageOp.refreshAll -- performed in %.3f' % deltaT)
         # Remove 'op' key/value since it is meaningless after loop
         del(ddict['op'])
         # Use ops list instead
@@ -86,9 +94,9 @@ class ImageOp(object):
         ddict = func(image, params)
         endTime = time.time()
         deltaT = endTime - startTime
-        print('ImageOp.refresh -- performed %s in %.3f'%
-              (operation, deltaT))
+        print('ImageOp.refresh -- performed %s in %.3f' % (operation, deltaT))
         return ddict
+
 
 class Filter(ImageOp):
     def __init__(self, key, idx, parent=None):
@@ -102,15 +110,21 @@ class Filter(ImageOp):
         imMax = image.max()
         lo = params.get('low', imMin)
         hi = params.get('high', imMax)
+        offset = params.get('offset', None)
+        if offset:
+            offset = numpy.asscalar(numpy.array([offset], dtype=image.dtype))
 
         out = numpy.where((lo <= image), image, imMin)
         out = numpy.where((image <= hi), out, imMin)
+        if offset:
+            out = numpy.where((image > offset), out, 0)
 
         ddict = {
             'op': 'bandpass',
             'image': out
         }
         return ddict
+
 
 class Alignment(ImageOp):
     def __init__(self, key, idx, parent=None):
@@ -219,17 +233,17 @@ class Alignment(ImageOp):
 
             idxMax = ynormed.argmax()
             left, right = idxMax, idxMax
-            while  ynormed[left] > threshold:
+            while ynormed[left] > threshold:
                 left -= 1
-            while  ynormed[right] > threshold:
+            while ynormed[right] > threshold:
                 right += 1
             if left < 0 or right >= nPoints:
                 raise IndexError('Alignment.centerOfMassAlignment: index out of range (left: %d, right: %d)'%(left, right))
             mask = numpy.arange(left, right+1, dtype=int)
-            print('mask:',mask)
+            print('mask:', mask)
             shift = pos0 - numpy.trapz(ynormed[mask] * mask) / numpy.trapz(ynormed[mask])
             if DEBUG:
-                print('\t%d\t%f'%(idx,shift))
+                print('\t%d\t%f'%(idx, shift))
             shiftList[idx] = shift
 
         shiftArray = numpy.asarray(shiftList)
@@ -448,6 +462,7 @@ class Alignment(ImageOp):
         }
         return ddict
 
+
 class Interpolation(ImageOp):
     def __init__(self, key, idx, parent=None):
         ImageOp.__init__(self, key, idx, parent)
@@ -468,6 +483,7 @@ class Interpolation(ImageOp):
         ddict = {}
         print('Interpolation.axisInterpolation -- not implemented')
         return ddict
+
 
 class Integration(ImageOp):
     def __init__(self, key, idx, parent=None):
@@ -508,6 +524,7 @@ class Integration(ImageOp):
         }
         return ddict
 
+
 class Normalization(ImageOp):
     def __init__(self, key, idx, parent=None):
         ImageOp.__init__(self, key, idx, parent)
@@ -533,6 +550,7 @@ class Normalization(ImageOp):
             'image': normalized
         }
         return ddict
+
 
 class Manipulation(ImageOp):
     def __init__(self, key, idx, parent):
@@ -572,6 +590,7 @@ class Manipulation(ImageOp):
             'slices': tmpList
         }
         return ddict
+
 
 class Stats2D(ImageOp):
     def __init__(self, key, idx, parent=None):
@@ -626,6 +645,7 @@ class Stats2D(ImageOp):
         }
         return ddict
 
+
 def importMatplotLib():
     global MATPLOTLIBIMPORT, plt
     try:
@@ -635,12 +655,14 @@ def importMatplotLib():
         MATPLOTLIBIMPORT = False
         print('showImage -- Module matplotlib not found! Abort')
 
+
 def showImage(image):
     global MATPLOTLIBIMPORT, plt
     if not MATPLOTLIBIMPORT:
         importMatplotLib()
     plt.imshow(image)
     plt.show()
+
 
 def plotImageAlongAxis(image, axis=-1, offset=False, returnPlot=False):
     global MATPLOTLIBIMPORT, plt
@@ -673,22 +695,34 @@ def plotImageAlongAxis(image, axis=-1, offset=False, returnPlot=False):
 
 
 def run_test():
-    import RixsTool.deprecated.ioDeprecated as io
-    #from matplotlib import pyplot as plt
-    a = io.run_test()
-    im = a[15][2][0] # 15th data blob (i.e. [2]), first image
+    directory = '/home/truter/lab/mock_folder/Images'
+    project = RixsProject()
+    for result in OsWalk(directory):
+        currentPath = result[0]
+        dirs = result[1]
+        files = result[2]
+        for ffile in files:
+            root, ext = OsPathSplitext(ffile)
+            filename = currentPath + OsPathSep + ffile
+            if ext.replace('.', '') == project.EDF_TYPE:
+                print('Found edf-File:')
+                #project.readImage(filename, project.EDF_TYPE)
+                project.read(filename, project.EDF_TYPE)
+                #print(type(project.image(ffile, project.EDF_TYPE)))
+    return
     #im = a['Images'][0][:,1:]
     #print('run_test -- slice.shape:', sliced.shape)
     key = 'foo'
     idx = 0
     filterObj = Filter(key, idx)
-    filtered = filterObj.bandPassFilter(im, {'low':im.min(),
-                                            'high':im.min()+140})['image']
+    filtered = filterObj.bandPassFilter(im, {'low': im.min(),
+                                             'high': im.min()+140})
+    filtered = filtered['image']
 
     #print('filted.shape:', filtered.shape)
 
     integrationObj = Integration(key, idx)
-    sliced = numpy.array(integrationObj.sliceAndSum(filtered, {'sumAxis':1, 'binWidth':64})['summedSlices'])
+    sliced = numpy.array(integrationObj.sliceAndSum(filtered, {'sumAxis': 1, 'binWidth': 64})['summedSlices'])
 
     #print('filted.shape:', sliced.shape)
 
@@ -698,9 +732,9 @@ def run_test():
     #normed = normObj.zeroToOne(im, {})['image']
 
     alignObj = Alignment(key, idx)
-    fits = alignObj.fitAlignment(sliced,{})['shiftList']
+    fits = alignObj.fitAlignment(sliced, {})['shiftList']
     #print(alignObj.fftAlignment(sliced,{})) # Not finished
-    maxs = alignObj.maxAlignment(sliced,{})['shiftList']
+    maxs = alignObj.maxAlignment(sliced, {})['shiftList']
 
     print(fits)
     print(maxs)
