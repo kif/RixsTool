@@ -208,6 +208,8 @@ class ItemContainer(object):
             return False
         if False in [isinstance(child, ItemContainer) for child in containerList]:
             return False
+        if pos == -1:
+            pos = len(self.children)
 
         head = self.children[0:pos]
         tail = self.children[pos:]
@@ -236,7 +238,11 @@ class RixsProject(object):
     :py:class:`datahandling.ItemContainer`.
 
     On the top level, the tree divides the data items in containers depeding on the
-    dimensionality of their data. Two dimensional input for example is treated as an image."""
+    dimensionality of their data. Two dimensional input for example is treated as an image.
+
+    **TODO:**
+        * Add remove functionality here (and not in RixsTool.Models)
+    """
 
     def __init__(self):
         #
@@ -252,6 +258,29 @@ class RixsProject(object):
             [ItemContainer(parent=self.projectRoot, label=key)\
              for key in ['Spectra', 'Images', 'Stacks']])
         print('RixsProject.__init__ -- projectRoot.childCount:', self.projectRoot.childCount())
+
+        #
+        # Identifier dict
+        #
+        self.__idDict = {}
+
+    def __getitem__(self, key):
+        result = None
+        identifier = self.__idDict[key]
+        for container in self._traverseDFS(self.projectRoot):
+            if container.getID() == identifier:
+                result = container
+                break
+        if not result:
+            raise KeyError()
+        return result
+
+    @staticmethod
+    def _traverseDFS(root):
+        yield root
+        for child in root.children:
+            for container in RixsProject._traverseDFS(child):
+                yield container
 
     def groupCount(self):
         return self.projectRoot.childCount()
@@ -286,12 +315,18 @@ class RixsProject(object):
         Item is wrapped in :class:`datahandling.ItemContainer` and inserted into the tree.
         The insertion node depdends on the type of item.
 
+        **TODO:**
+        * Add remove functionality here (c.f. RixsTool.Models)
+
         :returns: Container of item
         :rtype: ItemContainer
         :raises TypeError: if the item type is unknown
+        :raises ValueError: if the item.key() is already present
         """
         if DEBUG >= 1:
             print('RixsProject.addItem -- called')
+        if item.key() in self.__idDict:
+            raise ValueError("RixsProject.addItem -- Item key '%s' already present" % item.key())
         if isinstance(item, ScanItem) or isinstance(item, SpecItem):
             node = self.projectRoot.children[0]
         elif isinstance(item, ImageItem):
@@ -305,6 +340,7 @@ class RixsProject(object):
             parent=node
         )
         node.addChildren([container])
+        self.__idDict[item.key()] = container.getID()
         return container
 
     def read(self, fileName):
@@ -340,7 +376,7 @@ class RixsProject(object):
             print("RixsProject.crawl -- crawling '%s'" % directory)
         for path, dirs, files in walk:
             if DEBUG >= 1:
-                print('\tcurrent path:', path)
+                print('RixsProject.crawl -- current path: %s' % path)
             for ffile in files:
                 absName = OsPathJoin(path, ffile)
                 try:
@@ -350,6 +386,8 @@ class RixsProject(object):
                         print("RixsProject.crawl -- unkown filetype '%s'" % absName)
                     continue
                 for item in itemList:
+                    if DEBUG >= 1:
+                        print("RixsProject.crawl -- adding Item '%s'" % str(item))
                     self.addItem(item)
 
 
@@ -358,6 +396,9 @@ def unitTest_RixsProject():
     directory = '/home/truter/lab/mock_folder/Images'
     project = RixsProject()
     project.crawl(directory)
+
+    print(project['LBCO0497.edf'])
+
     return
 
 if __name__ == '__main__':
