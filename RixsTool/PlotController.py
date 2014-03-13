@@ -32,18 +32,12 @@ Currently the only dependency on PyMca is through the Icons.
 
 """
 from PyMca import PyMcaQt as qt
-from PyMca.ScanWindow import ScanWindow
 
 
-class RixsPlotWindow(ScanWindow):
-    def addDataItem(self, item, legend=None, info=None,
-                    replot=True, replace=False, **kw):
-        raise NotImplementedError('RixsPlotWindow.addDataItem -- Check if necessary!')
+class PlotController(qt.QObject):
+    pass
 
 
 
 if __name__ == '__main__':
-    app = qt.QApplication([])
-    win = RixsPlotWindow()
-    win.show()
-    app.exec_()
+    pass
