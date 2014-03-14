@@ -25,6 +25,7 @@
 # is a problem for you.
 #############################################################################*/
 __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
+__doc__ = """ **DEPRECATED VERSION OF OPERATIONS** """
 
 import time
 
@@ -697,19 +698,10 @@ def plotImageAlongAxis(image, axis=-1, offset=False, returnPlot=False):
 def run_test():
     directory = '/home/truter/lab/mock_folder/Images'
     project = RixsProject()
-    for result in OsWalk(directory):
-        currentPath = result[0]
-        dirs = result[1]
-        files = result[2]
-        for ffile in files:
-            root, ext = OsPathSplitext(ffile)
-            filename = currentPath + OsPathSep + ffile
-            if ext.replace('.', '') == project.EDF_TYPE:
-                print('Found edf-File:')
-                #project.readImage(filename, project.EDF_TYPE)
-                project.read(filename, project.EDF_TYPE)
-                #print(type(project.image(ffile, project.EDF_TYPE)))
-    return
+    project.crawl(directory)
+
+    item = project['LBCO0483.edf'].item()
+    im = item.array
     #im = a['Images'][0][:,1:]
     #print('run_test -- slice.shape:', sliced.shape)
     key = 'foo'
@@ -735,9 +727,11 @@ def run_test():
     fits = alignObj.fitAlignment(sliced, {})['shiftList']
     #print(alignObj.fftAlignment(sliced,{})) # Not finished
     maxs = alignObj.maxAlignment(sliced, {})['shiftList']
+    coms = alignObj.centerOfMassAlignment(sliced, {})['shiftList']
 
     print(fits)
     print(maxs)
+    print(coms)
 
     #plt = plotImageAlongAxis(sliced, offset=True, returnPlot=True)
     #plt.show()
