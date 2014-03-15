@@ -28,7 +28,7 @@ __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 
 from PyMca import PyMcaQt as qt
 from RixsTool.datahandling import RixsProject
-from RixsTool.calculations import Filter
+from RixsTool.Operations import Filter, Integration, Alignment
 
 
 class OperationQueue(object):
@@ -36,16 +36,13 @@ class OperationQueue(object):
         self.__oplist = []
         self.__paramList = []
 
-        self.perform = self._perform
-
     def __len__(self):
         return len(self.__oplist)
 
-    def _perform(self, data):
-        result = [{}]*len(self)
-        for idx, (op, param) in enumerate(zip(self.__oplist, self.__paramList)):
-            result[idx] = op(data, param)
-        return result
+    def process(self, data):
+        for op, param in zip(self.__oplist, self.__paramList):
+            data = op(data, param)
+        return data
 
     def addOperation(self, opList, paramList=None, pos=-1):
         if pos == -1:
@@ -75,15 +72,35 @@ class OperationQueue(object):
 
 
 class SlopeCorrection(OperationQueue):
-    pass
+    def __init__(self):
+        OperationQueue.__init__(self)
+        opList = [
+            Filter.bandPassFilter,
+            Integration.sliceAndSum,
+            Alignment.fitAlignment
+        ]
+        paramList = [
+            {'low': 100, 'high': 140},
+            {'sumAxis': 1, 'binWidth': 64},
+            {}
+        ]
+        self.addOperation(
+            opList=opList,
+            paramList=paramList
+        )
 
 
-class OperationQueueObject(OperationQueue, qt.QObject):
+class OperationQueueQObject(OperationQueue, qt.QObject):
     operationAddedSignal = qt.pyqtSignal()
+    finishedSignal = qt.pyqtSignal()
 
     def addOperation(self, opList, paramList=None, pos=-1):
         OperationQueue.addOperation(self, opList, pos)
         self.operationAddedSignal.emit()
+
+    def process(self, data):
+        result = OperationQueue.process(self, data)
+        self.finishedSignal.emit(result)
 
 
 def unitTest_OperationQueue():
@@ -91,21 +108,18 @@ def unitTest_OperationQueue():
 
     ops = SlopeCorrection()
 
-    filterObj = Filter('foo', 0, None)  # TODO: Get rid of the shit constuctor
-
-    ops.addOperation([filterObj.bandPassFilter], [{'low': 110, 'high': 140, 'offset': 100}])
-
     proj = RixsProject()
     proj.crawl(directory)
 
-    key = 'LBCO0496.edf'
+    key = 'LBCO0483.edf'
     item = proj[key].item()
 
-    res = ops.perform(item.array)
+    res = ops.process(item.array)
     print(res)
 
     from matplotlib import pyplot as plt
-    plt.imshow(res[0]['image'])
+    #plt.imshow(res)
+    plt.plot(res)
     plt.show()
 
 

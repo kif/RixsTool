@@ -25,7 +25,6 @@
 # is a problem for you.
 #############################################################################*/
 __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
-__doc__ = """ **DEPRECATED VERSION OF OPERATIONS** """
 
 import time
 
@@ -50,63 +49,21 @@ plt = None
 
 
 class ImageOp(object):
-    def __init__(self, key, idx, parent):
+    def __init__(self):
         object.__init__(self)
-        self.__key = key
-        self.__idx = idx
-        self.__parent = parent
         self._ops = {}
-
-    def key(self):
-        return self.__key
-
-    def index(self):
-        return self.__idx
-
-    def parent(self):
-        return self.__parent
-
-    def refreshAll(self, key, idx, image, params=None):
-        if (key != self.__key) or (idx != self.__idx):
-            return {}
-        if not params:
-            params = {}
-        ddict = {}
-        opsList = len(self._ops) * ['']
-        startTime = time.time()
-        for cnt, (operation, func) in enumerate(self._ops.items()):
-            tmpDict = func(image, params)
-            ddict.update(tmpDict)
-            opsList[cnt] = tmpDict['op']
-        endTime = time.time()
-        deltaT = endTime - startTime
-        print('ImageOp.refreshAll -- performed in %.3f' % deltaT)
-        # Remove 'op' key/value since it is meaningless after loop
-        del(ddict['op'])
-        # Use ops list instead
-        ddict['ops'] = opsList
-        return ddict
-
-    def refresh(self, operation, key, idx, image, params):
-        if (key != self.__key) or (idx != self.__idx):
-            return {}
-        func = self._ops[operation]
-        startTime = time.time()
-        ddict = func(image, params)
-        endTime = time.time()
-        deltaT = endTime - startTime
-        print('ImageOp.refresh -- performed %s in %.3f' % (operation, deltaT))
-        return ddict
 
 
 class Filter(ImageOp):
-    def __init__(self, key, idx, parent=None):
-        ImageOp.__init__(self, key, idx, parent)
+    def __init__(self):
+        ImageOp.__init__(self)
         self._ops = {
             'bandpass': self.bandPassFilter
         }
 
-    def bandPassFilter(self, image, params):
+    #def bandPassFilter(self, image, params):
+    @staticmethod
+    def bandPassFilter(image, params):
         imMin = image.min()
         imMax = image.max()
         lo = params.get('low', imMin)
@@ -120,23 +77,25 @@ class Filter(ImageOp):
         if offset:
             out = numpy.where((image > offset), out, 0)
 
-        ddict = {
-            'op': 'bandpass',
-            'image': out
-        }
-        return ddict
+        #ddict = {
+        #    'op': 'bandpass',
+        #    'image': out
+        #}
+        #return ddict
+        return out
 
 
 class Alignment(ImageOp):
-    def __init__(self, key, idx, parent=None):
-        ImageOp.__init__(self, key, idx, parent)
+    def __init__(self=None):
+        ImageOp.__init__(self)
         self._ops = {
             'maxAlignment': self.maxAlignment,
             'fftAlignment': self.fftAlignment,
             'centerOfMassAlignment': self.centerOfMassAlignment
         }
 
-    def maxAlignment(self, image, params):
+    @staticmethod
+    def maxAlignment(image, params):
         # TODO: Add normalization flag
         idx0 = params.get('idx0', 0)
         axis = params.get('axis', -1) # Axis defines direction of curves
@@ -170,13 +129,15 @@ class Alignment(ImageOp):
         if scale:
             shiftArray *= numpy.average(numpy.diff(scale))
 
-        ddict = {
-            'op': 'maxAlignment',
-            'shiftList': shiftArray
-        }
-        return ddict
+        #ddict = {
+        #    'op': 'maxAlignment',
+        #    'shiftList': shiftArray
+        #}
+        #return ddict
+        return shiftArray
 
-    def centerOfMassAlignment(self, image, params):
+    @staticmethod
+    def centerOfMassAlignment(image, params):
         idx0 = params.get('idx0', 0)
         axis = params.get('axis', -1) # Axis defines direction of curves
         portion = params.get('portion', .80)
@@ -250,13 +211,15 @@ class Alignment(ImageOp):
         shiftArray = numpy.asarray(shiftList)
         if scale:
             shiftArray *= numpy.average(numpy.diff(scale))
-        ddict = {
-            'op': 'centerOfMassAlignment',
-            'shiftList': shiftArray
-        }
-        return ddict
+        #ddict = {
+        #    'op': 'centerOfMassAlignment',
+        #    'shiftList': shiftArray
+        #}
+        #return ddict
+        return shiftArray
 
-    def fftAlignment(self, image, params):
+    @staticmethod
+    def fftAlignment(image, params):
         idx0 = params.get('idx0', 0)
         axis = params.get('axis', -1) # Axis defines direction of curves
         portion = params.get('portion', .80)
@@ -327,14 +290,15 @@ class Alignment(ImageOp):
             if DEBUG:
                 print('\t%d\t%f'%(idx,shift))
 
+        #ddict = {
+        #    'op': 'fftAlignment',
+        #    'shiftList': shiftList
+        #}
+        #return ddict
+        return shiftList
 
-        ddict = {
-            'op': 'fftAlignment',
-            'shiftList': shiftList
-        }
-        return ddict
-
-    def fitAlignment(self, image, params):
+    @staticmethod
+    def fitAlignment(image, params):
         idx0 = params.get('idx0', 0)
         axis = params.get('axis', -1) # Axis defines direction of curves
         snipWidth = params.get('snipWidth', None)
@@ -370,15 +334,14 @@ class Alignment(ImageOp):
             snipWidth = max(imRows, imCols)//10
         print('snipWidth:',snipWidth)
         specfitObj = SF.SpecfitFunctions()
-        normObj = Normalization(self.key(), self.index())
 
         background = numpy.zeros(shape=curves.shape,
                                  dtype=numpy.float64)
         for idx, curve in enumerate(curves):
             background[idx] = SNIP.getSnip1DBackground(curve, snipWidth)
         subtracted = curves-background
-        normResult = normObj.zeroToOne(image=subtracted,
-                                       params={})
+        normResult = Normalization.zeroToOne(image=subtracted,
+                                             params={})
         normalized = normResult['image']
 
         """
@@ -419,7 +382,7 @@ class Alignment(ImageOp):
                 peakIdx = [y.argmax()]
                 maxIdx = 0
             height = float(y[peakIdx][maxIdx]) + curves[idx].min()
-            pos    = float(peakIdx[maxIdx])
+            pos = float(peakIdx[maxIdx])
 
             #
             # Estimate FWHM
@@ -457,16 +420,17 @@ class Alignment(ImageOp):
         shift0 = fitList[idx0][posIdx]
         shiftList = [shift0-fit[posIdx] for fit in fitList]
 
-        ddict = {
-            'op': 'fitAlignment',
-            'shiftList': shiftList
-        }
-        return ddict
+        #ddict = {
+        #    'op': 'fitAlignment',
+        #    'shiftList': shiftList
+        #}
+        #return ddict
+        return shiftList
 
 
 class Interpolation(ImageOp):
-    def __init__(self, key, idx, parent=None):
-        ImageOp.__init__(self, key, idx, parent)
+    def __init__(self=None):
+        ImageOp.__init__(self)
         self._ops = {
             'axisInterpolation': self.axisInterpolation
         }
@@ -487,8 +451,8 @@ class Interpolation(ImageOp):
 
 
 class Integration(ImageOp):
-    def __init__(self, key, idx, parent=None):
-        ImageOp.__init__(self, key, idx, parent)
+    def __init__(self=None):
+        ImageOp.__init__(self)
         self._ops = {
             'axisSum': self.axisSum,
             'sliceAndSum': self.sliceAndSum
@@ -504,36 +468,39 @@ class Integration(ImageOp):
                 axis = 0
             else:
                 axis = 1
-        ddict = {
-            'op': 'axisSum',
-            'sum': numpy.sum(image, axis=axis)
-        }
-        return ddict
+        #ddict = {
+        #    'op': 'axisSum',
+        #    'sum': numpy.sum(image, axis=axis)
+        #}
+        #return ddict
+        return numpy.sum(image, axis=axis)
 
-    def sliceAndSum(self, image, params):
+    #def sliceAndSum(self, image, params):
+    @staticmethod
+    def sliceAndSum(image, params):
         sumAxis = params.get('sumAxis', 1)
         sliceAxis = params.get('sliceAxis', 1)
         params['axis'] = sliceAxis
-        sliceObj = Manipulation(self.key(),
-                                self.index(),
-                                self.parent())
-        slices = sliceObj.slice(image, params)['slices']
-        result = [slice.sum(axis=sumAxis) for slice in slices]
-        ddict = {
-            'op': 'sliceAndSum',
-            'summedSlices': result
-        }
-        return ddict
+        slices = Manipulation.slice(image, params)
+        #result = [slice_.sum(axis=sumAxis) for slice_ in slices]
+        result = numpy.asarray([slice_.sum(axis=sumAxis) for slice_ in slices], dtype=image.dtype)
+        #ddict = {
+        #    'op': 'sliceAndSum',
+        #    'summedSlices': result
+        #}
+        #return ddict
+        return result
 
 
 class Normalization(ImageOp):
-    def __init__(self, key, idx, parent=None):
-        ImageOp.__init__(self, key, idx, parent)
+    def __init__(self=None):
+        ImageOp.__init__(self)
         self._ops = {
             'zeroToOne': self.zeroToOne
         }
 
-    def zeroToOne(self, image, params):
+    @staticmethod
+    def zeroToOne(image, params):
         offset  = image.min()
         maximum = image.max()
         normFactor = maximum - offset
@@ -545,7 +512,7 @@ class Normalization(ImageOp):
                                      dtype=image.dtype)
         else:
             normalized = (image - offset)/normFactor
-        print('zeroToOne, after  -- min: %.3f, max: %.3f'%(normalized.min(),normalized.max()))
+        print('zeroToOne, after  -- min: %.3f, max: %.3f' % (normalized.min(), normalized.max()))
         ddict = {
             'op': 'zeroToOne',
             'image': normalized
@@ -554,13 +521,15 @@ class Normalization(ImageOp):
 
 
 class Manipulation(ImageOp):
-    def __init__(self, key, idx, parent):
-        ImageOp.__init__(self, key, idx, parent)
+    def __init__(self):
+        ImageOp.__init__(self)
         self._ops = {
             'slice': self.slice
         }
 
-    def slice(self, image, params):
+    #def slice(self, image, params):
+    @staticmethod
+    def slice(image, params):
         binWidth = params.get('binWidth', 8)
         axis = params.get('axis',1)
         mode = params.get('mode','strict')
@@ -586,16 +555,17 @@ class Manipulation(ImageOp):
             else:
                 # Slice along rows (axis==0)
                 tmpList[idx] = numpy.copy(image[lower:upper,:])
-        ddict = {
-            'op': 'binning',
-            'slices': tmpList
-        }
-        return ddict
+        #ddict = {
+        #    'op': 'binning',
+        #    'slices': tmpList
+        #}
+        #return ddict
+        return tmpList
 
 
 class Stats2D(ImageOp):
-    def __init__(self, key, idx, parent=None):
-        ImageOp.__init__(self, key, idx, parent)
+    def __init__(self=None):
+        ImageOp.__init__(self)
         self._minVal = float('NaN')
         self._maxVal = float('NaN')
         self._avgVal = float('NaN')
@@ -699,22 +669,17 @@ def run_test():
     directory = '/home/truter/lab/mock_folder/Images'
     project = RixsProject()
     project.crawl(directory)
-
-    item = project['LBCO0483.edf'].item()
-    im = item.array
+    #return
     #im = a['Images'][0][:,1:]
     #print('run_test -- slice.shape:', sliced.shape)
-    key = 'foo'
-    idx = 0
-    filterObj = Filter(key, idx)
-    filtered = filterObj.bandPassFilter(im, {'low': im.min(),
-                                             'high': im.min()+140})
-    filtered = filtered['image']
+    item = project['LBCO0483.edf'].item()
+    im = item.array
+    filtered = Filter.bandPassFilter(im, {'low': im.min(),
+                                          'high': im.min()+140})
 
     #print('filted.shape:', filtered.shape)
 
-    integrationObj = Integration(key, idx)
-    sliced = numpy.array(integrationObj.sliceAndSum(filtered, {'sumAxis': 1, 'binWidth': 64})['summedSlices'])
+    sliced = numpy.asarray(Integration.sliceAndSum(filtered, {'sumAxis': 1, 'binWidth': 64}))
 
     #print('filted.shape:', sliced.shape)
 
@@ -723,15 +688,12 @@ def run_test():
     #normed = normObj.zeroToOne(filtered, {})['image']
     #normed = normObj.zeroToOne(im, {})['image']
 
-    alignObj = Alignment(key, idx)
-    fits = alignObj.fitAlignment(sliced, {})['shiftList']
+    fits = Alignment.fitAlignment(sliced, {})
     #print(alignObj.fftAlignment(sliced,{})) # Not finished
-    maxs = alignObj.maxAlignment(sliced, {})['shiftList']
-    coms = alignObj.centerOfMassAlignment(sliced, {})['shiftList']
+    maxs = Alignment.maxAlignment(sliced, {})
 
     print(fits)
     print(maxs)
-    print(coms)
 
     #plt = plotImageAlongAxis(sliced, offset=True, returnPlot=True)
     #plt.show()
