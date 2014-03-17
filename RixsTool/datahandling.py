@@ -81,7 +81,8 @@ class ItemContainer(object):
         if label:
             self.label = label
         elif item:
-            self.label = item.key
+            #self.label = item.key
+            self.label = item.key()
         else:
             self.label = ''
 
@@ -264,7 +265,8 @@ class RixsProject(object):
         #     for key in ['Spectra', 'Images', 'Stacks']])
         for label in ['Spectra', 'Images', 'Stacks']:
             self.addGroup(label)
-        print('RixsProject.__init__ -- projectRoot.childCount:', self.projectRoot.childCount())
+        print('RixsProject.__init__ -- projectRoot.childCount: %d' % self.projectRoot.childCount())
+        print('RixsProject.__init__ -- projectRoot.__idDict: %s' % str(self.__idDict))
 
     def __getitem__(self, key):
         result = None
@@ -371,6 +373,18 @@ class RixsProject(object):
         self.__idDict[container.label] = container.getID()
         return container
 
+    def removeContainer(self, label):
+        container = self.__getitem__(label)
+        if container.childCount():
+            if DEBUG >= 1:
+                print('RixsProject.removeContainer -- Has children')
+            for child in container.children:
+                self.removeContainer(child.label)
+        parentContainer = container.parent
+        idx = container.childNumber()
+        del(parentContainer.children[idx])
+        del(self.__idDict[label])
+
     def read(self, fileName):
         """
         :param str fileName: File name including path to file
@@ -426,6 +440,7 @@ def unitTest_RixsProject():
     project.crawl(directory)
 
     print(project['LBCO0497.edf'])
+    print(project['Images'])
 
     return
 
