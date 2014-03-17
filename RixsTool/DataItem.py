@@ -26,23 +26,24 @@
 #############################################################################*/
 __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 from uuid import uuid4
+from inspect import getargspec as getArgSpec
+import numpy
 
 DEBUG = 1
 
+
 class DataItem(object):
     __doc__ = """Generic class to contain data"""
-    interpretation = 'Dataset'
+    interpretation = 'Abstract DataItem'
 
-    def __init__(self, key, header, array, fileLocation):
+    def __init__(self, key, header):
         super(DataItem, self).__init__()
         self._key = key
         self.header = header
-        self.array = array
-        self.fileLocation = fileLocation
         self.__identifier = uuid4()
 
     def __repr__(self):
-        return '%s: %s %s' % (self.key(), str(self.shape()), type(self.array))
+        return '%s: %s' % (self.key(), str(self.interpretation))
 
     def key(self):
         return self._key
@@ -50,34 +51,112 @@ class DataItem(object):
     def description(self):
         return self.interpretation
 
-    def shape(self):
-        return self.array.shape
-
-    def dtype(self):
-        return self.array.dtype
-
     def getID(self):
         return self.__identifier
 
     def hdf5Dump(self):
         raise NotImplementedError('DataItem.hdfDump -- to be implemented here?')
 
-class ScanItem(DataItem):
+
+class NumericItem(DataItem):
+    __doc__ = """Generic class to contain numeric data"""
+    interpretation = 'Dataset'
+
+    def __init__(self, key, header, array, fileLocation):
+        DataItem.__init__(self, key, header)
+        self.fileLocation = fileLocation
+        self.array = array
+
+    def __repr__(self):
+        return '%s: %s %s' % (self.key(), str(self.shape()), type(self.array))
+
+    def shape(self):
+        return self.array.shape
+
+    def dtype(self):
+        return self.array.dtype
+
+
+class AnalyticItem(DataItem):
+    __doc__ = """Class to contain an analytical expression and a set of parameters"""
+    interpretation = 'Function'
+
+    def __init__(self, key, header):
+        DataItem.__init__(self, key, header)
+        self.expression = lambda x: x
+        self.parameters = {}
+        self._argspec = getArgSpec(self.expression)
+
+    def setExpression(self, expression):
+        """
+        :param function expression: Analystical function
+        """
+        self._argspec = getArgSpec(expression)
+        self.expression = expression
+
+    def setParameters(self, parameters):
+        """
+        :param dict parameters: parameters defining the function
+        """
+        self.parameters = parameters
+
+    def consistencyCheck(self):
+        # TODO: Improve consistency check
+        args = self._argspec.args
+        keys = self.parameters.keys()
+
+        # The following does not work, since one parameter
+        # of the expression is always the xrange..
+        #return args == keys
+        for param in keys:
+            if param not in args:
+                return False
+        return True
+
+    def sample(self, sampleRange=None):
+        if sampleRange is None:
+            sampleRange = numpy.linspace(0, 512, 512)
+        if not self.expression:
+            raise AttributeError('FunctionItem.sample -- expression not initialized')
+        if len(self.parameters) <= 0:
+            raise AttributeError('FunctionItem.sample -- parameters dict empty')
+        # CONTINUE HERE
+        param = self.parameters
+        param.update({'x': sampleRange})
+        return self.expression(**param)
+
+
+class ScanItem(NumericItem):
     __doc__ = """Class to contain data in multiple 1D numpy arrays"""
     interpretation = 'Scan'
     pass
 
-class SpecItem(DataItem):
+
+class SpecItem(NumericItem):
     __doc__ = """Class to contain data in 1D numpy array"""
     interpretation = 'Spec'
     pass
 
-class ImageItem(DataItem):
+
+class ImageItem(NumericItem):
     __doc__ = """Class to contain data in 2D numpy array"""
     interpretation = 'Image'
     pass
 
-class StackItem(DataItem):
+
+class StackItem(NumericItem):
     __doc__ = """Class to contain data in 3D numpy array"""
     interpretation = 'Stack'
     pass
+
+
+if __name__ == '__main__':
+    __doc__ = 'Modified inheritance structure of DataItem child classes. Added FunctionItem class'
+    testExpr = lambda a, x: abs(x)
+    testAnaItem = AnalyticItem('foo', 'header')
+    testAnaItem.setExpression(testExpr)
+    testAnaItem.setParameters({'a': 1.})
+    print('Consistency check succeeded: %s' % str(testAnaItem.consistencyCheck()))
+
+    print(testAnaItem.sample(numpy.linspace(-5, 5, 10)))
+
