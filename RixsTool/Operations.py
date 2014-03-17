@@ -38,6 +38,7 @@ from PyMca import SNIPModule as SNIP
 
 # IO and Datahandling from RixsTool
 from RixsTool.datahandling import RixsProject
+from RixsTool.DataItem import AnalyticItem
 from os.path import normpath as OsPathNormpath
 from os.path import splitext as OsPathSplitext
 from os.path import sep as OsPathSep
@@ -221,7 +222,7 @@ class Alignment(ImageOp):
     @staticmethod
     def fftAlignment(image, params):
         idx0 = params.get('idx0', 0)
-        axis = params.get('axis', -1) # Axis defines direction of curves
+        axis = params.get('axis', -1)  # Axis defines direction of curves
         portion = params.get('portion', .80)
         scale = params.get('scale', None)
 
@@ -250,7 +251,7 @@ class Alignment(ImageOp):
         fft0 = numpy.fft.fft(y0)
 
         for idx, y in enumerate(curves):
-            print('fftAlignment -- y.shape:',y.shape)
+            print('fftAlignment -- y.shape: %s' % str(y.shape))
             ffty = numpy.fft.fft(y)
             shiftTmp = numpy.fft.ifft(fft0 * ffty.conjugate()).real
             shiftPhase = numpy.zeros(shiftTmp.shape, dtype=shiftTmp.dtype)
@@ -263,39 +264,41 @@ class Alignment(ImageOp):
             shiftPhaseMax = shiftPhase.max()
             normFactor = shiftPhaseMax - shiftPhaseMin
             if float(normFactor) <= 0.:
-                print('fftAlignment -- \tshiftPhaseMin: %f\n\t\t\tshiftPhaseMax: %f'%\
-                      (shiftPhaseMin, shiftPhaseMax)) # TODO
+                print('fftAlignment -- \tshiftPhaseMin: %f\n\t\t\tshiftPhaseMax: %f' %
+                      (shiftPhaseMin, shiftPhaseMax))  # TODO
                 continue
             shiftPhase = (shiftPhase-shiftPhaseMin)/normFactor
 
             # Thresholding
             idxMax = shiftPhase.argmax()
             left, right = idxMax, idxMax
-            threshold = portion * shiftPhaseMax
+            #threshold = portion * shiftPhaseMax
+            threshold = portion
             while shiftPhase[left] >= threshold:
-                left  -= 1
+                left -= 1
             while shiftPhase[right] >= threshold:
                 right += 1
 
             mask = numpy.arange(left, right+1, 1, dtype=int)
-            print('mask:',mask)
+            print('fftAlignment -- mask: %s' % str(mask))
             # The shift is determined by center-of-mass around idxMax
-            shiftTmp = numpy.sum((shiftPhase[mask] * idx/shiftPhase[mask].sum()))
+            shiftTmp = numpy.sum((shiftPhase[mask] * mask/shiftPhase[mask].sum()))
             #shift = (shiftTmp - m) * (x[1] - x[0])
             # x-range is pixel count..
-            print('shiftTmp:', shiftTmp)
+            print('fftAlignment -- shiftTmp: %s' % str(shiftTmp))
             shift = (shiftTmp - m)
 
             shiftList[idx] = shift
             if DEBUG:
-                print('\t%d\t%f'%(idx,shift))
+                print('\t%d\t%f' % (idx, shift))
 
         #ddict = {
         #    'op': 'fftAlignment',
         #    'shiftList': shiftList
         #}
         #return ddict
-        return shiftList
+        #return shiftList
+        return numpy.ascontiguousarray(shiftList)
 
     @staticmethod
     def fitAlignment(image, params):
@@ -332,7 +335,7 @@ class Alignment(ImageOp):
         imRows, imCols = image.shape
         if snipWidth is None:
             snipWidth = max(imRows, imCols)//10
-        print('snipWidth:',snipWidth)
+        print('snipWidth:', )
         specfitObj = SF.SpecfitFunctions()
 
         background = numpy.zeros(shape=curves.shape,
@@ -404,15 +407,15 @@ class Alignment(ImageOp):
                                          xdata=mask,
                                          ydata=(ydata-ydata.min()))
                 if DEBUG == 1:
-                    print('\tCurve %d -- fitp: %s'%(idx,str(fitp)))
-                    print('\tCurve %d -- chisq: %s'%(idx,str(chisq)))
-                    print('\tCurve %d -- sigma: %s'%(idx,str(sigma)))
+                    print('\tCurve %d -- fitp: %s' % (idx, str(fitp)))
+                    print('\tCurve %d -- chisq: %s' % (idx, str(chisq)))
+                    print('\tCurve %d -- sigma: %s' % (idx, str(sigma)))
             except numpy.linalg.linalg.LinAlgError:
                 fitp, chisq, sigma = [None, None, None],\
                                      float('Nan'),\
                                      float('Nan')
                 if DEBUG == 1:
-                    print('\tCurve %d -- Fit failed!'%idx)
+                    print('\tCurve %d -- Fit failed!' % idx)
             fitList[idx] = fitp # ftip is 3-tuple..
 
 
@@ -436,7 +439,7 @@ class Interpolation(ImageOp):
         }
 
     def axisInterpolation(self, image, params):
-        axis = params.get('axis',-1)
+        axis = params.get('axis', -1)
         if axis < 0:
             # If axis not specified..
             rows, cols = image.shape
@@ -527,20 +530,80 @@ class Manipulation(ImageOp):
             'slice': self.slice
         }
 
-    #def slice(self, image, params):
+    @staticmethod
+    def skewAlongAxis(image, params):
+        nRows, nCols = image.shape
+
+        axis = params.get('foobar', None)
+        # if axis is specified, skew along longer axis
+        # i.e. loop along shorter axis
+        if axis is None:
+            if nRows > nCols:
+                axis = 1
+                longAxis = 0
+                shortAxis = 1
+            else:
+                longAxis = 1
+                shortAxis = 0
+
+        shiftArray = params.get('shiftArray', None)
+        if shiftArray is None:
+            raise ValueError('Manipulation.skewAlongAxis -- must provide shiftArray')
+        if not isinstance(shiftArray, numpy.ndarray):
+            shiftArray = numpy.ascontiguousarray(shiftArray)
+
+        oversampling = params.get('oversampling', 1)
+        if shortAxis == 0:
+            resultShape = (nRows, oversampling * nCols)
+        else:
+            resultShape = (oversampling * nRows, nCols)
+        result = numpy.zeros(resultShape)
+        interpRange = numpy.linspace(0, 2047, result.shape[longAxis])
+        if shortAxis == 0:
+            points = numpy.arange(0, image.shape[1], 1, dtype=numpy.uint16)
+        else:
+            points = numpy.arange(0, image.shape[0], 1, dtype=numpy.uint16)
+
+        print(shortAxis)
+        print(longAxis)
+        print(image.shape)
+        print(result.shape)
+        print(len(interpRange))
+        print(len(points))
+
+        for idx in range(image.shape[shortAxis]):
+            if shortAxis == 0:
+                vector = image[idx, :]
+            else:
+                vector = image[:, idx]
+            shift = shiftArray[idx]
+
+            interpolated = numpy.interp(
+                x=interpRange-shift,
+                xp=points,
+                fp=vector
+            )
+
+            if shortAxis == 0:
+                result[idx, :] = interpolated
+            else:
+                result[:, idx] = interpolated
+
+        return result
+
     @staticmethod
     def slice(image, params):
         binWidth = params.get('binWidth', 8)
-        axis = params.get('axis',1)
-        mode = params.get('mode','strict')
+        axis = params.get('axis', 1)
+        mode = params.get('mode', 'strict')
         if axis:
-            size = (image.shape[0],binWidth)
+            size = (image.shape[0], binWidth)
         else:
-            size = (binWidth,image.shape[1])
+            size = (binWidth, image.shape[1])
         lim = image.shape[axis]
-        if mode not in ['strict']: # TODO: implement mode that puts surplus cols rows as last element in tmpList
-            raise ValueError('Integration.binning: Unknown mode %s'%mode)
-        if lim%binWidth and mode == 'relaxed':
+        if mode not in ['strict']:  # TODO: implement mode that puts surplus cols rows as last element in tmpList
+            raise ValueError('Integration.binning: Unknown mode %s' % mode)
+        if lim % binWidth and mode == 'relaxed':
             raise Warning('Binning neglects curves at the end')
         numberOfBins = lim//binWidth
         tmpList = numberOfBins*[numpy.zeros(size, dtype=image.dtype)]
@@ -551,16 +614,47 @@ class Manipulation(ImageOp):
                 break
             if axis:
                 # Slice along cols (axis==1)
-                tmpList[idx] = numpy.copy(image[:,lower:upper])
+                tmpList[idx] = numpy.copy(image[:, lower:upper])
             else:
                 # Slice along rows (axis==0)
-                tmpList[idx] = numpy.copy(image[lower:upper,:])
+                tmpList[idx] = numpy.copy(image[lower:upper, :])
         #ddict = {
         #    'op': 'binning',
         #    'slices': tmpList
         #}
         #return ddict
         return tmpList
+
+
+class Fit(object):
+    @staticmethod
+    def secondOrderPolynom(fitvalues, x=None):
+        """
+        :param ndarray fitvalues: Values on which the fit is carried out
+        :param ndarray x: x-range of the fitvalues (default: None)
+
+        :raises numpy.RankWarning: In case the least squares fit is badly conditioned.
+        """
+        if x is None:
+            x = numpy.arange(
+                start=0,
+                stop=len(y)
+            )
+        par = numpy.polyfit(
+            x=x,
+            y=fitvalues,
+            deg=2)
+        function = AnalyticItem('some fit', 'noheader')
+        expression = lambda x, a, b, c: a * x**2 + b * x + c
+        parameters = {
+            'a': par[0],
+            'b': par[1],
+            'c': par[2],
+        }
+        function.setExpression(expression)
+        function.setParameters(parameters)
+        print('Fit.secondOrderPolynom -- consistency check succeeded: %s' % str(function.consistencyCheck()))
+        return function
 
 
 class Stats2D(ImageOp):
@@ -665,38 +759,109 @@ def plotImageAlongAxis(image, axis=-1, offset=False, returnPlot=False):
         plt.show()
 
 
+def slopeCorrection(itemList):
+    from matplotlib import pyplot as plt
+    imageList = [None] * len(itemList)
+    clist = ['b', 'g', 'r']
+    for idx, item in enumerate(itemList):
+        color = clist[idx % len(clist)]
+        im = item.array
+
+        oversampling = 2
+        nRows, nCols = im.shape
+        final = numpy.zeros(
+            shape=(oversampling * nRows, nCols)
+        )
+
+        imageList[idx] = im
+        filtered = Filter.bandPassFilter(im, {'low': im.min(),
+                                              'high': im.min()+140})
+
+        sliced = numpy.asarray(Integration.sliceAndSum(filtered, {'sumAxis': 1, 'binWidth': 64}))
+        ffts = Alignment.fftAlignment(sliced, {})
+        x = numpy.arange(len(ffts)) * 64
+        #plt.plot(x, ffts, 'x'+color)
+        #par = numpy.polyfit(
+        #    x=x,
+        #    y=ffts,
+        #    deg=2)
+        #print par
+        #x = numpy.linspace(0, len(ffts), 50)
+        #poly = lambda x: par[0] * x**2 + par[1] * x + par[2]
+        poly = Fit.secondOrderPolynom(
+            fitvalues=ffts,
+            x=x
+        )
+        shiftArray = poly.sample(numpy.arange(min(filtered.shape)))
+        #plt.plot(x, poly(x), '--'+color)
+        #print im.shape  # (2048, 512)
+        #for row in [128*elem for elem in [0,1,2,3]]:
+        #for row in range(im.shape[-1]):
+        #    shift = poly(row)
+        #    #rowVals = im[row, :]
+        #    rowVals = filtered[:, row]
+        #    print shift
+        #    interpX = numpy.linspace(0, 2047, oversampling * len(rowVals))
+        #    points = numpy.arange(0, 2048, 1, dtype=im.dtype)
+        #    #interpX = numpy.where(interpX < 2048)
+        #    interpY = numpy.interp(interpX-shift, points, rowVals)
+        #    final[:, row] = interpY
+        #Normalization.zeroToOne(filtered)
+
+        corrected = Manipulation.skewAlongAxis(
+            image=filtered,
+            params={
+                'oversampling': 1,
+                'shiftArray': shiftArray
+            }
+        )
+        #plt.imshow(filtered)
+        #plt.imshow(corrected)
+        final = numpy.sum(corrected, axis=1)
+
+        f = open('/home/truter/lab/rixs_own/own%d.dat' % idx, 'w')
+        #llist = final.tolist()
+        #llist.reverse()
+        #for elem in llist:
+        #    f.write('%.3f\n' % elem)
+        final[::-1].tofile(f, sep='\n')
+        f.close()
+        #plt.plot(final)
+    #plt.show()
+    # Scherung
+
+
 def run_test():
+
     directory = '/home/truter/lab/mock_folder/Images'
     project = RixsProject()
     project.crawl(directory)
     #return
     #im = a['Images'][0][:,1:]
     #print('run_test -- slice.shape:', sliced.shape)
-    item = project['LBCO0483.edf'].item()
-    im = item.array
-    filtered = Filter.bandPassFilter(im, {'low': im.min(),
-                                          'high': im.min()+140})
+    itemList = [
+        project['LBCO0483.edf'].item(),
+        project['LBCO0484.edf'].item(),
+        project['LBCO0485.edf'].item(),
+        project['LBCO0486.edf'].item(),
+        project['LBCO0487.edf'].item(),
+        project['LBCO0488.edf'].item(),
+        project['LBCO0489.edf'].item(),
+        project['LBCO0490.edf'].item(),
+        project['LBCO0491.edf'].item(),
+        project['LBCO0492.edf'].item(),
+        project['LBCO0493.edf'].item(),
+        project['LBCO0494.edf'].item(),
+        project['LBCO0495.edf'].item(),
+        project['LBCO0496.edf'].item(),
+        project['LBCO0497.edf'].item(),
+        project['LBCO0498.edf'].item()
+    ]
 
-    #print('filted.shape:', filtered.shape)
+    itemList = [child.item() for child in project['Images'].children]
 
-    sliced = numpy.asarray(Integration.sliceAndSum(filtered, {'sumAxis': 1, 'binWidth': 64}))
 
-    #print('filted.shape:', sliced.shape)
-
-    #normObj = Normalization(key, idx)
-    #normed = normObj.zeroToOne(sliced, {})['image']
-    #normed = normObj.zeroToOne(filtered, {})['image']
-    #normed = normObj.zeroToOne(im, {})['image']
-
-    fits = Alignment.fitAlignment(sliced, {})
-    #print(alignObj.fftAlignment(sliced,{})) # Not finished
-    maxs = Alignment.maxAlignment(sliced, {})
-
-    print(fits)
-    print(maxs)
-
-    #plt = plotImageAlongAxis(sliced, offset=True, returnPlot=True)
-    #plt.show()
+    slopeCorrection(itemList)
 
 
     #im = numpy.asarray([[0,0,0,.25,.5,2,.5,.25], [0,.5,1,.5,0,0,0,0]])
