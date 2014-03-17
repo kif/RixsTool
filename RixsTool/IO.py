@@ -27,6 +27,7 @@
 __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 
 from PyMca.PyMcaIO.EdfFile import EdfFile
+from PyMca.PyMcaIO import specfilewrapper as Specfile
 from os.path import split as OsPathSplit
 from os import access as OsAccess
 from os import R_OK as OS_R_OK
@@ -126,6 +127,42 @@ class EdfReader(InputReader):
             #    )
         else:
             arr = self.reader.GetData(0)
+            newItem = ImageItem(
+                key=self.key,
+                header=self.reader.GetHeader(0),
+                array=np.ascontiguousarray(arr, arr.dtype),
+                fileLocation=self.reader.FileName)
+            llist += [newItem]
+
+        timeEnd = time.time()
+        print('EdfInputReader.itemize -- Method finished in %.3f s' % (timeEnd - timeStart))
+        return llist
+
+
+class SpecFileReader(InputReader):
+    def __init__(self):
+        super(SpecFileReader, self).__init__()
+        self._srcType = Specfile
+
+    def itemize(self, fileName):
+        raise NotImplementedError('Shit ain\'t ready yet..')
+        timeStart = time.time()
+        InputReader.itemize(self, fileName)
+
+        numScans = self.reader.scanno()
+        llist = []
+        if numScans > 1:
+            raise NotImplementedError('EdfReader.itemize -- No support for edfs containing multiple images')
+            #for idx in range(numImages):
+            #    arr = reader.GetData(idx)
+            #    newItem = ImageItem(
+            #        key=key,
+            #        header=reader.GetHeader(0),
+            #        array=np.ascontiguousarray(arr, arr.dtype),
+            #        fileLocation=reader.FileName
+            #    )
+        else:
+            scan = self.reader[0]
             newItem = ImageItem(
                 key=self.key,
                 header=self.reader.GetHeader(0),
