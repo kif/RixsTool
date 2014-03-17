@@ -97,6 +97,29 @@ class ProjectModel(RixsProject, qt.QAbstractItemModel):
         self.endInsertRows()
         return True
 
+    def addGroup(self, label, node=None):
+        """
+        :param item:
+        :type item:
+        """
+        if DEBUG >= 1:
+            print('### ProjectModel.addGroup -- called ###')
+        try:
+            container = RixsProject.addGroup(self, label, node)
+        except ValueError as error:
+            # Catch ValueError from base class method RixsProject.addGroup
+            # caused by already present label
+            if DEBUG >= 1:
+                print(error)
+            return False
+
+        # TODO: calling self.createIndex creates RuntimeError! W\o calling it, the method works though..
+        #modelIndex = self.createIndex(container.childNumber(), 0, container)
+        #parentIndex = self.parent(modelIndex)
+        #self.beginInsertRows(parentIndex, container.childNumber(), container.childNumber())
+        #self.endInsertRows()
+        return True
+
     def containerAt(self, modelIndex):
         """
         :param modelIndex: Model index of a container in the model

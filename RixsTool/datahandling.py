@@ -251,18 +251,20 @@ class RixsProject(object):
         self.inputReaders = IODict.inputReaderDict()
 
         #
-        # Data tree
-        #
-        self.projectRoot = ItemContainer()
-        self.projectRoot.addChildren(
-            [ItemContainer(parent=self.projectRoot, label=key)\
-             for key in ['Spectra', 'Images', 'Stacks']])
-        print('RixsProject.__init__ -- projectRoot.childCount:', self.projectRoot.childCount())
-
-        #
         # Identifier dict
         #
         self.__idDict = {}
+
+        #
+        # Data tree
+        #
+        self.projectRoot = ItemContainer()
+        #self.projectRoot.addChildren(
+        #    [ItemContainer(parent=self.projectRoot, label=key)\
+        #     for key in ['Spectra', 'Images', 'Stacks']])
+        for label in ['Spectra', 'Images', 'Stacks']:
+            self.addGroup(label)
+        print('RixsProject.__init__ -- projectRoot.childCount:', self.projectRoot.childCount())
 
     def __getitem__(self, key):
         result = None
@@ -341,6 +343,32 @@ class RixsProject(object):
         )
         node.addChildren([container])
         self.__idDict[item.key()] = container.getID()
+        return container
+
+    def addGroup(self, label, node=None):
+        """
+        :param str label: Unique label for the container
+        :param ItemContainer node: Parent for the new container. Defaults to None, the parent in that case is the root.
+
+        Creates a new container object in the parent container node
+
+        :returns: The created :class:`datahandling.ItemContainer`
+        :rtype: ItemContainer
+        :raises ValueError: if the label is already present in the project
+        """
+        if DEBUG >= 1:
+            print('RixsProject.addItem -- called')
+        if label in self.__idDict:
+            raise ValueError("RixsProject.addItem -- Item key '%s' already present" % label)
+        if not node:
+            node = self.projectRoot
+        container = ItemContainer(
+            item=None,
+            parent=node,
+            label=label
+        )
+        node.addChildren([container])
+        self.__idDict[container.label] = container.getID()
         return container
 
     def read(self, fileName):
