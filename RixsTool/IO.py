@@ -33,7 +33,7 @@ from os import access as OsAccess
 from os import R_OK as OS_R_OK
 import numpy as np
 import time
-from RixsTool.DataItem import ImageItem
+from RixsTool.Items import ImageItem
 
 DEBUG = 1
 
