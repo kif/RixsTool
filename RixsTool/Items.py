@@ -33,7 +33,7 @@ DEBUG = 1
 
 
 class ProjectItem(object):
-    __doc__ = """Generic class to contain data"""
+    __doc__ = """Base class to be contained in a project"""
     interpretation = 'Abstract DataItem'
 
     def __init__(self, key, header):
@@ -113,9 +113,9 @@ class FunctionItem(ProjectItem):
                 return False
         return True
 
-    def sample(self, sampleRange=None):
-        if sampleRange is None:
-            sampleRange = numpy.linspace(0, 512, 512)
+    def sample(self, sampleRange):
+        #if sampleRange is None:
+        #    sampleRange = numpy.linspace(0, 512, 512)
         if not self.expression:
             raise AttributeError('FunctionItem.sample -- expression not initialized')
         if len(self.parameters) <= 0:
@@ -129,7 +129,28 @@ class FunctionItem(ProjectItem):
 class ScanItem(DataItem):
     __doc__ = """Class to contain data in multiple 1D numpy arrays"""
     interpretation = 'Scan'
-    pass
+
+    def __init__(self, key, header, array, fileLocation):
+        DataItem.__init__(self, key, header, array, fileLocation)
+        self._scale = None
+
+    def scale(self, sampleRange=None):
+        """
+        :param ndarray sampleRange: In case the scale of the scan has been replaced by a :py:class:`Items.FunctionItem`
+         the latter is sampled on the given range.
+        :returns ndarray: scale
+        """
+        if isinstance(self._scale, numpy.ndarray):
+            return self._scale
+        elif isinstance(self._scale, FunctionItem):
+            if not sampleRange:
+                sampleRange = numpy.arange(
+                    start=0,
+                    stop=len(self.array),
+                    dtype=self.array.dtype)
+            return self._scale.sample(sampleRange)
+        else:
+            return None
 
 
 class SpecItem(DataItem):
@@ -141,7 +162,11 @@ class SpecItem(DataItem):
 class ImageItem(DataItem):
     __doc__ = """Class to contain data in 2D numpy array"""
     interpretation = 'Image'
-    pass
+
+    def __init__(self, key, header, array, fileLocation):
+        DataItem.__init__(self, key, header, array, fileLocation)
+        self.scaleX = None
+        self.scaleY = None
 
 
 class StackItem(DataItem):

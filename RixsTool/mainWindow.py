@@ -35,9 +35,11 @@ from PyQt4 import uic
 # Imports from RixsTool
 from RixsTool.IO import EdfReader
 from RixsTool.IO import InputReader
-from RixsTool.window import BandPassFilterWindow
+from RixsTool.BandPassFilterWindow import BandPassFilterWindow
 from RixsTool.Models import ProjectModel
-from RixsTool.DataItem import SpecItem, ScanItem, ImageItem, StackItem
+from RixsTool.Items import SpecItem, ScanItem, ImageItem, StackItem
+
+import numpy
 
 # Imports from os.path
 from os.path import splitext as OsPathSplitExt
@@ -55,6 +57,7 @@ class RIXSMainWindow(qt.QMainWindow):
         self.connectActions()
 
         self.filterWidget = None
+        self.openFilterTool()
 
         # TODO: Can be of type ProjectView...
         self.projectDict = {
@@ -80,24 +83,30 @@ class RIXSMainWindow(qt.QMainWindow):
     def _handleShowSignal(self, itemList):
         for item in itemList:
             if isinstance(item, ImageItem):
+                print('RIXSMainWindow._handleShowSignal -- Received ImageItem')
                 self.imageView.addImage(
                     data=item.array,
                     legend=item.key(),
-                    replace=False
+                    replace=True
                 )
+            elif isinstance(item, SpecItem):
+                print('RIXSMainWindow._handleShowSignal -- Received SpecItem')
+                if hasattr(item, 'scale'):
+                    scale = item.scale
+                else:
+                    numberOfPoints = len(item.array)
+                    scale = numpy.arange(numberOfPoints)  # TODO: Lift numpy dependency here
+                # def addCurve(self, x, y, legend, info=None, replace=False, replot=True, **kw):
+                self.specView.addPlot(
+                    x=scale,
+                    y=item.array,
+                    legend=item.key(),
+                    replace=False,
+                    replot=True
+                )
+            elif isinstance(item, ScanItem):
+                raise NotImplementedError('RIXSMainWindow._handleShowSignal -- Received ScanItem')
         print('RIXSMainWindow._handleShowSignal -- Done!')
-
-    def _handleAddSignal(self, fileInfoList):
-        fileNames = [OsPathNormpath(elem.absoluteFilePath()) for elem in fileInfoList]
-        current = self.projectList['Foo Project']
-        current.readImages(fileNames, 'edf')
-        imList = current.getImage(reader=current.imageReaders['edf'],
-                                  key='foo',
-                                  index=0)
-        for im in imList:
-            print(im[0].shape)
-            self.imageView.addImage(im[0])
-        #print('RIXSMainWindow._handleAddSignal -- Received addSignal:\n\t',fileNames)
 
     def connectActions(self):
         actionList = [(self.openImagesAction, self.openImages),
