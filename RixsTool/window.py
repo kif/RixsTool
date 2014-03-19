@@ -121,12 +121,12 @@ class AbstractToolWindow(qt.QDockWidget):
 
     def setValues(self, ddict):
         success = True
-        for key, val in ddict.items:
+        for key, val in ddict.items():
             obj = self._values[key]
             if isinstance(obj, qt.QPlainTextEdit) or isinstance(obj, qt.QTextEdit):
                 obj.setPlainText(val)
             elif isinstance(obj, qt.QLineEdit):
-                obj.setText(val)
+                obj.setText(str(val))
             elif isinstance(obj, qt.QCheckBox) or isinstance(obj, qt.QRadioButton):
                 obj.setCheckState(val)
             elif isinstance(obj, qt.QComboBox):
