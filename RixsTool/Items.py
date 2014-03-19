@@ -32,12 +32,12 @@ import numpy
 DEBUG = 1
 
 
-class DataItem(object):
+class ProjectItem(object):
     __doc__ = """Generic class to contain data"""
     interpretation = 'Abstract DataItem'
 
     def __init__(self, key, header):
-        super(DataItem, self).__init__()
+        super(ProjectItem, self).__init__()
         self._key = key
         self.header = header
         self.__identifier = uuid4()
@@ -58,12 +58,12 @@ class DataItem(object):
         raise NotImplementedError('DataItem.hdfDump -- to be implemented here?')
 
 
-class NumericItem(DataItem):
+class DataItem(ProjectItem):
     __doc__ = """Generic class to contain numeric data"""
     interpretation = 'Dataset'
 
     def __init__(self, key, header, array, fileLocation):
-        DataItem.__init__(self, key, header)
+        ProjectItem.__init__(self, key, header)
         self.fileLocation = fileLocation
         self.array = array
 
@@ -77,12 +77,12 @@ class NumericItem(DataItem):
         return self.array.dtype
 
 
-class AnalyticItem(DataItem):
-    __doc__ = """Class to contain an analytical expression and a set of parameters"""
+class FunctionItem(ProjectItem):
+    __doc__ = """Class to contain a real valued function in terms of an analytical expression and a set of parameters"""
     interpretation = 'Function'
 
     def __init__(self, key, header):
-        DataItem.__init__(self, key, header)
+        ProjectItem.__init__(self, key, header)
         self.expression = lambda x: x
         self.parameters = {}
         self._argspec = getArgSpec(self.expression)
@@ -126,25 +126,25 @@ class AnalyticItem(DataItem):
         return self.expression(**param)
 
 
-class ScanItem(NumericItem):
+class ScanItem(DataItem):
     __doc__ = """Class to contain data in multiple 1D numpy arrays"""
     interpretation = 'Scan'
     pass
 
 
-class SpecItem(NumericItem):
+class SpecItem(DataItem):
     __doc__ = """Class to contain data in 1D numpy array"""
     interpretation = 'Spec'
     pass
 
 
-class ImageItem(NumericItem):
+class ImageItem(DataItem):
     __doc__ = """Class to contain data in 2D numpy array"""
     interpretation = 'Image'
     pass
 
 
-class StackItem(NumericItem):
+class StackItem(DataItem):
     __doc__ = """Class to contain data in 3D numpy array"""
     interpretation = 'Stack'
     pass
@@ -153,7 +153,7 @@ class StackItem(NumericItem):
 if __name__ == '__main__':
     __doc__ = 'Modified inheritance structure of DataItem child classes. Added FunctionItem class'
     testExpr = lambda a, x: abs(x)
-    testAnaItem = AnalyticItem('foo', 'header')
+    testAnaItem = FunctionItem('foo', 'header')
     testAnaItem.setExpression(testExpr)
     testAnaItem.setParameters({'a': 1.})
     print('Consistency check succeeded: %s' % str(testAnaItem.consistencyCheck()))

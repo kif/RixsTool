@@ -33,7 +33,7 @@ from os import walk as OsWalk
 from uuid import uuid4
 
 from RixsTool.IO import IODict
-from RixsTool.DataItem import SpecItem, ScanItem, ImageItem, StackItem
+from RixsTool.Items import SpecItem, ScanItem, ImageItem, StackItem
 
 DEBUG = 1
 
@@ -41,7 +41,7 @@ DEBUG = 1
 class ItemContainer(object):
     __doc__ = """The :class:`ItemContainer` class is the basic building block of a tree like data structure. Within
      the tree hierarchy a container can either be a node or a leave. Nodes have zero or more children, while leaves
-     reference an instance of the class :py:class:`DataItem.DataItem`. Both uses of the item container can be
+     reference an instance of the class :py:class:`Items.ProjectItem`. Both uses of the item container can be
      distinguished using the :func:`hasItem` respectively :py:func:`hasChildren`. Every item container except for
      the top most has a parent pointer and a unique identifier. The identifier can savely be assumed to be random and
      is provided at the moment of instantiation by the :func:`uuid.uuid4`
@@ -52,11 +52,11 @@ class ItemContainer(object):
 
      .. py:attribute:: _item
 
-        Reference to a :py:class:`DataItem.DataItem` instance. None per default
+        Reference to a :py:class:`Items.ProjectItem` instance. None per default
 
      .. py:attribute:: _data
 
-        List containing the names of attributes of a :py:class:`DataItem.DataItem` that might be of interest for
+        List containing the names of attributes of a :py:class:`Items.ProjectItem` that might be of interest for
         a display (c.f. :py:class:`Models.ProjectView`)
 
      .. py:attribute:: parent
@@ -148,7 +148,7 @@ class ItemContainer(object):
         """
         :param int idx: Determines which attribute of the item is called
 
-        Gives information stored in an :py:class::`DataItem` by calling a corresponding member function that returns
+        Gives information stored in an :py:class::`ProjectItem` by calling a corresponding member function that returns
         a string representation of said attribute.
 
         :returns: Depending on success or failure of the method it returns True or False
@@ -176,15 +176,15 @@ class ItemContainer(object):
     def item(self):
         """
         :returns: Returns the data stored in the container
-        :rtype: None or DataItem
+        :rtype: None or ProjectItem
         """
         return self._item
 
     def setItem(self, item):
         """
-        :param DataItem item:
+        :param ProjectItem item:
         :returns: Depending on success or failure of the method it returns True or False
-        :rtype: None or DataItem
+        :rtype: None or ProjectItem
         """
         if len(self.children) and DEBUG >= 1:
             # TODO: Raise exception? Return False?
@@ -234,15 +234,12 @@ class ItemContainer(object):
 class RixsProject(object):
 
     __doc__ = """The :py:class:`RixsProject` class is used to read raw data related to a RIXS measurement. Internally
-    it organizes the raw data in instances of type :py:class:`DataItem.DataItem`. All data items are stored in the
-    project tree, a hierachical data structure. The tree itself consists of instances of type
-    :py:class:`datahandling.ItemContainer`.
+    it organizes the raw data in instances of type :py:class:`Items.DataItem` and real valued functions in
+    :py:class:`Items.FunctionItems`. All data items are stored in the project tree, a hierachical data structure.
+    The tree itself consists of nodes of type :py:class:`datahandling.ItemContainer`.
 
-    On the top level, the tree divides the data items in containers depeding on the
-    dimensionality of their data. Two dimensional input for example is treated as an image.
-
-    **TODO:**
-        * Add remove functionality here (and not in RixsTool.Models)
+    On the top level, the tree divides the data items in containers depeding on the  dimensionality of their data.
+    Two dimensional input for example is treated as an image.
     """
 
     def __init__(self):
