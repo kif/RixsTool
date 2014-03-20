@@ -137,8 +137,9 @@ class ScanItem(DataItem):
     def scale(self, sampleRange=None):
         """
         :param ndarray sampleRange: In case the scale of the scan has been replaced by a :py:class:`Items.FunctionItem`
-         the latter is sampled on the given range.
-        :returns ndarray: scale
+         the latter is sampled on the given range. If no range is provided, the function is sampled on the range from
+         0 to len(array).
+        :returns: ndarray scale or None
         """
         if isinstance(self._scale, numpy.ndarray):
             return self._scale
@@ -154,7 +155,6 @@ class ScanItem(DataItem):
 
     def setScale(self, scale):
         self._scale = scale
-
 
 
 class SpecItem(DataItem):
