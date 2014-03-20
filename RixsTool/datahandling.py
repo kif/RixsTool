@@ -279,6 +279,10 @@ class RixsProject(object):
             raise KeyError()
         return result
 
+    def getIdDict(self):
+        # TODO: Function for debugging purposes
+        return self.__idDict
+
     @staticmethod
     def _traverseDFS(root):
         yield root
@@ -442,8 +446,6 @@ def unitTest_RixsProject():
 
     print(project['LBCO0497.edf'])
     print(project['Images'])
-
-    return
 
 if __name__ == '__main__':
     unitTest_RixsProject()
