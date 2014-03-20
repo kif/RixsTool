@@ -94,8 +94,15 @@
     <property name="title">
      <string>Image</string>
     </property>
+    <widget class="QMenu" name="menu_Filter">
+     <property name="title">
+      <string>&amp;Filter</string>
+     </property>
+     <addaction name="bandPassFilterAction"/>
+     <addaction name="bandPassFilterID32Action"/>
+    </widget>
     <addaction name="histogramAction"/>
-    <addaction name="filterAction"/>
+    <addaction name="menu_Filter"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuImage"/>
@@ -220,15 +227,20 @@
     <string>Show Histogram</string>
    </property>
   </action>
-  <action name="filterAction">
+  <action name="bandPassFilterAction">
    <property name="text">
-    <string>&amp;Filter</string>
-   </property>
-   <property name="toolTip">
-    <string>Tool to filter Images</string>
+    <string>Band Pass Filter</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+M</string>
+   </property>
+  </action>
+  <action name="bandPassFilterID32Action">
+   <property name="text">
+    <string>Band Pass Filter ID32</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+K</string>
    </property>
   </action>
  </widget>
