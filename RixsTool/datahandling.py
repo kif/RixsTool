@@ -240,6 +240,9 @@ class RixsProject(object):
 
     On the top level, the tree divides the data items in containers depeding on the  dimensionality of their data.
     Two dimensional input for example is treated as an image.
+
+    **TODO**:
+        * Implement HDF Backend..
     """
 
     def __init__(self):
@@ -396,6 +399,7 @@ class RixsProject(object):
         # Try to guess filetype
         name, ext = OsPathSplitext(fileName)
         fileType = ext.replace('.', '').lower()
+        print("RixsProject.read -- Received '%s' file" % fileType)
         if fileType in self.inputReaders.keys():
             reader = self.inputReaders[fileType]
         else:
@@ -432,7 +436,7 @@ class RixsProject(object):
 
 def unitTest_RixsProject():
     #directory = r'C:\Users\tonn\lab\mockFolder\Images'
-    directory = '/home/truter/lab/mock_folder/Images'
+    directory = '/home/truter/lab/mock_folder/'
     project = RixsProject()
     project.crawl(directory)
 

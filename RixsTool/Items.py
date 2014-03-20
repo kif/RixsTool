@@ -68,7 +68,7 @@ class DataItem(ProjectItem):
         self.array = array
 
     def __repr__(self):
-        return '%s: %s %s' % (self.key(), str(self.shape()), type(self.array))
+        return '%s %s: %s' % (self.interpretation, self.key(), str(self.shape()))
 
     def shape(self):
         return self.array.shape
@@ -151,6 +151,10 @@ class ScanItem(DataItem):
             return self._scale.sample(sampleRange)
         else:
             return None
+
+    def setScale(self, scale):
+        self._scale = scale
+
 
 
 class SpecItem(DataItem):

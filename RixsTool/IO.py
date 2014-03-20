@@ -26,21 +26,42 @@
 #############################################################################*/
 __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 
+#
+# Import for EDF file I/O
+#
 from PyMca.PyMcaIO.EdfFile import EdfFile
-from PyMca.PyMcaIO import specfilewrapper as Specfile
+
+#
+# Imports for spec file I/O
+#
+#from PyMca.PyMcaIO.specfilewrapper import specfilewrapper as SpecFile
+#from PyMca.PyMcaIO.specfilewrapper import myscandata
+
+#
+# Imports for file access
+#
 from os.path import split as OsPathSplit
+from os import linesep as NEWLINE
 from os import access as OsAccess
 from os import R_OK as OS_R_OK
+
+#
+# Utilities
+#
 import numpy as np
 import time
-from RixsTool.Items import ImageItem
+
+#
+# ProjectItem to wrap data in
+#
+from RixsTool.Items import ImageItem, SpecItem, ScanItem
 
 DEBUG = 1
 
 
 class IODict(object):
     EDF_TYPE = 'edf'    # -> Wrapper for edf files
-    RAW_TYPE = 'raw'    # -> Wrapper for plaintext data
+    DAT_TYPE = 'dat'    # -> Wrapper for plaintext data
 
     # TODO: Use these type too
     SPEC_TYPE = 'stack'  # -> Wrapper for spec files
@@ -48,7 +69,8 @@ class IODict(object):
     @staticmethod
     def inputReaderDict():
         ddict = {
-            IODict.EDF_TYPE: EdfReader()
+            IODict.EDF_TYPE: EdfReader(),
+            IODict.DAT_TYPE: RawReader()
         }
         return ddict
 
@@ -139,41 +161,87 @@ class EdfReader(InputReader):
         return llist
 
 
-class SpecFileReader(InputReader):
+class RawReader(InputReader):
     def __init__(self):
-        super(SpecFileReader, self).__init__()
-        self._srcType = Specfile
+        super(RawReader, self).__init__()
+        self._srcType = open
 
     def itemize(self, fileName):
-        raise NotImplementedError('Shit ain\'t ready yet..')
+        #raise NotImplementedError('Shit ain\'t ready yet..')
         timeStart = time.time()
         InputReader.itemize(self, fileName)
 
-        numScans = self.reader.scanno()
-        llist = []
-        if numScans > 1:
-            raise NotImplementedError('EdfReader.itemize -- No support for edfs containing multiple images')
-            #for idx in range(numImages):
-            #    arr = reader.GetData(idx)
-            #    newItem = ImageItem(
-            #        key=key,
-            #        header=reader.GetHeader(0),
-            #        array=np.ascontiguousarray(arr, arr.dtype),
-            #        fileLocation=reader.FileName
-            #    )
+        if self.reader.closed:
+            raise IOError('RawReader -- File handler is closed')
+
+        #
+        # Guess key
+        #
+        key = OsPathSplit(fileName)[-1]
+        print("RawReader -- key: '%s'" % key)
+
+        raw = self.reader.read()
+        raw = raw.strip().split(NEWLINE)
+        print("RawReader -- raw: %s" % str(raw))
+
+        if not len(raw):
+            print('RawReader.itemize -- Received empty file')
+            return []
+
+        #
+        # Try to determine the number of columns
+        #
+        nRows = len(raw)
+        print('RawReader.itemize -- Determined %d rows' % nRows)
+
+        #
+        # Try to determine the number of columns
+        #
+        nCols = len(raw[0].split())
+        print('RawReader.itemize -- Determined %d columns' % nCols)
+
+        data = np.zeros((nRows, nCols))
+
+        for idx, line in enumerate(raw):
+            iterator = [float(number.strip()) for number in line.split()]  # is list even in python3(.2.3)
+            data[idx, :] = np.fromiter(iterator, dtype=float)
+        data = np.squeeze(data.T)
+
+        print('RawReader.itemize -- data.shape %s, data:\n%s' % (str(data.shape), data))
+
+        if len(data.shape) == 1:
+            item = SpecItem(
+                key=key,
+                header='',
+                array=data,
+                fileLocation=fileName
+            )
+        elif len(data.shape) == 2:
+            #
+            # Set zero-th column as scale, and first column as data. IGNORE THE REST
+            #
+            item = ScanItem(
+                key=key,
+                header='',
+                array=data[1],
+                fileLocation=fileName
+            )
+            item.setScale(np.copy(data[0]))
         else:
-            scan = self.reader[0]
-            newItem = ImageItem(
-                key=self.key,
-                header=self.reader.GetHeader(0),
-                array=np.ascontiguousarray(arr, arr.dtype),
-                fileLocation=self.reader.FileName)
-            llist += [newItem]
+            raise ValueError('RawReader.itemize -- Unexpected dimensionality')
+
+        llist = [item]
 
         timeEnd = time.time()
-        print('EdfInputReader.itemize -- Method finished in %.3f s' % (timeEnd - timeStart))
+        print('RawReader.itemize -- Method finished in %.3f s, item %s' % ((timeEnd - timeStart), str(item)))
         return llist
 
+
+def unitTest_RawReader():
+    fname = '/home/truter/lab/rixs/rixs_data/Spectra/test0483.DAT'
+
+    reader = RawReader()
+    reader.itemize(fname)
 
 def unitTest_InputReader():
     #rixsImageDir = '/Users/tonn/DATA/rixs_data/Images'
@@ -189,4 +257,5 @@ def unitTest_InputReader():
     print(edfReader)
 
 if __name__ == '__main__':
-    unitTest_InputReader()
+    #unitTest_InputReader()
+    unitTest_RawReader()
