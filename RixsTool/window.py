@@ -37,125 +37,12 @@ from RixsTool.ContextMenu import FileContextMenu, AddFilesAction
 # Imports from os.path
 
 from RixsTool.Models import QDirListModel
-from RixsTool.Models import ProjectModel
 from RixsTool.Utils import unique as RixsUtilsUnique
 from RixsTool.ContextMenu import ProjectContextMenu, RemoveAction, RemoveItemAction, RemoveContainerAction,\
     ShowAction, ExpandAction, RenameAction
 from RixsTool.datahandling import ItemContainer
 
 DEBUG = 1
-
-
-class AbstractToolTitleBar(qt.QWidget):
-
-    #__uiPath = 'C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\abtractTitleToolBar.ui'
-    #__uiPath = '/Users/tonn/GIT/RixsTool/RixsTool/ui/abtracttitletoolbar.ui'
-    __uiPath = '/home/truter/lab/RixsTool/RixsTool/ui/abtracttitletoolbar.ui'
-
-    def __init__(self, title):
-        super(AbstractToolTitleBar, self).__init__()
-        uic.loadUi(self.__uiPath, self)
-        self.closeButton.setFlat(True)
-        self.setWindowTitle(title)
-
-
-class AbstractToolWindow(qt.QDockWidget):
-    acceptSignal = qt.pyqtSignal(object)
-    editFinished = qt.pyqtSignal()
-    editCancelled = qt.pyqtSignal()
-
-    def __init__(self, uiPath=None, parent=None):
-        super(AbstractToolWindow, self).__init__(parent)
-        self._widget = qt.QWidget(parent)
-        self._values = {}
-        self.__uiLoaded = False
-        self.__uiPath = uiPath
-
-    def finished(self):
-        if DEBUG == 1:
-            print("AbstractToolWindow.finished -- To be implemented")
-        self.editFinished.emit()
-        self.destroy(bool_destroyWindow=True,
-                     bool_destroySubWindows=True)
-
-    def hasUI(self):
-        return self.__uiLoaded
-
-    def setUI(self, uiPath=None):
-        if uiPath is None:
-            uiPath = self.__uiPath
-        try:
-            uic.loadUi(uiPath, self._widget)
-        except FileNotFoundError:
-            self.__uiLoaded = False
-            raise FileNotFoundError("AbstractToolWindow.setUI -- failed to find ui-file: '%s'"%uiPath)
-        self.__uiLoaded = True
-        if self.widget() is None:
-            self.setWidget(self._widget)
-            #
-            # Set the title bar
-            #
-            title = self.windowTitle()
-            titleBar = AbstractToolTitleBar(title)
-            self.setTitleBarWidget(titleBar)
-
-    def getValues(self):
-        ddict = {}
-        sortedKeys = sorted(self._values.keys())
-        for key in sortedKeys:
-            obj = self._values[key]
-            if isinstance(obj, qt.QPlainTextEdit) or isinstance(obj, qt.QTextEdit):
-                val = obj.getPlainText()
-            elif isinstance(obj, qt.QLineEdit):
-                val = obj.text()
-            elif isinstance(obj, qt.QCheckBox) or isinstance(obj, qt.QRadioButton):
-                val = obj.checkState()
-            elif isinstance(obj, qt.QComboBox):
-                val = obj.currentText()
-            elif isinstance(obj, qt.QAbstractSlider) or isinstance(obj, qt.QSpinBox):
-                val = obj.value()
-            else:
-                val = None
-            ddict[key] = val
-        return ddict
-
-    def setValues(self, ddict):
-        success = True
-        for key, val in ddict.items():
-            obj = self._values[key]
-            if isinstance(obj, qt.QPlainTextEdit) or isinstance(obj, qt.QTextEdit):
-                obj.setPlainText(val)
-            elif isinstance(obj, qt.QLineEdit):
-                obj.setText(str(val))
-            elif isinstance(obj, qt.QCheckBox) or isinstance(obj, qt.QRadioButton):
-                obj.setCheckState(val)
-            elif isinstance(obj, qt.QComboBox):
-                idx = obj.findText(val)
-                obj.setCurrentIndex(idx)
-            elif isinstance(obj, qt.QAbstractSlider) or isinstance(obj, qt.QSpinBox):
-                obj.setValue(val)
-            else:
-                if DEBUG == 1:
-                    print("AbstractToolWindow.setValues -- Could not set value for key '%s'"%str(key))
-                # TODO: Raise Exception here?
-                success = False
-        return success
-
-
-class BandPassFilterWindow(AbstractToolWindow):
-    def __init__(self, parent=None):
-        #uiPath = 'C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\bandpassfilter.ui'
-        #uiPath = '/Users/tonn/GIT/RixsTool/RixsTool/ui/bandpassfilter.ui'
-        uiPath = '/home/truter/lab/RixsTool/RixsTool/ui/bandpassfilter.ui'
-        super(BandPassFilterWindow, self).__init__(uiPath=uiPath,
-                                                   parent=parent)
-        self.setUI()
-
-        self._values = {
-            'upper': self._widget.upperThreshold,
-            'lower': self._widget.lowerThreshold,
-            'offset': self._widget.offsetValue
-        }
 
 
 class DirTree(qt.QTreeView):
@@ -410,7 +297,7 @@ class FileSystemBrowser(qt.QWidget):
         infoList = [fsModel.fileInfo(idx) for idx in modelIdxList]
         if DEBUG == 1:
             for elem in infoList:
-                print('\t',elem.absoluteFilePath())
+                print('\t', elem.absoluteFilePath())
         return infoList
 
     def addFiles(self):
