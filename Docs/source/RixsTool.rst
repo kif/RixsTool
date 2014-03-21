@@ -9,14 +9,6 @@ RixsTool Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`BandPassFilterWindow` Module
-----------------------------------
-
-.. automodule:: RixsTool.BandPassFilterWindow
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`ContextMenu` Module
 -------------------------
 
@@ -121,14 +113,6 @@ RixsTool Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`graveyard` Module
------------------------
-
-.. automodule:: RixsTool.graveyard
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`mainWindow` Module
 ------------------------
 
@@ -144,4 +128,11 @@ RixsTool Package
     :members:
     :undoc-members:
     :show-inheritance:
+
+Subpackages
+-----------
+
+.. toctree::
+
+    RixsTool.widgets
 
