@@ -286,6 +286,7 @@ class FileSystemBrowser(qt.QWidget):
         self.addSignal.emit(fileInfoList)
 
     def handleWorkingDirectoryChanged(self, **kw):
+        # TODO: Reset the fsView watcher
         print('FileSystemBrowser.handleWorkingDirectoryChanged -- kw:\n\t%s' % str(kw))
         print(kw)
         pass
