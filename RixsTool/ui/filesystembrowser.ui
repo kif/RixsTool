@@ -85,6 +85,13 @@
         </widget>
        </item>
        <item>
+        <widget class="QCheckBox" name="autoAddCheckBox">
+         <property name="text">
+          <string>Auto Add</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QToolButton" name="addDirButton">
          <property name="text">
           <string/>
