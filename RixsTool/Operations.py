@@ -952,7 +952,7 @@ def run_test():
         f.write('#S %d\n' % idx)
         f.write('#N 1\n')
 
-        f.write('#L fuck  you  %s\n' % item.key())
+        f.write('#L col0  %s\n' % item.key())
         #numpy.vstack((summed, points)).tofile(f, sep='\n')
         summed.tofile(f, sep='\n')
         f.write('\n\n')

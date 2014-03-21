@@ -29,7 +29,8 @@ __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 from PyMca import PyMcaQt as qt
 from PyQt4 import uic
 
-from RixsTool.Operations import Filter
+from RixsTool.Operations import Filter, SlopeCorrection
+from RixsTool.Items import FunctionItem
 
 DEBUG = 1
 
@@ -238,6 +239,53 @@ class BandPassID32Window(AbstractToolWindow):
         for key, value in ddict.items():
             ddict[key] = float(value)
         return ddict
+
+
+class ImageAlignmenWindow(AbstractToolWindow):
+    def __init__(self, parent=None):
+        #uiPath = 'C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\bandpassfilter.ui'
+        #uiPath = '/Users/tonn/GIT/RixsTool/RixsTool/ui/bandpassfilter.ui'
+        #uiPath = '/home/truter/lab/RixsTool/RixsTool/ui/bandpassfilter_deprecated.ui'
+        uiPath = '/home/truter/lab/RixsTool/RixsTool/ui/alignmentfilter.ui'
+        super(ImageAlignmenWindow, self).__init__(uiPath=uiPath,
+                                                   parent=parent)
+        self.setUI()
+        self.setWindowTitle('Smile correction')
+
+        self._values = {
+            'a': self.aSpinBox,
+            'b': self.bSpinBox,
+            'c': self.cSpinBox
+        }
+
+        self.setValues({
+            'a': -5.25*10**-5,
+            'b': 0.18877,
+            'c': 0.
+        })
+
+        #
+        # Connects
+        #
+        self.aSpinBox.valueChanged.connect(self.emitValuesChangedSignal)
+        self.bSpinBox.valueChanged.connect(self.emitValuesChangedSignal)
+        self.cSpinBox.valueChanged.connect(self.emitValuesChangedSignal)
+
+        #
+        # Process
+        #
+        self.process = self.alignImage  # Expects smile function
+
+    def alignImage(self, image, params):
+        func = FunctionItem('Slope Function', '')
+        expression = lambda x, a, b, c: a*x**2 + b*x + c
+        params = self.getValues()
+
+        func.setExpression(expression)
+        func.setParameters(params)
+
+        return SlopeCorrection.alignImage(image, func)
+
 
 def unitTest_BandPassFilter():
     dummy = DummyNotifier()

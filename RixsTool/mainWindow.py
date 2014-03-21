@@ -24,7 +24,7 @@
 # Please contact the ESRF industrial unit (industry@esrf.fr) if this license
 # is a problem for you.
 #############################################################################*/
-from RixsTool.widgets.ToolWindows import BandPassFilterWindow, BandPassID32Window
+from RixsTool.widgets.ToolWindows import BandPassFilterWindow, BandPassID32Window, ImageAlignmenWindow
 
 __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 # Imports for GUI
@@ -79,6 +79,13 @@ class RIXSMainWindow(qt.QMainWindow):
         self.filterWidget = None
         self.setCurrentFilter('bandpass')
 
+        #
+        # ALIGNMENT
+        #
+        self.alignmentWidget = ImageAlignmenWindow()
+        self.alignmentWidget.valuesChangedSignal.connect(self.filterValuesChanged)
+        self.addAlignmentFilter()
+
         #self.imageView.toggleLegendWidget()
         self.specView.toggleLegendWidget()
 
@@ -105,18 +112,14 @@ class RIXSMainWindow(qt.QMainWindow):
         #
         # Positioning
         #
-        w = self.centerWidget.width()
-        h = self.centerWidget.height()
-        #if w > (1.25 * h):
-        #    self.imageView.addDockWidget(qt.Qt.RightDockWidgetArea,
-        #                                 currentFilter)
-        #else:
-        #    self.imageView.addDockWidget(qt.Qt.BottomDockWidgetArea,
-        #                                 currentFilter)
         self.imageView.addDockWidget(dockWidgetArea,
                                      currentFilter)
         currentFilter.show()
         self.filterWidget = currentFilter
+
+    def addAlignmentFilter(self):
+        self.imageView.addDockWidget(qt.Qt.RightDockWidgetArea,
+                                     self.alignmentWidget)
 
     def filterValuesChanged(self, ddict):
         key = self.imageView.getActiveImage(just_legend=True)
