@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>848</width>
+    <width>800</width>
     <height>508</height>
    </rect>
   </property>
@@ -64,7 +64,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>848</width>
+     <width>800</width>
      <height>24</height>
     </rect>
    </property>
@@ -99,7 +99,7 @@
       <string>&amp;Filter</string>
      </property>
      <addaction name="bandPassFilterAction"/>
-     <addaction name="bandPassFilterID32Action"/>
+     <addaction name="actionBand_Pass_Filter_ID32"/>
     </widget>
     <addaction name="histogramAction"/>
     <addaction name="menu_Filter"/>
@@ -235,12 +235,9 @@
     <string>Ctrl+M</string>
    </property>
   </action>
-  <action name="bandPassFilterID32Action">
+  <action name="actionBand_Pass_Filter_ID32">
    <property name="text">
     <string>Band Pass Filter ID32</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+K</string>
    </property>
   </action>
  </widget>
@@ -249,7 +246,7 @@
   <customwidget>
    <class>FileSystemBrowser</class>
    <extends>QWidget</extends>
-   <header>RixsTool.window</header>
+   <header>RixsTool.window.FileSystemBrowser</header>
    <container>1</container>
   </customwidget>
   <customwidget>

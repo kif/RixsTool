@@ -297,7 +297,7 @@ class FileSystemBrowser(qt.QWidget):
         infoList = [fsModel.fileInfo(idx) for idx in modelIdxList]
         if DEBUG == 1:
             for elem in infoList:
-                print('\t', elem.absoluteFilePath())
+                print('\t %s' % str(elem.absoluteFilePath()))
         return infoList
 
     def addFiles(self):
@@ -360,9 +360,7 @@ if __name__ == '__main__':
     win.setModel(proj)
 
     notifier = DummyNotifier()
-    if isinstance(win, AbstractToolWindow):
-        win.acceptSignal.connect(notifier.signalReceived)
-    elif isinstance(win, ProjectView):
+    if isinstance(win, ProjectView):
         win.showSignal.connect(notifier.signalReceived)
     win.show()
     app.exec_()
