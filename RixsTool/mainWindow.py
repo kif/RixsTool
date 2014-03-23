@@ -24,6 +24,8 @@
 # Please contact the ESRF industrial unit (industry@esrf.fr) if this license
 # is a problem for you.
 #############################################################################*/
+from RixsTool.widgets.ToolWindows import BandPassFilterWindow, BandPassID32Window, ImageAlignmenWindow
+
 __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 # Imports for GUI
 from PyMca import PyMcaQt as qt
@@ -35,13 +37,17 @@ from PyQt4 import uic
 # Imports from RixsTool
 from RixsTool.IO import EdfReader
 from RixsTool.IO import InputReader
-from RixsTool.window import BandPassFilterWindow
 from RixsTool.Models import ProjectModel
-from RixsTool.DataItem import SpecItem, ScanItem, ImageItem, StackItem
+from RixsTool.Items import SpecItem, ScanItem, ImageItem
+from RixsTool.Operations import Filter
+
+# For Debuggin purposes
+from RixsTool.datahandling import unitTest_RixsProject
+
+import numpy
 
 # Imports from os.path
 from os.path import splitext as OsPathSplitExt
-from os.path import normpath as OsPathNormpath
 
 DEBUG = 1
 
@@ -54,56 +60,144 @@ class RIXSMainWindow(qt.QMainWindow):
         uic.loadUi('/home/truter/lab/RixsTool/RixsTool/ui/mainwindow.ui', self)
         self.connectActions()
 
-        self.filterWidget = None
-
         # TODO: Can be of type ProjectView...
         self.projectDict = {
             '<current>': None,
             '<default>': ProjectModel()
         }
-        self.setCurrentProject()
+        self.currentProject = self.setCurrentProject()
         # Connect is independent from the project (model)
         self.projectBrowser.showSignal.connect(self._handleShowSignal)
-        self.imageView.toggleLegendWidget()
+
+        #
+        # FILTERS
+        #
+        self.filterDict = {
+            'bandpass': BandPassFilterWindow(),
+            'bandpassID32': BandPassID32Window()
+        }
+        self.filterWidget = None
+        self.setCurrentFilter('bandpass')
+
+        #
+        # ALIGNMENT
+        #
+        self.alignmentWidget = ImageAlignmenWindow()
+        self.alignmentWidget.valuesChangedSignal.connect(self.filterValuesChanged)
+        self.addAlignmentFilter()
+
+        #self.imageView.toggleLegendWidget()
+        self.specView.toggleLegendWidget()
+
+    def handleToolStateChangedSignal(self, state, tool):
+        print("RIXSMainWindow.handleToolStateChangedSignal -- state: %d" % state)
+        print("\t%s" % str(tool))
+
+    def setCurrentFilter(self, key):
+        if self.filterWidget:
+            #
+            # There is an acitve filter, disconnect its actions
+            #
+            self.filterWidget.valuesChangedSignal.disconnect(self.filterValuesChanged)
+            self.filterWidget.toolStateChangedSignal.connect(self.handleToolStateChangedSignal)
+            dockWidgetArea = self.imageView.dockWidgetArea(self.filterWidget)
+            self.filterWidget.hide()
+        else:
+            dockWidgetArea = qt.Qt.RightDockWidgetArea
+
+        currentFilter = self.filterDict[key]
+        currentFilter.valuesChangedSignal.connect(self.filterValuesChanged)
+        currentFilter.toolStateChangedSignal.connect(self.handleToolStateChangedSignal)
+
+        #
+        # Positioning
+        #
+        self.imageView.addDockWidget(dockWidgetArea,
+                                     currentFilter)
+        currentFilter.show()
+        self.filterWidget = currentFilter
+
+    def addAlignmentFilter(self):
+        self.imageView.addDockWidget(qt.Qt.RightDockWidgetArea,
+                                     self.alignmentWidget)
+
+    def filterValuesChanged(self, ddict):
+        key = self.imageView.getActiveImage(just_legend=True)
+        print("RIXSMainWindow.filterValuesChanged -- key: '%s'" % key)
+
+        try:
+            container = self.currentProject[key]
+        except KeyError:
+            print('RIXSMainWindow.filterValuesChanged -- Unable to find key')
+            ids = self.currentProject.getIdDict()
+            for key, value in ids.items():
+                print("\t%s: %s" % (str(key), str(value)))
+            return
+
+        item = container.item()
+        if item is None:
+            print('RIXSMainWindow.filterValuesChanged -- Received None item')
+            return
+        else:
+            print('RIXSMainWindow.filterValuesChanged -- Received item: %s' % str(item))
+
+        #filtered = Filter.bandPassFilter(item.array, ddict)
+        filtered = self.filterWidget.process(item.array, ddict)
+
+        self.imageView.addImage(
+            data=filtered,
+            legend=item.key(),
+            replace=True
+        )
 
     def setCurrentProject(self, key='<default>'):
-        project = self.projectDict.get(key, None)
-        if not project:
+        #project = self.projectDict.get(key, None)
+        model = self.projectDict['<default>']
+        if not model:
             print('RIXSMainWindow.setCurrentProject -- project not found')
-            return
-        model = ProjectModel()
+            return self.projectDict['<default>']
+        else:
+            model = ProjectModel()
         self.fileBrowser.addSignal.connect(model.addFileInfoList)
         #self.projectBrowser.showSignal.connect(self._handleShowSignal)
         self.projectBrowser.setModel(model)
         self.projectDict[key] = model
+        return model
 
     def _handleShowSignal(self, itemList):
         for item in itemList:
             if isinstance(item, ImageItem):
+                print('RIXSMainWindow._handleShowSignal -- Received ImageItem')
                 self.imageView.addImage(
                     data=item.array,
                     legend=item.key(),
-                    replace=False
+                    replace=True
                 )
+            elif isinstance(item, ScanItem):
+                print('RIXSMainWindow._handleShowSignal -- Received SpecItem')
+                if hasattr(item, 'scale'):
+                    scale = item.scale()
+                else:
+                    numberOfPoints = len(item.array)
+                    scale = numpy.arange(numberOfPoints)  # TODO: Lift numpy dependency here
+                # def addCurve(self, x, y, legend, info=None, replace=False, replot=True, **kw):
+                self.specView.addCurve(
+                    x=scale,
+                    y=item.array,
+                    legend=item.key(),
+                    replace=False,
+                    replot=True
+                )
+            elif isinstance(item, SpecItem):
+                raise NotImplementedError('RIXSMainWindow._handleShowSignal -- Received ScanItem')
         print('RIXSMainWindow._handleShowSignal -- Done!')
-
-    def _handleAddSignal(self, fileInfoList):
-        fileNames = [OsPathNormpath(elem.absoluteFilePath()) for elem in fileInfoList]
-        current = self.projectList['Foo Project']
-        current.readImages(fileNames, 'edf')
-        imList = current.getImage(reader=current.imageReaders['edf'],
-                                  key='foo',
-                                  index=0)
-        for im in imList:
-            print(im[0].shape)
-            self.imageView.addImage(im[0])
-        #print('RIXSMainWindow._handleAddSignal -- Received addSignal:\n\t',fileNames)
 
     def connectActions(self):
         actionList = [(self.openImagesAction, self.openImages),
                       (self.saveAnalysisAction, self.saveAnalysis),
                       (self.histogramAction, self.showHistogram),
-                      (self.filterAction, self.openFilterTool)]
+                      (self.bandPassFilterAction, self.openBandPassTool),
+                      (self.bandPassFilterID32Action, self.openBandPassID32Tool)]
         for action, function in actionList:
             action.triggered[()].connect(function)
         print('All Actions connected..')
@@ -131,19 +225,11 @@ class RIXSMainWindow(qt.QMainWindow):
             self.imageView.addImage(im)
             print('Added image:',idx,' ',type(im))
 
-    def openFilterTool(self):
-        if self.tabWidget.currentWidget() is not self.imageView:
-            self.tabWidget.setCurrentWidget(self.imageView)
-        if self.filterWidget is None:
-            self.filterWidget = BandPassFilterWindow()
-        w = self.centerWidget.width()
-        h = self.centerWidget.height()
-        if w > (1.25 * h):
-            self.imageView.addDockWidget(qt.Qt.RightDockWidgetArea,
-                                         self.filterWidget)
-        else:
-            self.imageView.addDockWidget(qt.Qt.BottomDockWidgetArea,
-                                         self.filterWidget)
+    def openBandPassTool(self):
+        self.setCurrentFilter('bandpass')
+
+    def openBandPassID32Tool(self):
+        self.setCurrentFilter('bandpassID32')
 
     def saveAnalysis(self):
         print('MainWindow -- saveAnalysis: to be implemented')

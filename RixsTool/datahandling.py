@@ -33,7 +33,7 @@ from os import walk as OsWalk
 from uuid import uuid4
 
 from RixsTool.IO import IODict
-from RixsTool.DataItem import SpecItem, ScanItem, ImageItem, StackItem
+from RixsTool.Items import SpecItem, ScanItem, ImageItem, StackItem
 
 DEBUG = 1
 
@@ -41,7 +41,7 @@ DEBUG = 1
 class ItemContainer(object):
     __doc__ = """The :class:`ItemContainer` class is the basic building block of a tree like data structure. Within
      the tree hierarchy a container can either be a node or a leave. Nodes have zero or more children, while leaves
-     reference an instance of the class :py:class:`DataItem.DataItem`. Both uses of the item container can be
+     reference an instance of the class :py:class:`Items.ProjectItem`. Both uses of the item container can be
      distinguished using the :func:`hasItem` respectively :py:func:`hasChildren`. Every item container except for
      the top most has a parent pointer and a unique identifier. The identifier can savely be assumed to be random and
      is provided at the moment of instantiation by the :func:`uuid.uuid4`
@@ -52,11 +52,11 @@ class ItemContainer(object):
 
      .. py:attribute:: _item
 
-        Reference to a :py:class:`DataItem.DataItem` instance. None per default
+        Reference to a :py:class:`Items.ProjectItem` instance. None per default
 
      .. py:attribute:: _data
 
-        List containing the names of attributes of a :py:class:`DataItem.DataItem` that might be of interest for
+        List containing the names of attributes of a :py:class:`Items.ProjectItem` that might be of interest for
         a display (c.f. :py:class:`Models.ProjectView`)
 
      .. py:attribute:: parent
@@ -81,7 +81,8 @@ class ItemContainer(object):
         if label:
             self.label = label
         elif item:
-            self.label = item.key
+            #self.label = item.key
+            self.label = item.key()
         else:
             self.label = ''
 
@@ -147,7 +148,7 @@ class ItemContainer(object):
         """
         :param int idx: Determines which attribute of the item is called
 
-        Gives information stored in an :py:class::`DataItem` by calling a corresponding member function that returns
+        Gives information stored in an :py:class::`ProjectItem` by calling a corresponding member function that returns
         a string representation of said attribute.
 
         :returns: Depending on success or failure of the method it returns True or False
@@ -175,15 +176,15 @@ class ItemContainer(object):
     def item(self):
         """
         :returns: Returns the data stored in the container
-        :rtype: None or DataItem
+        :rtype: None or ProjectItem
         """
         return self._item
 
     def setItem(self, item):
         """
-        :param DataItem item:
+        :param ProjectItem item:
         :returns: Depending on success or failure of the method it returns True or False
-        :rtype: None or DataItem
+        :rtype: None or ProjectItem
         """
         if len(self.children) and DEBUG >= 1:
             # TODO: Raise exception? Return False?
@@ -233,15 +234,15 @@ class ItemContainer(object):
 class RixsProject(object):
 
     __doc__ = """The :py:class:`RixsProject` class is used to read raw data related to a RIXS measurement. Internally
-    it organizes the raw data in instances of type :py:class:`DataItem.DataItem`. All data items are stored in the
-    project tree, a hierachical data structure. The tree itself consists of instances of type
-    :py:class:`datahandling.ItemContainer`.
+    it organizes the raw data in instances of type :py:class:`Items.DataItem` and real valued functions in
+    :py:class:`Items.FunctionItems`. All data items are stored in the project tree, a hierachical data structure.
+    The tree itself consists of nodes of type :py:class:`datahandling.ItemContainer`.
 
-    On the top level, the tree divides the data items in containers depeding on the
-    dimensionality of their data. Two dimensional input for example is treated as an image.
+    On the top level, the tree divides the data items in containers depeding on the  dimensionality of their data.
+    Two dimensional input for example is treated as an image.
 
-    **TODO:**
-        * Add remove functionality here (and not in RixsTool.Models)
+    **TODO**:
+        * Implement HDF Backend..
     """
 
     def __init__(self):
@@ -251,18 +252,21 @@ class RixsProject(object):
         self.inputReaders = IODict.inputReaderDict()
 
         #
-        # Data tree
-        #
-        self.projectRoot = ItemContainer()
-        self.projectRoot.addChildren(
-            [ItemContainer(parent=self.projectRoot, label=key)\
-             for key in ['Spectra', 'Images', 'Stacks']])
-        print('RixsProject.__init__ -- projectRoot.childCount:', self.projectRoot.childCount())
-
-        #
         # Identifier dict
         #
         self.__idDict = {}
+
+        #
+        # Data tree
+        #
+        self.projectRoot = ItemContainer()
+        #self.projectRoot.addChildren(
+        #    [ItemContainer(parent=self.projectRoot, label=key)\
+        #     for key in ['Spectra', 'Images', 'Stacks']])
+        for label in ['Spectra', 'Images', 'Stacks']:
+            self.addGroup(label)
+        print('RixsProject.__init__ -- projectRoot.childCount: %d' % self.projectRoot.childCount())
+        print('RixsProject.__init__ -- projectRoot.__idDict: %s' % str(self.__idDict))
 
     def __getitem__(self, key):
         result = None
@@ -274,6 +278,10 @@ class RixsProject(object):
         if not result:
             raise KeyError()
         return result
+
+    def getIdDict(self):
+        # TODO: Function for debugging purposes
+        return self.__idDict
 
     @staticmethod
     def _traverseDFS(root):
@@ -343,6 +351,44 @@ class RixsProject(object):
         self.__idDict[item.key()] = container.getID()
         return container
 
+    def addGroup(self, label, node=None):
+        """
+        :param str label: Unique label for the container
+        :param ItemContainer node: Parent for the new container. Defaults to None, the parent in that case is the root.
+
+        Creates a new container object in the parent container node
+
+        :returns: The created :class:`datahandling.ItemContainer`
+        :rtype: ItemContainer
+        :raises ValueError: if the label is already present in the project
+        """
+        if DEBUG >= 1:
+            print('RixsProject.addItem -- called')
+        if label in self.__idDict:
+            raise ValueError("RixsProject.addItem -- Item key '%s' already present" % label)
+        if not node:
+            node = self.projectRoot
+        container = ItemContainer(
+            item=None,
+            parent=node,
+            label=label
+        )
+        node.addChildren([container])
+        self.__idDict[container.label] = container.getID()
+        return container
+
+    def removeContainer(self, label):
+        container = self.__getitem__(label)
+        if container.childCount():
+            if DEBUG >= 1:
+                print('RixsProject.removeContainer -- Has children')
+            for child in container.children:
+                self.removeContainer(child.label)
+        parentContainer = container.parent
+        idx = container.childNumber()
+        del(parentContainer.children[idx])
+        del(self.__idDict[label])
+
     def read(self, fileName):
         """
         :param str fileName: File name including path to file
@@ -357,6 +403,7 @@ class RixsProject(object):
         # Try to guess filetype
         name, ext = OsPathSplitext(fileName)
         fileType = ext.replace('.', '').lower()
+        print("RixsProject.read -- Received '%s' file" % fileType)
         if fileType in self.inputReaders.keys():
             reader = self.inputReaders[fileType]
         else:
@@ -393,13 +440,12 @@ class RixsProject(object):
 
 def unitTest_RixsProject():
     #directory = r'C:\Users\tonn\lab\mockFolder\Images'
-    directory = '/home/truter/lab/mock_folder/Images'
+    directory = '/home/truter/lab/mock_folder/'
     project = RixsProject()
     project.crawl(directory)
 
     print(project['LBCO0497.edf'])
-
-    return
+    print(project['Images'])
 
 if __name__ == '__main__':
     unitTest_RixsProject()

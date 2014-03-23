@@ -17,10 +17,10 @@ RixsTool Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`DataItem` Module
-----------------------
+:mod:`Functions` Module
+-----------------------
 
-.. automodule:: RixsTool.DataItem
+.. automodule:: RixsTool.Functions
     :members:
     :undoc-members:
     :show-inheritance:
@@ -29,6 +29,14 @@ RixsTool Package
 ----------------
 
 .. automodule:: RixsTool.IO
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`Items` Module
+-------------------
+
+.. automodule:: RixsTool.Items
     :members:
     :undoc-members:
     :show-inheritance:
@@ -45,6 +53,14 @@ RixsTool Package
 ----------------------------
 
 .. automodule:: RixsTool.OperationQueue
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
+:mod:`Operations` Module
+------------------------
+
+.. automodule:: RixsTool.Operations
     :members:
     :undoc-members:
     :show-inheritance:
@@ -97,14 +113,6 @@ RixsTool Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`graveyard` Module
------------------------
-
-.. automodule:: RixsTool.graveyard
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`mainWindow` Module
 ------------------------
 
@@ -120,4 +128,11 @@ RixsTool Package
     :members:
     :undoc-members:
     :show-inheritance:
+
+Subpackages
+-----------
+
+.. toctree::
+
+    RixsTool.widgets
 

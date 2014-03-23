@@ -23,16 +23,7 @@
    <property name="spacing">
     <number>2</number>
    </property>
-   <property name="leftMargin">
-    <number>2</number>
-   </property>
-   <property name="topMargin">
-    <number>2</number>
-   </property>
-   <property name="rightMargin">
-    <number>2</number>
-   </property>
-   <property name="bottomMargin">
+   <property name="margin">
     <number>2</number>
    </property>
    <item>
@@ -94,6 +85,13 @@
         </widget>
        </item>
        <item>
+        <widget class="QCheckBox" name="autoAddCheckBox">
+         <property name="text">
+          <string>Auto Add</string>
+         </property>
+        </widget>
+       </item>
+       <item>
         <widget class="QToolButton" name="addDirButton">
          <property name="text">
           <string/>
@@ -121,6 +119,12 @@
          <property name="icon">
           <iconset>
            <normaloff>../icons/minus.ico</normaloff>../icons/minus.ico</iconset>
+         </property>
+         <property name="iconSize">
+          <size>
+           <width>16</width>
+           <height>16</height>
+          </size>
          </property>
          <property name="shortcut">
           <string>Ctrl+X</string>
@@ -157,7 +161,7 @@
   <customwidget>
    <class>DirTree</class>
    <extends>QTreeView</extends>
-   <header>RixsTool.window</header>
+   <header>RixsTool.widgets.FileSystemBrowser</header>
   </customwidget>
  </customwidgets>
  <resources/>

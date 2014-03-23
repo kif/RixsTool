@@ -62,17 +62,17 @@ class ProjectModel(RixsProject, qt.QAbstractItemModel):
 
         self.beginRemoveRows(parentIndex, container.childNumber(), container.childNumber())
 
-        if container.childCount():
-            print('Has children')
-            # Child count is nonzero
-            #  TODO: Get child indexes
-            for child in container.children:
-                del(child)
+        #if container.childCount():
+        #    print('Has children')
+        #    # Child count is nonzero
+        #    for child in container.children:
+        #        del(child)
 
-        parentContainer = self.containerAt(parentIndex)
-        idx = container.childNumber()
-        del(parentContainer.children[idx])
+        #parentContainer = self.containerAt(parentIndex)
+        #idx = container.childNumber()
+        #del(parentContainer.children[idx])
 
+        RixsProject.removeContainer(self, container.label)
         self.endRemoveRows()
 
     def addItem(self, item):
@@ -95,6 +95,29 @@ class ProjectModel(RixsProject, qt.QAbstractItemModel):
         parentIndex = self.parent(modelIndex)
         self.beginInsertRows(parentIndex, container.childNumber(), container.childNumber())
         self.endInsertRows()
+        return True
+
+    def addGroup(self, label, node=None):
+        """
+        :param item:
+        :type item:
+        """
+        if DEBUG >= 1:
+            print('### ProjectModel.addGroup -- called ###')
+        try:
+            container = RixsProject.addGroup(self, label, node)
+        except ValueError as error:
+            # Catch ValueError from base class method RixsProject.addGroup
+            # caused by already present label
+            if DEBUG >= 1:
+                print(error)
+            return False
+
+        # TODO: calling self.createIndex creates RuntimeError! W\o calling it, the method works though..
+        #modelIndex = self.createIndex(container.childNumber(), 0, container)
+        #parentIndex = self.parent(modelIndex)
+        #self.beginInsertRows(parentIndex, container.childNumber(), container.childNumber())
+        #self.endInsertRows()
         return True
 
     def containerAt(self, modelIndex):
@@ -326,10 +349,10 @@ class QDirListModel(qt.QAbstractListModel):
         qt.QAbstractListModel.endInsertRows(self)
         return True
 
-    def insertRows(self, row, count, modelIndex = qt.QModelIndex()):
+    def insertRows(self, row, count, modelIndex=qt.QModelIndex()):
         raise NotImplementedError('Use LegendModel.insertLegendList instead')
 
-    def removeDirs(self, row, count, modelIndex = qt.QModelIndex()):
+    def removeDirs(self, row, count, modelIndex=qt.QModelIndex()):
         length = len(self.__directoryList)
         if length == 0:
             # Nothing to do..
