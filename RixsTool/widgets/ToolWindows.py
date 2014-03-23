@@ -37,9 +37,14 @@ DEBUG = 1
 
 class AbstractToolTitleBar(qt.QWidget):
 
-    #__uiPath = 'C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\abtractTitleToolBar.ui'
-    #__uiPath = '/Users/tonn/GIT/RixsTool/RixsTool/ui/abtracttitletoolbar.ui'
-    __uiPath = '/home/truter/lab/RixsTool/RixsTool/ui/abtracttitletoolbar.ui'
+    if PLATFORM == 'Linux':
+        __uiPath = '/home/truter/lab/RixsTool/RixsTool/ui/abtracttitletoolbar.ui'
+    elif PLATFORM == 'Windows':
+        __uiPath = 'C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\abtractTitleToolBar.ui'
+    elif PLATFORM == 'Darwin':
+        __uiPath = '/Users/tonn/GIT/RixsTool/RixsTool/ui/abtracttitletoolbar.ui'
+    else:
+        raise OSError('AbstractToolTitleBar.__init__ -- Unknown system type')
 
     def __init__(self, parent=None):
         super(AbstractToolTitleBar, self).__init__(parent)
@@ -142,9 +147,9 @@ class AbstractToolWindow(qt.QDockWidget):
 class BandPassFilterWindow(AbstractToolWindow):
     def __init__(self, parent=None):
         #uiPath = 'C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\bandpassfilter.ui'
-        #uiPath = '/Users/tonn/GIT/RixsTool/RixsTool/ui/bandpassfilter.ui'
+        uiPath = '/Users/tonn/GIT/RixsTool/RixsTool/ui/bandpassfilter.ui'
         #uiPath = '/home/truter/lab/RixsTool/RixsTool/ui/bandpassfilter_deprecated.ui'
-        uiPath = '/home/truter/lab/RixsTool/RixsTool/ui/bandpassfilter.ui'
+        #uiPath = '/home/truter/lab/RixsTool/RixsTool/ui/bandpassfilter.ui'
         super(BandPassFilterWindow, self).__init__(uiPath=uiPath,
                                                    parent=parent)
         self.setUI()
@@ -178,9 +183,9 @@ class BandPassFilterWindow(AbstractToolWindow):
 class BandPassID32Window(AbstractToolWindow):
     def __init__(self, parent=None):
         #uiPath = 'C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\bandpassfilterID32.ui'
-        #uiPath = '/Users/tonn/GIT/RixsTool/RixsTool/ui/bandpassfilterID32.ui'
+        uiPath = '/Users/tonn/GIT/RixsTool/RixsTool/ui/bandpassfilterID32.ui'
         #uiPath = '/home/truter/lab/RixsTool/RixsTool/ui/bandpassfilterID32.ui'
-        uiPath = '/home/truter/lab/RixsTool/RixsTool/ui/bandpassfilterID32.ui'
+        #uiPath = '/home/truter/lab/RixsTool/RixsTool/ui/bandpassfilterID32.ui'
         super(BandPassID32Window, self).__init__(uiPath=uiPath,
                                                  parent=parent)
         self.setUI()
@@ -244,11 +249,11 @@ class BandPassID32Window(AbstractToolWindow):
 class ImageAlignmenWindow(AbstractToolWindow):
     def __init__(self, parent=None):
         #uiPath = 'C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\bandpassfilter.ui'
-        #uiPath = '/Users/tonn/GIT/RixsTool/RixsTool/ui/bandpassfilter.ui'
+        uiPath = '/Users/tonn/GIT/RixsTool/RixsTool/ui/alignmentfilter.ui'
         #uiPath = '/home/truter/lab/RixsTool/RixsTool/ui/bandpassfilter_deprecated.ui'
-        uiPath = '/home/truter/lab/RixsTool/RixsTool/ui/alignmentfilter.ui'
+        #uiPath = '/home/truter/lab/RixsTool/RixsTool/ui/alignmentfilter.ui'
         super(ImageAlignmenWindow, self).__init__(uiPath=uiPath,
-                                                   parent=parent)
+                                                  parent=parent)
         self.setUI()
         self.setWindowTitle('Smile correction')
 

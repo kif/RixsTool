@@ -104,7 +104,8 @@ class OperationQueueQObject(OperationQueue, qt.QObject):
 
 
 def unitTest_OperationQueue():
-    directory = '/home/truter/lab/mock_folder'  # On linkarkouli
+    #directory = '/home/truter/lab/mock_folder'  # On linkarkouli
+    directory = '/Users/tonn/DATA/rixs_data'  # On linkarkouli
 
     ops = SlopeCorrection()
 

@@ -41,24 +41,128 @@ from RixsTool.Models import ProjectModel
 from RixsTool.Items import SpecItem, ScanItem, ImageItem
 from RixsTool.Operations import Filter
 
+# IMPORT FROM PyMca
+from PyMca.widgets import MaskImageWidget
+
 # For Debuggin purposes
 from RixsTool.datahandling import unitTest_RixsProject
 
-import numpy
+import numpy, platform
 
 # Imports from os.path
 from os.path import splitext as OsPathSplitExt
 
 DEBUG = 1
+PLATFORM = platform.system()
+
+
+class RixsMaskImageWidget(MaskImageWidget.MaskImageWidget):
+    def __init__(self, parent=None):
+        MaskImageWidget.MaskImageWidget.__init__(
+            self,
+            parent=parent,
+            rgbwidget=None,
+            selection=True,
+            colormap=True,  # Shows ColorMapDialog
+            imageicons=True,
+            standalonesave=False,  # No save for image..
+            usetab=False,  # Inserts MaskImageWidget into a new QTabWidget
+            profileselection=True,
+            scanwindow=None,
+            aspect=True,
+            polygon=False
+        )
+
+        self.dockWidgetArea = self.graphWidget.graph.dockWidgetArea
+
+        self.graphWidget.colormapToolButton.clicked.connect(self.dummySlot)
+
+    def addImage(self, data,
+                 legend=None,
+                 info=None,
+                 replace=True,
+                 replot=True,
+                 xScale=None,
+                 yScale=None,
+                 z=0,
+                 selectable=False,
+                 draggable=False,
+                 colormap=None, **kw):
+
+        #
+        # Use plotWindow.addImage to display the image in the plotting utility
+        #
+        plotWindow = self.graphWidget.graph #.addImage(
+        plotWindow.addImage(
+            data,
+            legend=None,
+            info=None,
+            replace=True,  # Always replace existing images
+            replot=True,
+            xScale=None,
+            yScale=None,
+            z=0,
+            selectable=False,
+            draggable=False,
+            colormap=None,
+            **kw
+        )
+
+        #
+        # Set as image data to allow masking, color mapping, ..
+        #
+        self.setImageData(
+            data=data,
+            clearmask=False,
+            xScale=None,
+            yScale=None
+        )
+
+    def addDockWidget(self, area, widget, orientation=qt.Qt.Vertical):
+        self.graphWidget.graph.addDockWidget(area, widget, orientation)
+
+    def dummySlot(self):
+        print('RixsMaskImageWidget.dummySlot -- something happened!')
 
 
 class RIXSMainWindow(qt.QMainWindow):
     def __init__(self, parent=None):
         qt.QMainWindow.__init__(self, parent)
-        #uic.loadUi('C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\mainwindow.ui', self)
-        #uic.loadUi('/Users/tonn/GIT/RixsTool/RixsTool/ui/mainwindow.ui', self)
-        uic.loadUi('/home/truter/lab/RixsTool/RixsTool/ui/mainwindow.ui', self)
+
+        if PLATFORM == 'Linux':
+            uic.loadUi('/home/truter/lab/RixsTool/RixsTool/ui/mainwindow.ui', self)
+        elif PLATFORM == 'Windows':
+            uic.loadUi('C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\mainwindow.ui', self)
+        elif PLATFORM == 'Darwin':
+            uic.loadUi('/Users/tonn/GIT/RixsTool/RixsTool/ui/mainwindow_imageView.ui', self)
+        else:
+            raise OSError('RIXSMainWindow.__init__ -- Unknown system type')
+
+        #
+        # Set up MaskImageWidget separately
+        #
+        #self.imageView = MaskImageWidget.MaskImageWidget(
+        #    parent=self,
+        #    rgbwidget=None,
+        #    selection=True,
+        #    colormap=True,  # Shows ColorMapDialog
+        #    imageicons=True,
+        #    standalonesave=False,  # No save for image..
+        #    usetab=False,  # Inserts MaskImageWidget into a new QTabWidget
+        #    profileselection=True,
+        #    scanwindow=None,
+        #    aspect=True,
+        #    polygon=False
+        #)
+        #if self.__useTab:
+        #    self.mainLayout.addWidget(self.mainTab)
+        #else:
+        #    self.mainLayout.addWidget(self.graphWidget)
+        self.imageView.sigMaskImageWidgetSignal.connect(self.handleMaskImageSignal)
+
         self.connectActions()
+
+        print('RIXSMainWindow -- type(self.imageView) = %s' % str(type(self.imageView)))
 
         # TODO: Can be of type ProjectView...
         self.projectDict = {
@@ -88,6 +192,9 @@ class RIXSMainWindow(qt.QMainWindow):
 
         #self.imageView.toggleLegendWidget()
         self.specView.toggleLegendWidget()
+
+    def handleMaskImageSignal(self, ddict):
+        print("RIXSMainWindow.handleMaskImageSignal -- ddict: %s" % str(ddict))
 
     def handleToolStateChangedSignal(self, state, tool):
         print("RIXSMainWindow.handleToolStateChangedSignal -- state: %d" % state)
@@ -144,10 +251,21 @@ class RIXSMainWindow(qt.QMainWindow):
         #filtered = Filter.bandPassFilter(item.array, ddict)
         filtered = self.filterWidget.process(item.array, ddict)
 
-        self.imageView.addImage(
+        #self.imageView.addImage(
+        self.addImage(
             data=filtered,
             legend=item.key(),
             replace=True
+        )
+
+    def addImage(self, data, legend, replace):
+        print('RIXSMainWindow.addImage -- adding image..')
+        #plotWindow = self.imageView.graphWidget.graph
+        #plotWindow.addImage(
+        self.imageView.addImage(
+            data=data,
+            legend=legend,
+            replace=replace
         )
 
     def setCurrentProject(self, key='<default>'):
@@ -168,7 +286,8 @@ class RIXSMainWindow(qt.QMainWindow):
         for item in itemList:
             if isinstance(item, ImageItem):
                 print('RIXSMainWindow._handleShowSignal -- Received ImageItem')
-                self.imageView.addImage(
+                #self.imageView.addImage(
+                self.addImage(
                     data=item.array,
                     legend=item.key(),
                     replace=True

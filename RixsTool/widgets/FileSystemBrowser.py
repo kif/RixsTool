@@ -228,9 +228,14 @@ class FileSystemBrowser(qt.QWidget):
 
     def __init__(self, parent=None):
         qt.QWidget.__init__(self, parent)
-        #uic.loadUi('C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\filesystembrowser.ui', self)
-        #uic.loadUi('/Users/tonn/GIT/RixsTool/RixsTool/ui/filesystembrowser.ui', self)
-        uic.loadUi('/home/truter/lab/RixsTool/RixsTool/ui/filesystembrowser.ui', self)
+        if PLATFORM == 'Linux':
+            uic.loadUi('/home/truter/lab/RixsTool/RixsTool/ui/filesystembrowser.ui', self)
+        elif PLATFORM == 'Windows':
+             uic.loadUi('C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\filesystembrowser.ui', self)
+        elif PLATFORM == 'Darwin':
+            uic.loadUi('/Users/tonn/GIT/RixsTool/RixsTool/ui/filesystembrowser.ui', self)
+        else:
+            raise OSError('RIXSMainWindow.__init__ -- Unknown system type')
 
         #
         # Set start directory to qt.QDir.home()
@@ -254,7 +259,8 @@ class FileSystemBrowser(qt.QWidget):
 
         # TODO: change startDir = qt.QDir.home()
         #startDir = qt.QDir.home()
-        startDir = qt.QDir('/home/truter/lab/mock_folder/')
+        #startDir = qt.QDir('/home/truter/lab/mock_folder/')
+        startDir = qt.QDir('/Users/tonn/DATA/mock_folder')
         self.addDir(startDir.absolutePath())
         #self.fsView.setWorkingDirectory(startDir.absolutePath())
 
