@@ -50,7 +50,13 @@ from os.path import isdir as OsPathIsDir
 from os.path import isfile as OsPathIsFile
 from os.path import join as OsPathJoin
 
+#
+# DEVELOPMENT IMPORT
+#
+import platform
+
 DEBUG = 1
+PLATFORM = platform.system()
 
 
 class DirTree(qt.QTreeView):
@@ -231,11 +237,11 @@ class FileSystemBrowser(qt.QWidget):
         if PLATFORM == 'Linux':
             uic.loadUi('/home/truter/lab/RixsTool/RixsTool/ui/filesystembrowser.ui', self)
         elif PLATFORM == 'Windows':
-             uic.loadUi('C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\filesystembrowser.ui', self)
+            uic.loadUi('C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\filesystembrowser.ui', self)
         elif PLATFORM == 'Darwin':
             uic.loadUi('/Users/tonn/GIT/RixsTool/RixsTool/ui/filesystembrowser.ui', self)
         else:
-            raise OSError('RIXSMainWindow.__init__ -- Unknown system type')
+            raise OSError('FileSystemBrowser.__init__ -- Unknown system type')
 
         #
         # Set start directory to qt.QDir.home()

@@ -47,7 +47,8 @@ from PyMca.widgets import MaskImageWidget
 # For Debuggin purposes
 from RixsTool.datahandling import unitTest_RixsProject
 
-import numpy, platform
+import numpy
+import platform
 
 # Imports from os.path
 from os.path import splitext as OsPathSplitExt
