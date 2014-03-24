@@ -78,6 +78,113 @@ class RixsMaskImageWidget(MaskImageWidget.MaskImageWidget):
 
         self.graphWidget.colormapToolButton.clicked.connect(self.dummySlot)
 
+        #
+        # Data handling: only one image at a time is shown
+        #
+        self.currentImageItem = None
+
+        #
+        # ATTRIBUTES CONCERNING DATA MANIPULATION
+
+        # FILTER: General preprocessing
+        self.filterDict = {
+            'bandpass': BandPassFilterWindow(),
+            'bandpassID32': BandPassID32Window()
+        }
+        self.filterWidget = None
+        self.setCurrentFilter('bandpass')
+
+        # ALIGNMENT: Shift image along columns
+        self.alignmentWidget = ImageAlignmenWindow()
+        self.alignmentWidget.valuesChangedSignal.connect(self.toolWindowValuesChanged)
+        self.addAlignmentFilter()
+
+        # EXPORT: Sum up shifted images along an axis and export
+        # the resulting spectra to the project
+        self.exportWidget = None
+
+        #
+        # ORDER: Operations must happen in fixed order
+        #
+        self.toolList = [
+            self.filterWidget,
+            self.alignmentWidget
+        ]
+
+    #
+    # METHODS CONCERNING DATA MANIPULATION TOOLS
+    #
+    def setCurrentFilter(self, key):
+        if self.filterWidget:
+            #
+            # There is an acitve filter, disconnect its actions
+            #
+            self.filterWidget.valuesChangedSignal.disconnect(self.filterValuesChanged)
+            #self.filterWidget.toolStateChangedSignal.connect(self.handleToolStateChangedSignal)
+            self.filterWidget.toolStateChangedSignal.connect(self.toolWindowValuesChanged)
+            dockWidgetArea = self.imageView.dockWidgetArea(self.filterWidget)
+            self.filterWidget.hide()
+        else:
+            dockWidgetArea = qt.Qt.RightDockWidgetArea
+
+        currentFilter = self.filterDict[key]
+        currentFilter.valuesChangedSignal.connect(self.toolWindowValuesChanged)
+        #currentFilter.toolStateChangedSignal.connect(self.handleToolStateChangedSignal)
+        currentFilter.toolStateChangedSignal.connect(self.toolWindowValuesChanged)
+
+        #
+        # Positioning
+        #
+        self.addDockWidget(dockWidgetArea,
+                           currentFilter)
+        currentFilter.show()
+        self.filterWidget = currentFilter
+
+    def toolWindowValuesChanged(self, ddict):
+        #key = self.imageView.getActiveImage(just_legend=True)
+
+        #
+        # AVOID RECALCULATION: If change occured in tool at position idx,
+        # perform recalculation for self.toolList[idx:] ...
+        #
+
+        key = self.currentImageItem.key()
+        imageData = self.currentImageItem.array
+
+        for tool in self.toolList:
+            if not tool.active():
+                continue
+            parameters = tool.getValues()
+            imageData = tool.process(imageData, parameters)
+
+        print("RIXSMainWindow.filterValuesChanged -- key: '%s'" % key)
+        self.addImage(
+            data=imageData,
+            legend=key,
+            replace=True
+        )
+
+    def getActiveImage(self, just_legend=True):
+        plotWindow = self.graphWidget.graph
+        legend = plotWindow.getActiveImage(just_legend=just_legend)
+        if DEBUG >= 1:
+            print("RixsMaskImageWidget.getActiveImage -- legend: '%s'" % legend)
+        return legend
+
+    def setImageItem(self, projectItem):
+        self.currentImageItem = projectItem
+        imageData = self.currentImageItem.array
+
+        self.setImageData(
+            data=imageData,
+            clearmask=False,
+            xScale=None,
+            yScale=None
+        )
+
+        if DEBUG >= 1:
+            print('RixsMaskImageWidget.setImageItem -- finished!')
+
     def addImage(self, data,
                  legend=None,
                  info=None,
@@ -93,11 +200,11 @@ class RixsMaskImageWidget(MaskImageWidget.MaskImageWidget):
         #
         # Use plotWindow.addImage to display the image in the plotting utility
         #
-        plotWindow = self.graphWidget.graph #.addImage(
+        plotWindow = self.graphWidget.graph  #.addImage(
         plotWindow.addImage(
             data,
-            legend=None,
-            info=None,
+            legend=legend,
+            info=info,
             replace=True,  # Always replace existing images
             replot=True,
             xScale=None,
@@ -105,7 +212,7 @@ class RixsMaskImageWidget(MaskImageWidget.MaskImageWidget):
             z=0,
             selectable=False,
             draggable=False,
-            colormap=None,
+            colormap=None,  # Temperature is default
             **kw
         )
 
@@ -119,6 +226,13 @@ class RixsMaskImageWidget(MaskImageWidget.MaskImageWidget):
             yScale=None
         )
 
+        if DEBUG >= 1:
+            print('RixsMaskImageWidget.addImage -- finished!')
+
+    def addAlignmentFilter(self):
+        self.addDockWidget(qt.Qt.RightDockWidgetArea,
+                           self.alignmentWidget)
+
     def addDockWidget(self, area, widget, orientation=qt.Qt.Vertical):
         self.graphWidget.graph.addDockWidget(area, widget, orientation)
 
@@ -131,9 +245,9 @@ class RIXSMainWindow(qt.QMainWindow):
         qt.QMainWindow.__init__(self, parent)
 
         if PLATFORM == 'Linux':
-            uic.loadUi('/home/truter/lab/RixsTool/RixsTool/ui/mainwindow.ui', self)
+            uic.loadUi('/home/truter/lab/RixsTool/RixsTool/ui/mainwindow_imageView.ui', self)
         elif PLATFORM == 'Windows':
-            uic.loadUi('C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\mainwindow.ui', self)
+            uic.loadUi('C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\mainwindow_imageView.ui', self)
         elif PLATFORM == 'Darwin':
             uic.loadUi('/Users/tonn/GIT/RixsTool/RixsTool/ui/mainwindow_imageView.ui', self)
         else:
@@ -177,22 +291,22 @@ class RIXSMainWindow(qt.QMainWindow):
         #
         # FILTERS
         #
-        self.filterDict = {
-            'bandpass': BandPassFilterWindow(),
-            'bandpassID32': BandPassID32Window()
-        }
-        self.filterWidget = None
-        self.setCurrentFilter('bandpass')
+        #self.filterDict = {
+        #    'bandpass': BandPassFilterWindow(),
+        #    'bandpassID32': BandPassID32Window()
+        #}
+        #self.filterWidget = None
+        #self.setCurrentFilter('bandpass')
 
         #
         # ALIGNMENT
         #
-        self.alignmentWidget = ImageAlignmenWindow()
-        self.alignmentWidget.valuesChangedSignal.connect(self.filterValuesChanged)
-        self.addAlignmentFilter()
+        #self.alignmentWidget = ImageAlignmenWindow()
+        #self.alignmentWidget.valuesChangedSignal.connect(self.filterValuesChanged)
+        #self.addAlignmentFilter()
 
         #self.imageView.toggleLegendWidget()
-        self.specView.toggleLegendWidget()
+        #self.specView.toggleLegendWidget()
 
     def handleMaskImageSignal(self, ddict):
         print("RIXSMainWindow.handleMaskImageSignal -- ddict: %s" % str(ddict))
@@ -286,13 +400,14 @@ class RIXSMainWindow(qt.QMainWindow):
     def _handleShowSignal(self, itemList):
         for item in itemList:
             if isinstance(item, ImageItem):
-                print('RIXSMainWindow._handleShowSignal -- Received ImageItem')
+                #self.addImage(
                 #self.imageView.addImage(
-                self.addImage(
-                    data=item.array,
-                    legend=item.key(),
-                    replace=True
-                )
+                #    data=item.array,
+                #    legend=item.key(),
+                #    replace=True
+                #)
+                self.imageView.setImageItem(item)
+                print('RIXSMainWindow._handleShowSignal -- Received ImageItem')
             elif isinstance(item, ScanItem):
                 print('RIXSMainWindow._handleShowSignal -- Received SpecItem')
                 if hasattr(item, 'scale'):
