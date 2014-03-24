@@ -62,6 +62,7 @@ class AbstractToolWindow(qt.QDockWidget):
     def __init__(self, uiPath=None, parent=None):
         super(AbstractToolWindow, self).__init__(parent)
         self._values = {}
+        self.__active = None  # True or False
         self.__uiLoaded = False
         self.__uiPath = uiPath
         self.process = None
@@ -76,6 +77,9 @@ class AbstractToolWindow(qt.QDockWidget):
             titleBar.titleLabel.setText(title)
         else:
             qt.QDockWidget.setWindowTitle(self, title)
+
+    def active(self):
+        return self.__active
 
     def hasUI(self):
         return self.__uiLoaded
@@ -93,6 +97,7 @@ class AbstractToolWindow(qt.QDockWidget):
         #titleBar.closeButton.clicked.connect(self.destroy)  # Ends the whole process
         titleBar.closeButton.clicked.connect(self.close)  # Hides the tool
         titleBar.activeCheckBox.stateChanged.connect(self.stateChanged)
+        self.__active = (titleBar.activeCheckBox.checkState() == qt.Qt.Checked)
         self.setTitleBarWidget(titleBar)
         self.__uiLoaded = True
 
@@ -100,8 +105,10 @@ class AbstractToolWindow(qt.QDockWidget):
         titleBar = self.titleBarWidget()
         if state == qt.Qt.Unchecked:
             titleBar.titleLabel.setEnabled(False)
+            self.__active = False
         else:
             titleBar.titleLabel.setEnabled(True)
+            self.__active = True
         self.toolStateChangedSignal.emit(state, self)
 
     def getValues(self):
