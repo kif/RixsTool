@@ -60,6 +60,23 @@ class ProjectView(qt.QTreeView):
             print('%s: %s %s' % (item.key(), str(item.shape()), type(item.array)))
         self.showSignal.emit(itemList)
 
+    def selectedContainers(self):
+        print('ProjectView.selectedItems -- called')
+        model = self.model()
+        if not model:
+            print('ProjectView.contextMenuEvent -- Model is none. Abort')
+            return []
+
+        modelIndexList = self.selectedIndexes()
+        RixsUtilsUnique(modelIndexList, "row")
+        return [model.containerAt(idx) for idx in modelIndexList]
+
+    def selectedItems(self):
+        return filter(
+            ItemContainer.hasItem,
+            self.selectedContainers()
+        )
+
     def contextMenuEvent(self, event):
         print('ProjectView.contextMenuEvent -- called')
         model = self.model()
