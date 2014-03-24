@@ -30,7 +30,10 @@
           <enum>Qt::LeftToRight</enum>
          </property>
          <property name="text">
-          <string>a</string>
+          <string>a [*10^-5]</string>
+         </property>
+         <property name="textFormat">
+          <enum>Qt::RichText</enum>
          </property>
          <property name="alignment">
           <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
@@ -54,7 +57,20 @@
         </spacer>
        </item>
        <item>
-        <widget class="QDoubleSpinBox" name="aSpinBox"/>
+        <widget class="QDoubleSpinBox" name="aSpinBox">
+         <property name="minimumSize">
+          <size>
+           <width>100</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="decimals">
+          <number>4</number>
+         </property>
+         <property name="singleStep">
+          <double>0.050000000000000</double>
+         </property>
+        </widget>
        </item>
       </layout>
      </widget>
@@ -86,7 +102,20 @@
         </spacer>
        </item>
        <item>
-        <widget class="QDoubleSpinBox" name="bSpinBox"/>
+        <widget class="QDoubleSpinBox" name="bSpinBox">
+         <property name="minimumSize">
+          <size>
+           <width>100</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="minimum">
+          <double>0.000000000000000</double>
+         </property>
+         <property name="singleStep">
+          <double>0.050000000000000</double>
+         </property>
+        </widget>
        </item>
       </layout>
      </widget>
@@ -118,7 +147,14 @@
         </spacer>
        </item>
        <item>
-        <widget class="QDoubleSpinBox" name="cSpinBox"/>
+        <widget class="QDoubleSpinBox" name="cSpinBox">
+         <property name="minimumSize">
+          <size>
+           <width>100</width>
+           <height>0</height>
+          </size>
+         </property>
+        </widget>
        </item>
       </layout>
      </widget>
