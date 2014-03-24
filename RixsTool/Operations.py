@@ -550,7 +550,8 @@ class Integration(ImageOp):
             'sliceAndSum': self.sliceAndSum
         }
 
-    def axisSum(self, image, params):
+    @staticmethod
+    def axisSum(image, params):
         axis = params.get('axis', -1)
         if axis < 0:
             # If axis not specified..
@@ -560,14 +561,8 @@ class Integration(ImageOp):
                 axis = 0
             else:
                 axis = 1
-        #ddict = {
-        #    'op': 'axisSum',
-        #    'sum': numpy.sum(image, axis=axis)
-        #}
-        #return ddict
         return numpy.sum(image, axis=axis)
 
-    #def sliceAndSum(self, image, params):
     @staticmethod
     def sliceAndSum(image, params):
         sumAxis = params.get('sumAxis', 1)
