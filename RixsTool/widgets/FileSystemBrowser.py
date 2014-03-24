@@ -264,11 +264,14 @@ class FileSystemBrowser(qt.QWidget):
         self.closeDirButton.clicked[()].connect(self.closeDir)
 
         # TODO: change startDir = qt.QDir.home()
-        #startDir = qt.QDir.home()
-        #startDir = qt.QDir('/home/truter/lab/mock_folder/')
-        startDir = qt.QDir('/Users/tonn/DATA/mock_folder')
+        if PLATFORM == 'Linux':
+            startDir = qt.QDir('/home/truter/lab/mock_folder/')
+        elif PLATFORM == 'Darwin':
+            startDir = qt.QDir('/Users/tonn/DATA/mock_folder')
+        else:
+            raise OSError('FileSystemBrowser.__init__ -- Setting start dir .. Unknown system type')
+
         self.addDir(startDir.absolutePath())
-        #self.fsView.setWorkingDirectory(startDir.absolutePath())
 
     #
     # Handler functions for various user interaction:
