@@ -29,7 +29,7 @@ __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 from PyMca import PyMcaQt as qt
 from PyQt4 import uic
 
-from RixsTool.Operations import Filter, SlopeCorrection
+from RixsTool.Operations import Filter, SlopeCorrection, Integration
 from RixsTool.Items import FunctionItem
 
 import platform
@@ -274,7 +274,7 @@ class ImageAlignmenWindow(AbstractToolWindow):
         if PLATFORM == 'Linux':
             uiPath = '/home/truter/lab/RixsTool/RixsTool/ui/alignmentfilter.ui'
         elif PLATFORM == 'Windows':
-            uiPath = 'C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\bandpassfilter.ui'
+            uiPath = 'C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\alignmentfilter.ui'
         elif PLATFORM == 'Darwin':
             uiPath = '/Users/tonn/GIT/RixsTool/RixsTool/ui/alignmentfilter.ui'
         else:
@@ -320,11 +320,67 @@ class ImageAlignmenWindow(AbstractToolWindow):
         return SlopeCorrection.alignImage(image, func)
 
 
+class SumImageTool(AbstractToolWindow):
+    __doc__ = """GUI to transform image to spectrum by summation along lines/columns"""
+
+    exportSelectedSignal = qt.pyqtSignal()
+    exportCurrentSignal = qt.pyqtSignal()
+
+    def __init__(self, parent=None):
+
+        if PLATFORM == 'Linux':
+            uiPath = '/home/truter/lab/RixsTool/RixsTool/ui/sumtool.ui'
+        elif PLATFORM == 'Windows':
+            uiPath = 'C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\sumtool.ui'
+        elif PLATFORM == 'Darwin':
+            uiPath = '/Users/tonn/GIT/RixsTool/RixsTool/ui/sumtool.ui'
+        else:
+            raise OSError('BandPassFilterWindow.__init__ -- Unknown system type')
+
+        super(SumImageTool, self).__init__(uiPath=uiPath,
+                                           parent=parent)
+        self.setUI()
+        self.setWindowTitle('Integration')
+
+        self._values = {
+            'axis': self.axisComboBox
+        }
+
+        self.setValues({
+            'axis': 'columns'
+        })
+
+        self.axisComboBox.addItems([
+            'columns',
+            'rows'
+        ])
+
+        #
+        # Connect the buttons
+        #
+        self.selectedButton.clicked.connect(self.exportSelectedSignal.emit)
+        self.currentButton.clicked.connect(self.exportCurrentSignal.emit)
+
+        #
+        # Process
+        #
+        self.process = self.sumImage
+
+    def sumImage(self, image, param):
+        params = self.getValues()
+        if params['axis'].currentText() == 'columns':
+            axis = 1
+        else:
+            axis = 0
+        return Integration.axisSum(image, {'axis': axis})
+
+
 def unitTest_BandPassFilter():
     dummy = DummyNotifier()
     app = qt.QApplication([])
-    filterWindow = BandPassFilterWindow()
-    filterWindow.valuesChangedSignal.connect(dummy.signalReceived)
+    filterWindow = SumImageTool()
+    filterWindow.exportSelectedSignal.connect(dummy.signalReceived)
+    filterWindow.exportCurrentSignal.connect(dummy.signalReceived)
     filterWindow.show()
     app.exec_()
 

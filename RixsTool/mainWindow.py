@@ -24,7 +24,7 @@
 # Please contact the ESRF industrial unit (industry@esrf.fr) if this license
 # is a problem for you.
 #############################################################################*/
-from RixsTool.widgets.ToolWindows import BandPassFilterWindow, BandPassID32Window, ImageAlignmenWindow
+from RixsTool.widgets.ToolWindows import BandPassFilterWindow, BandPassID32Window, ImageAlignmenWindow, SumImageTool
 
 __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 # Imports for GUI
@@ -39,7 +39,7 @@ from RixsTool.IO import EdfReader
 from RixsTool.IO import InputReader
 from RixsTool.Models import ProjectModel
 from RixsTool.Items import SpecItem, ScanItem, ImageItem
-from RixsTool.Operations import Filter
+from RixsTool.Utils import unique as RixsUtilsUnique
 
 # IMPORT FROM PyMca
 from PyMca.widgets import MaskImageWidget
@@ -101,7 +101,8 @@ class RixsMaskImageWidget(MaskImageWidget.MaskImageWidget):
 
         # EXPORT: Sum up shifted images along an axis and export
         # the resulting spectra to the project
-        self.exportWidget = None
+        self.exportWidget = SumImageTool()
+        self.showExportWidget()
 
         #
         # ORDER: Operations must happen in fixed order
@@ -233,6 +234,10 @@ class RixsMaskImageWidget(MaskImageWidget.MaskImageWidget):
         self.addDockWidget(qt.Qt.RightDockWidgetArea,
                            self.alignmentWidget)
 
+    def showExportWidget(self):
+        self.addDockWidget(qt.Qt.RightDockWidgetArea,
+                           self.exportWidget)
+
     def addDockWidget(self, area, widget, orientation=qt.Qt.Vertical):
         self.graphWidget.graph.addDockWidget(area, widget, orientation)
 
@@ -307,6 +312,25 @@ class RIXSMainWindow(qt.QMainWindow):
 
         #self.imageView.toggleLegendWidget()
         #self.specView.toggleLegendWidget()
+
+        #
+        # INTEGRATION
+        #
+        self.imageView.exportWidget.exportSelectedSignal.connect(self.exportSelectedImage)
+        self.imageView.exportWidget.exportCurrentSignal.connect(self.exportCurrentImage)
+
+    def exportSelectedImage(self):
+        items = self.projectBrowser.selectedItems()
+        self.exportingImages(items)
+
+    def exportCurrentImage(self):
+        items = [self.imageView.currentImageItem]
+        self.exportingImages(items)
+
+    def exportingImages(self, imageItemList):
+        print('ProjectView.exportingImages -- Received %d item' % len(imageItemList))
+        for item in imageItemList:
+            print('%s' % item.key())
 
     def handleMaskImageSignal(self, ddict):
         print("RIXSMainWindow.handleMaskImageSignal -- ddict: %s" % str(ddict))
