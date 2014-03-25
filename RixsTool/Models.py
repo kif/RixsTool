@@ -24,17 +24,15 @@
 # Please contact the ESRF industrial unit (industry@esrf.fr) if this license
 # is a problem for you.
 #############################################################################*/
+from RixsTool.widgets import ProjectView
+
 __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 
 from RixsTool.Utils import unique as RixsUtilsUnique
 #from RixsTool.Datahandling import RixsProject
 from RixsTool.datahandling import RixsProject
-from RixsTool.IO import IODict
 from PyMca import PyMcaQt as qt
-from os.path import splitext as osPathSplitext
 from os.path import normpath as OsPathNormpath
-from os import walk as osWalk
-from os.path import sep as osPathSep
 
 DEBUG = 1
 
@@ -428,8 +426,6 @@ def unitTest_ProjectModel():
         def signalReceived(self, val0=None, val1=None):
             print('DummyNotifier.signal received -- kw:\n', str(val0), str(val1))
     dummy = DummyNotifier()
-
-    from RixsTool.window import ProjectView
 
     #directory = r'C:\Users\tonn\lab\mockFolder'  # On windows
     #directory = '/Users/tonn/DATA/rixs_data/'  # On mac

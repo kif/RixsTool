@@ -113,8 +113,10 @@
      <addaction name="bandPassFilterAction"/>
      <addaction name="bandPassFilterID32Action"/>
     </widget>
-    <addaction name="histogramAction"/>
+    <addaction name="colormapAction"/>
     <addaction name="menu_Filter"/>
+    <addaction name="alignmentAction"/>
+    <addaction name="integrationAction"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuImage"/>
@@ -252,9 +254,15 @@
     <string>Show intensity over time</string>
    </property>
   </action>
-  <action name="histogramAction">
+  <action name="colormapAction">
    <property name="text">
-    <string>Show Histogram</string>
+    <string>Show colormap dialog</string>
+   </property>
+   <property name="toolTip">
+    <string>Asign and adjust a colormap</string>
+   </property>
+   <property name="shortcut">
+    <string>Ctrl+L</string>
    </property>
   </action>
   <action name="bandPassFilterAction">
@@ -268,6 +276,22 @@
   <action name="bandPassFilterID32Action">
    <property name="text">
     <string>Band Pass Filter ID32</string>
+   </property>
+  </action>
+  <action name="alignmentAction">
+   <property name="text">
+    <string>&amp;Alignment</string>
+   </property>
+   <property name="toolTip">
+    <string>Perform alignment on image</string>
+   </property>
+  </action>
+  <action name="integrationAction">
+   <property name="text">
+    <string>&amp;Integration</string>
+   </property>
+   <property name="toolTip">
+    <string>Integrates the image along a given axis</string>
    </property>
   </action>
  </widget>
@@ -288,7 +312,7 @@
   <customwidget>
    <class>ProjectView</class>
    <extends>QTreeView</extends>
-   <header>RixsTool.window</header>
+   <header>RixsTool.widgets.ProjectView</header>
   </customwidget>
   <customwidget>
    <class>RixsMaskImageWidget</class>
