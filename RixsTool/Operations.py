@@ -82,7 +82,8 @@ class Filter(ImageOp):
             value to be used as replacement (default: minimum value)
 
         The offset is subtracted from the image. Values above the upper threshold or
-        below the lower threshold are replaced by a given replacement value
+        below the lower threshold are replaced by a given replacement value. *Notice:* the image will be casted
+        into the type of offset.
 
         :returns ndarray: Filtered image
         """
@@ -90,22 +91,17 @@ class Filter(ImageOp):
         imMax = image.max()
         lo = params.get('low', imMin)
         hi = params.get('high', imMax)
-        offset = params.get('offset', None)
-        if offset:
-            offset = numpy.asscalar(numpy.array([offset], dtype=image.dtype))
-        else:
-            offset = numpy.asscalar(numpy.array([0], dtype=image.dtype))
-        replace = params.get('replace', imMin)
+        offset = params.get('offset', 0.)
+        replace = params.get('replace', 0.)
 
-        out = image - offset
+        out = image.astype(type(offset)) - offset
         out = numpy.where((lo <= out), out, replace)
         out = numpy.where((out <= hi), out, replace)
 
-        #ddict = {
-        #    'op': 'bandpass',
-        #    'image': out
-        #}
-        #return ddict
+        print('### image.dtype: %s' % str(image.dtype))
+        print('### out.dtype: %s' % str(out.dtype))
+        print('### Offset: %s' % str(offset))
+
         return out
 
     @staticmethod
@@ -922,6 +918,20 @@ def run_test():
     project = RixsProject()
     project.crawl(directory)
 
+    carbonTape = project['LBCO0483.edf'].item()
+    #filtered = Filter.bandPassFilterID32(carbonTape.array, {})
+    filtered = Filter.bandPassFilter(carbonTape.array, {
+        'offset': 114,
+        'low': 8,
+        'high': 803
+    })
+
+    plt.plot(filtered.sum(axis=1))
+    #plt.plot(carbonTape.array.sum(axis=1))
+    plt.show()
+
+    return
+
     itemList = [child.item() for child in project['Images'].children]
     filteredList = [Filter.bandPassFilterID32(item.array, {}) for item in itemList]
     #polyList = [SlopeCorrection.slopeCorrection(arr, 64) for arr in filteredList]
@@ -954,8 +964,6 @@ def run_test():
     f.close()
     return
 
-    carbonTape = project['LBCO0482.edf'].item()
-    filtered = Filter.bandPassFilterID32(carbonTape.array, {})
     #poly0 = SlopeCorrection.slopeCorrection(filtered, 16, (940, 1030))
 
     poly = FunctionItem('', '')
