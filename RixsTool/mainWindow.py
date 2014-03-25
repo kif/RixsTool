@@ -25,6 +25,7 @@
 # is a problem for you.
 #############################################################################*/
 from RixsTool.widgets.ToolWindows import BandPassFilterWindow, BandPassID32Window, ImageAlignmenWindow, SumImageTool
+from RixsTool.datahandling import ItemContainer
 
 __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 # Imports for GUI
@@ -120,18 +121,18 @@ class RixsMaskImageWidget(MaskImageWidget.MaskImageWidget):
             #
             # There is an acitve filter, disconnect its actions
             #
-            self.filterWidget.valuesChangedSignal.disconnect(self.filterValuesChanged)
+            self.filterWidget.valuesChangedSignal.disconnect(self.toolWindowValuesChanged)
             #self.filterWidget.toolStateChangedSignal.connect(self.handleToolStateChangedSignal)
-            self.filterWidget.toolStateChangedSignal.connect(self.toolWindowValuesChanged)
-            dockWidgetArea = self.imageView.dockWidgetArea(self.filterWidget)
+            #self.filterWidget.toolStateChangedSignal.connect(self.toolWindowValuesChanged)
+            dockWidgetArea = self.dockWidgetArea(self.filterWidget)
             self.filterWidget.hide()
         else:
-            dockWidgetArea = qt.Qt.RightDockWidgetArea
+            dockWidgetArea = qt.Qt.LeftDockWidgetArea
 
         currentFilter = self.filterDict[key]
         currentFilter.valuesChangedSignal.connect(self.toolWindowValuesChanged)
         #currentFilter.toolStateChangedSignal.connect(self.handleToolStateChangedSignal)
-        currentFilter.toolStateChangedSignal.connect(self.toolWindowValuesChanged)
+        #currentFilter.toolStateChangedSignal.connect(self.toolWindowValuesChanged)
 
         #
         # Positioning
@@ -164,6 +165,9 @@ class RixsMaskImageWidget(MaskImageWidget.MaskImageWidget):
             legend=key,
             replace=True
         )
+
+    def getProcessList(self):
+        return [tool.process for tool in self.toolList]
 
     def getActiveImage(self, just_legend=True):
         plotWindow = self.graphWidget.graph
@@ -231,11 +235,11 @@ class RixsMaskImageWidget(MaskImageWidget.MaskImageWidget):
             print('RixsMaskImageWidget.addImage -- finished!')
 
     def addAlignmentFilter(self):
-        self.addDockWidget(qt.Qt.RightDockWidgetArea,
+        self.addDockWidget(qt.Qt.LeftDockWidgetArea,
                            self.alignmentWidget)
 
     def showExportWidget(self):
-        self.addDockWidget(qt.Qt.RightDockWidgetArea,
+        self.addDockWidget(qt.Qt.LeftDockWidgetArea,
                            self.exportWidget)
 
     def addDockWidget(self, area, widget, orientation=qt.Qt.Vertical):
@@ -320,17 +324,70 @@ class RIXSMainWindow(qt.QMainWindow):
         self.imageView.exportWidget.exportCurrentSignal.connect(self.exportCurrentImage)
 
     def exportSelectedImage(self):
-        items = self.projectBrowser.selectedItems()
+        #items = self.projectBrowser.selectedItems()
+        items = self.projectBrowser.selectedContainers()
         self.exportingImages(items)
 
     def exportCurrentImage(self):
-        items = [self.imageView.currentImageItem]
-        self.exportingImages(items)
+        #item = self.imageView.currentImageItem
+        imageItem = self.imageView.currentImageItem
+        if not imageItem:
+            return
+        try:
+            container = self.currentProject[imageItem.key()]
+        except KeyError:
+            print('RIXSMainWindow.exportCurrentImage -- Image not found in project!')
+        #if not container:
+            return
+        self.exportingImages([container])
 
-    def exportingImages(self, imageItemList):
-        print('ProjectView.exportingImages -- Received %d item' % len(imageItemList))
-        for item in imageItemList:
-            print('%s' % item.key())
+    def exportingImages(self, itemContainerList):
+        #def imageToSpectrum(self, imageItemList):
+        print('ProjectView.exportingImages -- Received %d item' % len(itemContainerList))
+        toolList = self.imageView.toolList
+        exportWidget = self.imageView.exportWidget
+        specContainer = self.currentProject['Spectra']
+
+        for container in filter(ItemContainer.hasItem, itemContainerList):
+            if container in self.currentProject:
+                item = container.item()
+                data = item.array
+
+                print('ProjectView.exportingImages -- Found it! %s' % container.label)
+                for step in toolList:
+                    #
+                    # HERE BE PROCESSING.. Apply filter and alignment to all images
+                    #
+                    if not step.active():
+                        continue
+                    parameters = step.getValues()
+                    data = step.process(data, parameters)
+
+                #
+                # Build new tree item
+                #
+                result = exportWidget.process(data, {})
+                print(result.shape)
+
+                key = item.key()
+                newKey = key.replace('.edf', '.dat')
+
+                newItem = SpecItem(
+                    key=newKey,
+                    header=item.header,
+                    array=result,
+                    fileLocation=''
+                )
+
+                #newContainer = ItemContainer(
+                #    item=newItem,
+                #    parent=specContainer,
+                #    label=None  # is set automatically
+                #)
+
+                self.currentProject.addItem(newItem)
+
+
 
     def handleMaskImageSignal(self, ddict):
         print("RIXSMainWindow.handleMaskImageSignal -- ddict: %s" % str(ddict))
@@ -349,7 +406,7 @@ class RIXSMainWindow(qt.QMainWindow):
             dockWidgetArea = self.imageView.dockWidgetArea(self.filterWidget)
             self.filterWidget.hide()
         else:
-            dockWidgetArea = qt.Qt.RightDockWidgetArea
+            dockWidgetArea = qt.Qt.LeftDockWidgetArea
 
         currentFilter = self.filterDict[key]
         currentFilter.valuesChangedSignal.connect(self.filterValuesChanged)
@@ -364,7 +421,7 @@ class RIXSMainWindow(qt.QMainWindow):
         self.filterWidget = currentFilter
 
     def addAlignmentFilter(self):
-        self.imageView.addDockWidget(qt.Qt.RightDockWidgetArea,
+        self.imageView.addDockWidget(qt.Qt.LeftDockWidgetArea,
                                      self.alignmentWidget)
 
     def filterValuesChanged(self, ddict):
@@ -432,7 +489,7 @@ class RIXSMainWindow(qt.QMainWindow):
                 #)
                 self.imageView.setImageItem(item)
                 print('RIXSMainWindow._handleShowSignal -- Received ImageItem')
-            elif isinstance(item, ScanItem):
+            elif isinstance(item, ScanItem) or isinstance(item, SpecItem):
                 print('RIXSMainWindow._handleShowSignal -- Received SpecItem')
                 if hasattr(item, 'scale'):
                     scale = item.scale()
@@ -447,15 +504,15 @@ class RIXSMainWindow(qt.QMainWindow):
                     replace=False,
                     replot=True
                 )
-            elif isinstance(item, SpecItem):
-                raise NotImplementedError('RIXSMainWindow._handleShowSignal -- Received ScanItem')
+                #raise NotImplementedError('RIXSMainWindow._handleShowSignal -- Received ScanItem')
         print('RIXSMainWindow._handleShowSignal -- Done!')
 
     def connectActions(self):
         actionList = [(self.openImagesAction, self.openImages),
                       (self.saveAnalysisAction, self.saveAnalysis),
-                      (self.histogramAction, self.showHistogram),
+                      (self.colormapAction, self.openColormapDialog),
                       (self.bandPassFilterAction, self.openBandPassTool),
+                      (self.bandPassFilterID32Action, self.openBandPassID32Tool),
                       (self.bandPassFilterID32Action, self.openBandPassID32Tool)]
         for action, function in actionList:
             action.triggered[()].connect(function)
@@ -484,11 +541,17 @@ class RIXSMainWindow(qt.QMainWindow):
             self.imageView.addImage(im)
             print('Added image:',idx,' ',type(im))
 
+    def openIntegrationTool(self):
+        self.imageView.showExportWidget()
+
+    def openColormapDialog(self):
+        self.imageView.selectColormap()
+
     def openBandPassTool(self):
-        self.setCurrentFilter('bandpass')
+        self.imageView.setCurrentFilter('bandpass')
 
     def openBandPassID32Tool(self):
-        self.setCurrentFilter('bandpassID32')
+        self.imageView.setCurrentFilter('bandpassID32')
 
     def saveAnalysis(self):
         print('MainWindow -- saveAnalysis: to be implemented')

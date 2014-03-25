@@ -366,9 +366,9 @@ class SumImageTool(AbstractToolWindow):
         #
         self.process = self.sumImage
 
-    def sumImage(self, image, param):
+    def sumImage(self, image, param=None):
         params = self.getValues()
-        if params['axis'].currentText() == 'columns':
+        if str(params['axis']) == 'columns':
             axis = 1
         else:
             axis = 0
