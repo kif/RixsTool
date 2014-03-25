@@ -279,6 +279,27 @@ class RixsProject(object):
             raise KeyError()
         return result
 
+    def __contains__(self, item):
+        """
+        :param ItemContainer or str item: Method determines if the given container is already in the tree.
+
+        If a string is provided as argument, the function determines if said string is used as a label for a
+        container in the tree. If an ItemContainer is provided, the function looks if the item ID is already
+        present in the tree.
+
+        :return bool: True or False, depending of item can be found
+
+        :raises ValueError: If the provided item is neither of type string nor an ItemContainer
+        """
+        if isinstance(item, str):
+            llist = self.__idDict.keys()
+        elif isinstance(item, ItemContainer):
+            item = item.getID()
+            llist = self.__idDict.values()
+        else:
+            raise ValueError('RixsProject.__contains__ -- Argument must be of type string or ItemContainer')
+        return item in llist
+
     def getIdDict(self):
         # TODO: Function for debugging purposes
         return self.__idDict
