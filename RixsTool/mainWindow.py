@@ -98,7 +98,7 @@ class RixsMaskImageWidget(MaskImageWidget.MaskImageWidget):
         # ALIGNMENT: Shift image along columns
         self.alignmentWidget = ImageAlignmenWindow()
         self.alignmentWidget.valuesChangedSignal.connect(self.toolWindowValuesChanged)
-        self.addAlignmentFilter()
+        self.showAlignmentFilter()
 
         # EXPORT: Sum up shifted images along an axis and export
         # the resulting spectra to the project
@@ -112,6 +112,8 @@ class RixsMaskImageWidget(MaskImageWidget.MaskImageWidget):
             self.filterWidget,
             self.alignmentWidget
         ]
+
+#        self.graphWidget.graph.addDockWidget
 
     #
     # METHODS CONCERNING DATA MANIPULATION TOOLS
@@ -165,9 +167,6 @@ class RixsMaskImageWidget(MaskImageWidget.MaskImageWidget):
             legend=key,
             replace=True
         )
-
-    def getProcessList(self):
-        return [tool.process for tool in self.toolList]
 
     def getActiveImage(self, just_legend=True):
         plotWindow = self.graphWidget.graph
@@ -234,7 +233,7 @@ class RixsMaskImageWidget(MaskImageWidget.MaskImageWidget):
         if DEBUG >= 1:
             print('RixsMaskImageWidget.addImage -- finished!')
 
-    def addAlignmentFilter(self):
+    def showAlignmentFilter(self):
         self.addDockWidget(qt.Qt.LeftDockWidgetArea,
                            self.alignmentWidget)
 
@@ -312,7 +311,7 @@ class RIXSMainWindow(qt.QMainWindow):
         #
         #self.alignmentWidget = ImageAlignmenWindow()
         #self.alignmentWidget.valuesChangedSignal.connect(self.filterValuesChanged)
-        #self.addAlignmentFilter()
+        #self.showAlignmentFilter()
 
         #self.imageView.toggleLegendWidget()
         #self.specView.toggleLegendWidget()
@@ -420,7 +419,7 @@ class RIXSMainWindow(qt.QMainWindow):
         currentFilter.show()
         self.filterWidget = currentFilter
 
-    def addAlignmentFilter(self):
+    def showAlignmentFilter(self):
         self.imageView.addDockWidget(qt.Qt.LeftDockWidgetArea,
                                      self.alignmentWidget)
 

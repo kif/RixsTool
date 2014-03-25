@@ -316,6 +316,8 @@ class ImageAlignmenWindow(AbstractToolWindow):
         expression = lambda x, a, b, c: a*x**2 + b*x + c
         params = self.getValues()
 
+        params['a'] *= 10.**-5
+
         func.setExpression(expression)
         func.setParameters(params)
 

@@ -100,11 +100,14 @@
          <property name="alignment">
           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
          </property>
+         <property name="buttonSymbols">
+          <enum>QAbstractSpinBox::PlusMinus</enum>
+         </property>
          <property name="suffix">
           <string>E-5</string>
          </property>
          <property name="decimals">
-          <number>5</number>
+          <number>4</number>
          </property>
          <property name="minimum">
           <double>-10.000000000000000</double>
@@ -163,6 +166,9 @@
          <property name="alignment">
           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
          </property>
+         <property name="buttonSymbols">
+          <enum>QAbstractSpinBox::PlusMinus</enum>
+         </property>
          <property name="decimals">
           <number>4</number>
          </property>
@@ -220,6 +226,9 @@
          <property name="alignment">
           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
          </property>
+         <property name="buttonSymbols">
+          <enum>QAbstractSpinBox::PlusMinus</enum>
+         </property>
          <property name="minimum">
           <double>-2048.000000000000000</double>
          </property>
@@ -276,6 +285,9 @@
          </property>
          <property name="alignment">
           <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+         </property>
+         <property name="buttonSymbols">
+          <enum>QAbstractSpinBox::PlusMinus</enum>
          </property>
          <property name="minimum">
           <number>1</number>
