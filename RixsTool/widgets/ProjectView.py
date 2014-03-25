@@ -72,10 +72,7 @@ class ProjectView(qt.QTreeView):
         return [model.containerAt(idx) for idx in modelIndexList]
 
     def selectedItems(self):
-        return filter(
-            ItemContainer.hasItem,
-            self.selectedContainers()
-        )
+        return [container.item() for container in self.selectedContainers() if container.hasItem()]
 
     def contextMenuEvent(self, event):
         print('ProjectView.contextMenuEvent -- called')
