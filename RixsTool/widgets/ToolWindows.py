@@ -57,7 +57,7 @@ class AbstractToolTitleBar(qt.QWidget):
 
 class AbstractToolWindow(qt.QDockWidget):
     valuesChangedSignal = qt.pyqtSignal(object)
-    toolStateChangedSignal = qt.pyqtSignal(int, object)
+    #toolStateChangedSignal = qt.pyqtSignal(int, object)
 
     def __init__(self, uiPath=None, parent=None):
         super(AbstractToolWindow, self).__init__(parent)
@@ -109,7 +109,9 @@ class AbstractToolWindow(qt.QDockWidget):
         else:
             titleBar.titleLabel.setEnabled(True)
             self.__active = True
-        self.toolStateChangedSignal.emit(state, self)
+        #self.toolStateChangedSignal.emit(state, self)
+        parameters = self.getValues()
+        self.valuesChangedSignal.emit(parameters)
 
     def getValues(self):
         ddict = {}
@@ -283,7 +285,7 @@ class ImageAlignmenWindow(AbstractToolWindow):
         super(ImageAlignmenWindow, self).__init__(uiPath=uiPath,
                                                   parent=parent)
         self.setUI()
-        self.setWindowTitle('Smile correction')
+        self.setWindowTitle('Slope correction')
 
         self._values = {
             'a': self.aSpinBox,
@@ -378,9 +380,9 @@ class SumImageTool(AbstractToolWindow):
 def unitTest_BandPassFilter():
     dummy = DummyNotifier()
     app = qt.QApplication([])
-    filterWindow = SumImageTool()
-    filterWindow.exportSelectedSignal.connect(dummy.signalReceived)
-    filterWindow.exportCurrentSignal.connect(dummy.signalReceived)
+    filterWindow = ImageAlignmenWindow()
+    #filterWindow.exportSelectedSignal.connect(dummy.signalReceived)
+    #filterWindow.exportCurrentSignal.connect(dummy.signalReceived)
     filterWindow.show()
     app.exec_()
 
