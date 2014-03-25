@@ -98,10 +98,6 @@ class Filter(ImageOp):
         out = numpy.where((lo <= out), out, replace)
         out = numpy.where((out <= hi), out, replace)
 
-        print('### image.dtype: %s' % str(image.dtype))
-        print('### out.dtype: %s' % str(out.dtype))
-        print('### Offset: %s' % str(offset))
-
         return out
 
     @staticmethod
@@ -682,6 +678,7 @@ class Manipulation(ImageOp):
                 right=float('NaN'),
                 left=float('NaN')
             )
+            interpolated /= float(oversampling)
 
             #
             # Remove not-a-number values
