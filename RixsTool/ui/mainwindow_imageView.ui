@@ -84,8 +84,7 @@
     <property name="title">
      <string>&amp;File</string>
     </property>
-    <addaction name="openImagesAction"/>
-    <addaction name="saveAnalysisAction"/>
+    <addaction name="saveSpectraAction"/>
     <addaction name="separator"/>
     <addaction name="exitAction"/>
    </widget>
@@ -98,9 +97,10 @@
    </widget>
    <widget class="QMenu" name="menuSpectrum">
     <property name="title">
-     <string>&amp;Spectrum</string>
+     <string>Window</string>
     </property>
     <addaction name="showIntensityOverTimeAction"/>
+    <addaction name="projectBrowserShowAction"/>
    </widget>
    <widget class="QMenu" name="menuImage">
     <property name="title">
@@ -117,6 +117,7 @@
     <addaction name="menu_Filter"/>
     <addaction name="alignmentAction"/>
     <addaction name="integrationAction"/>
+    <addaction name="energyScaleAction"/>
    </widget>
    <addaction name="menuFile"/>
    <addaction name="menuImage"/>
@@ -200,28 +201,6 @@
     </layout>
    </widget>
   </widget>
-  <action name="openImagesAction">
-   <property name="text">
-    <string>&amp;Open Images</string>
-   </property>
-   <property name="statusTip">
-    <string>Opens raw images</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+O</string>
-   </property>
-  </action>
-  <action name="saveAnalysisAction">
-   <property name="text">
-    <string>Save Analysis</string>
-   </property>
-   <property name="statusTip">
-    <string>Saving analysis..</string>
-   </property>
-   <property name="shortcut">
-    <string>Ctrl+S</string>
-   </property>
-  </action>
   <action name="exitAction">
    <property name="text">
     <string>Exit</string>
@@ -251,7 +230,7 @@
     <bool>false</bool>
    </property>
    <property name="text">
-    <string>Show intensity over time</string>
+    <string>File System Browser</string>
    </property>
   </action>
   <action name="colormapAction">
@@ -292,6 +271,21 @@
    </property>
    <property name="toolTip">
     <string>Integrates the image along a given axis</string>
+   </property>
+  </action>
+  <action name="energyScaleAction">
+   <property name="text">
+    <string>&amp;Energy scale</string>
+   </property>
+  </action>
+  <action name="saveSpectraAction">
+   <property name="text">
+    <string>Export spectra</string>
+   </property>
+  </action>
+  <action name="projectBrowserShowAction">
+   <property name="text">
+    <string>Project Browser</string>
    </property>
   </action>
  </widget>

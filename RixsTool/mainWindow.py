@@ -331,7 +331,7 @@ class RIXSMainWindow(qt.QMainWindow):
         #
         # ENERGY SCALE
         #
-        self.imageView.energyScaleTool.energyScaleSignal.connect(self.setEnergyScale)
+        self.imageView.energyAlignmentTool.energyScaleSignal.connect(self.setEnergyScale)
 
 
     def setEnergyScale(self):
@@ -401,8 +401,6 @@ class RIXSMainWindow(qt.QMainWindow):
                 #)
 
                 self.currentProject.addItem(newItem)
-
-
 
     def handleMaskImageSignal(self, ddict):
         print("RIXSMainWindow.handleMaskImageSignal -- ddict: %s" % str(ddict))
@@ -523,56 +521,25 @@ class RIXSMainWindow(qt.QMainWindow):
         print('RIXSMainWindow._handleShowSignal -- Done!')
 
     def connectActions(self):
-        actionList = [(self.openImagesAction, self.openImages),
-                      (self.saveAnalysisAction, self.saveAnalysis),
-                      (self.colormapAction, self.openColormapDialog),
+        actionList = [(self.colormapAction, self.imageView.selectColormap),
                       (self.bandPassFilterAction, self.openBandPassTool),
+                      (self.integrationAction, self.imageView.showExportWidget),
                       (self.bandPassFilterID32Action, self.openBandPassID32Tool),
-                      (self.bandPassFilterID32Action, self.openBandPassID32Tool)]
+                      (self.energyScaleAction, self.imageView.energyAlignmentTool.show),
+                      (self.saveSpectraAction, self.saveSpectra),
+                      (self.projectBrowserShowAction, self.openBandPassID32Tool)]
         for action, function in actionList:
             action.triggered[()].connect(function)
         print('All Actions connected..')
 
-    def openImages(self):
-        # Open file dialog
-        names = qt.QFileDialog.getOpenFileNames(parent=self,
-                                                caption='Load Image Files',
-                                                directory=PyMcaDirs.inputDir,
-                                                filter=('EDF Files (*.edf *.EDF);;' +
-                                                        'Tiff Files (*.tiff *.TIFF);;' +
-                                                        'All Files (*.*)'))
-        if len(names) == 0:
-            # Nothing to do..
-            return
-        fileName, fileType = OsPathSplitExt(names[-1])
-        print('Filetype:',fileType)
-        if fileType.lower() == '.edf':
-            reader = EdfReader()
-        else:
-            reader = InputReader()
-        reader.refresh(names)
-        #for idx, im in enumerate(flatten(reader['Image'])):
-        for idx, im in enumerate(reader['Images']):
-            self.imageView.addImage(im)
-            print('Added image:',idx,' ',type(im))
-
-    def openIntegrationTool(self):
-        self.imageView.showExportWidget()
-
-    def openColormapDialog(self):
-        self.imageView.selectColormap()
+    def saveSpectra(self):
+        print('RIXSMainWindow.saveSpectra')
 
     def openBandPassTool(self):
         self.imageView.setCurrentFilter('bandpass')
 
     def openBandPassID32Tool(self):
         self.imageView.setCurrentFilter('bandpassID32')
-
-    def saveAnalysis(self):
-        print('MainWindow -- saveAnalysis: to be implemented')
-
-    def showHistogram(self):
-        print('MainWindow -- showHistogram: to be implemented')
 
 
 class DummyNotifier(qt.QObject):
