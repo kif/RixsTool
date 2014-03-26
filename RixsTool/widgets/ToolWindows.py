@@ -379,11 +379,10 @@ class SumImageTool(AbstractToolWindow):
         return Integration.axisSum(image, {'axis': axis})
 
 
-class EnergyAlignmentTool(AbstractToolWindow):
-    __doc__ = """GUI to transform image to spectrum by summation along lines/columns"""
+class EnergyScaleTool(AbstractToolWindow):
+    __doc__ = """GUI to set an energy scale to the project"""
 
-    exportSelectedSignal = qt.pyqtSignal()
-    exportCurrentSignal = qt.pyqtSignal()
+    energyScaleSignal = qt.pyqtSignal()
 
     def __init__(self, parent=None):
 
@@ -396,7 +395,7 @@ class EnergyAlignmentTool(AbstractToolWindow):
         else:
             raise OSError('BandPassFilterWindow.__init__ -- Unknown system type')
 
-        super(EnergyAlignmentTool, self).__init__(uiPath=uiPath,
+        super(EnergyScaleTool, self).__init__(uiPath=uiPath,
                                                   parent=parent)
         self.setUI()
         self.setWindowTitle('Energy alignment')
@@ -414,8 +413,7 @@ class EnergyAlignmentTool(AbstractToolWindow):
         #
         # Connect the spin boxes
         #
-        self.slopeSpinBox.valueChanged.connect(self.emitValuesChangedSignal)
-        self.zeroSpinBox.valueChanged.connect(self.emitValuesChangedSignal)
+        self.slopeSpinBox.valueChanged.connect(self.energyScaleSignal)
 
         #
         # Process
@@ -442,14 +440,14 @@ class EnergyAlignmentTool(AbstractToolWindow):
             'b': parameters['zero']
         })
 
-        print('EnergyAlignmentTool.energyScale -- called')
+        print('EnergyScaleTool.energyScale -- called')
         return scale
 
 
 def unitTest_BandPassFilter():
     dummy = DummyNotifier()
     app = qt.QApplication([])
-    filterWindow = EnergyAlignmentTool()
+    filterWindow = EnergyScaleTool()
     #filterWindow.exportSelectedSignal.connect(dummy.signalReceived)
     #filterWindow.exportCurrentSignal.connect(dummy.signalReceived)
     filterWindow.show()

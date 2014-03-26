@@ -25,7 +25,7 @@
 # is a problem for you.
 #############################################################################*/
 from RixsTool.widgets.ToolWindows import BandPassFilterWindow, BandPassID32Window, ImageAlignmenWindow,\
-    SumImageTool, EnergyAlignmentTool
+    SumImageTool, EnergyScaleTool
 from RixsTool.datahandling import ItemContainer
 
 __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
@@ -114,8 +114,8 @@ class RixsMaskImageWidget(MaskImageWidget.MaskImageWidget):
             self.alignmentWidget
         ]
 
-        self.energyAlignmentTool = EnergyAlignmentTool()
-        self.showEnergyAlignmentTool()
+        self.EnergyScaleTool = EnergyScaleTool()
+        self.showEnergyScaleTool()
 
     #
     # METHODS CONCERNING DATA MANIPULATION TOOLS
@@ -243,9 +243,9 @@ class RixsMaskImageWidget(MaskImageWidget.MaskImageWidget):
         self.addDockWidget(qt.Qt.LeftDockWidgetArea,
                            self.exportWidget)
 
-    def showEnergyAlignmentTool(self):
+    def showEnergyScaleTool(self):
         self.addDockWidget(qt.Qt.LeftDockWidgetArea,
-                           self.energyAlignmentTool)
+                           self.energyScaleTool)
 
     def addDockWidget(self, area, widget, orientation=qt.Qt.Vertical):
         self.graphWidget.graph.addDockWidget(area, widget, orientation)
@@ -331,7 +331,7 @@ class RIXSMainWindow(qt.QMainWindow):
         #
         # ENERGY SCALE
         #
-        self.imageView.energyAlignmentTool.energyScaleSignal.connect(self.setEnergyScale)
+        self.imageView.energyScaleTool.energyScaleSignal.connect(self.setEnergyScale)
 
 
     def setEnergyScale(self):
@@ -525,7 +525,7 @@ class RIXSMainWindow(qt.QMainWindow):
                       (self.bandPassFilterAction, self.openBandPassTool),
                       (self.integrationAction, self.imageView.showExportWidget),
                       (self.bandPassFilterID32Action, self.openBandPassID32Tool),
-                      (self.energyScaleAction, self.imageView.energyAlignmentTool.show),
+                      (self.energyScaleAction, self.imageView.energyScaleTool.show),
                       (self.saveSpectraAction, self.saveSpectra),
                       (self.projectBrowserShowAction, self.openBandPassID32Tool)]
         for action, function in actionList:
