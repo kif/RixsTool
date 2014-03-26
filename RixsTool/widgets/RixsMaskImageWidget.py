@@ -31,6 +31,7 @@ __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 #
 from RixsTool.widgets.ToolWindows import BandPassFilterWindow, BandPassID32Window, ImageAlignmenWindow,\
     SumImageTool, EnergyScaleTool
+from RixsTool.datahandling import ItemContainer
 
 #
 # Imports from PyMca
@@ -168,7 +169,6 @@ class RixsMaskImageWidget(MaskImageWidget.MaskImageWidget):
         # AVOID RECALCULATION: If change occured in tool at position idx,
         # perform recalculation for self.toolList[idx:] ...
         #
-
         key = self.currentImageItem.key()
         imageData = self.currentImageItem.array
 
@@ -178,11 +178,12 @@ class RixsMaskImageWidget(MaskImageWidget.MaskImageWidget):
             parameters = tool.getValues()
             imageData = tool.process(imageData, parameters)
 
-        print("RIXSMainWindow.filterValuesChanged -- key: '%s'" % key)
-        self.addImage(
+        print("RixsMaskImageWidget.filterValuesChanged -- key: '%s'" % key)
+        self.setImageData(
             data=imageData,
-            legend=key,
-            replace=True
+            clearmask=False,
+            xScale=self.currentImageItem.scaleX,
+            yScale=self.currentImageItem.scaleY
         )
 
     def getActiveImage(self, just_legend=True):
@@ -210,56 +211,12 @@ class RixsMaskImageWidget(MaskImageWidget.MaskImageWidget):
         self.setImageData(
             data=imageData,
             clearmask=False,
-            xScale=None,
-            yScale=None
+            xScale=self.currentImageItem.scaleX,
+            yScale=self.currentImageItem.scaleY
         )
 
         if DEBUG >= 1:
             print('RixsMaskImageWidget.setImageItem -- finished!')
-
-    def addImage(self, data,
-                 legend=None,
-                 info=None,
-                 replace=True,
-                 replot=True,
-                 xScale=None,
-                 yScale=None,
-                 z=0,
-                 selectable=False,
-                 draggable=False,
-                 colormap=None, **kw):
-
-        #
-        # Use plotWindow.addImage to display the image in the plotting utility
-        #
-        plotWindow = self.graphWidget.graph  #.addImage(
-        plotWindow.addImage(
-            data,
-            legend=legend,
-            info=info,
-            replace=True,  # Always replace existing images
-            replot=True,
-            xScale=None,
-            yScale=None,
-            z=0,
-            selectable=False,
-            draggable=False,
-            colormap=None,  # Temperature is default
-            **kw
-        )
-
-        #
-        # Set as image data to allow masking, color mapping, ..
-        #
-        self.setImageData(
-            data=data,
-            clearmask=False,
-            xScale=None,
-            yScale=None
-        )
-
-        if DEBUG >= 1:
-            print('RixsMaskImageWidget.addImage -- finished!')
 
     def showAlignmentFilter(self):
         """
@@ -284,7 +241,6 @@ class RixsMaskImageWidget(MaskImageWidget.MaskImageWidget):
 
     def addDockWidget(self, area, widget, orientation=qt.Qt.Vertical):
         self.graphWidget.graph.addDockWidget(area, widget, orientation)
-
 
 if __name__ == '__main__':
     app = qt.QApplication([])

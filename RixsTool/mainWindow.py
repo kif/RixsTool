@@ -137,7 +137,7 @@ class RIXSMainWindow(qt.QMainWindow):
         print('ProjectView.exportingImages -- Received %d item' % len(itemContainerList))
         toolList = self.imageView.toolList
         exportWidget = self.imageView.exportWidget
-        specContainer = self.currentProject['Spectra']
+        #specContainer = self.currentProject['Spectra']
 
         for container in filter(ItemContainer.hasItem, itemContainerList):
             if container in self.currentProject:
@@ -189,46 +189,6 @@ class RIXSMainWindow(qt.QMainWindow):
         self.imageView.addDockWidget(qt.Qt.LeftDockWidgetArea,
                                      self.alignmentWidget)
 
-    def filterValuesChanged(self, ddict):
-        key = self.imageView.getActiveImage(just_legend=True)
-        print("RIXSMainWindow.filterValuesChanged -- key: '%s'" % key)
-
-        try:
-            container = self.currentProject[key]
-        except KeyError:
-            print('RIXSMainWindow.filterValuesChanged -- Unable to find key')
-            ids = self.currentProject.getIdDict()
-            for key, value in ids.items():
-                print("\t%s: %s" % (str(key), str(value)))
-            return
-
-        item = container.item()
-        if item is None:
-            print('RIXSMainWindow.filterValuesChanged -- Received None item')
-            return
-        else:
-            print('RIXSMainWindow.filterValuesChanged -- Received item: %s' % str(item))
-
-        #filtered = Filter.bandPassFilter(item.array, ddict)
-        filtered = self.filterWidget.process(item.array, ddict)
-
-        #self.imageView.addImage(
-        self.addImage(
-            data=filtered,
-            legend=item.key(),
-            replace=True
-        )
-
-    def addImage(self, data, legend, replace):
-        print('RIXSMainWindow.addImage -- adding image..')
-        #plotWindow = self.imageView.graphWidget.graph
-        #plotWindow.addImage(
-        self.imageView.addImage(
-            data=data,
-            legend=legend,
-            replace=replace
-        )
-
     def setCurrentProject(self, key='<default>'):
         #project = self.projectDict.get(key, None)
         model = self.projectDict['<default>']
@@ -246,12 +206,6 @@ class RIXSMainWindow(qt.QMainWindow):
     def _handleShowSignal(self, itemList):
         for item in itemList:
             if isinstance(item, ImageItem):
-                #self.addImage(
-                #self.imageView.addImage(
-                #    data=item.array,
-                #    legend=item.key(),
-                #    replace=True
-                #)
                 self.imageView.setImageItem(item)
                 print('RIXSMainWindow._handleShowSignal -- Received ImageItem')
             elif isinstance(item, ScanItem) or isinstance(item, SpecItem):
