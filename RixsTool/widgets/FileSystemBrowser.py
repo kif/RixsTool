@@ -42,7 +42,7 @@ from PyMca import PyMcaQt as qt
 #
 from RixsTool.Utils import unique as RixsUtilsUnique
 from RixsTool.widgets.ContextMenu import FileContextMenu, AddFilesAction
-from RixsTool.Models import QDirListModel
+from RixsTool.widgets.Models import QDirListModel
 
 #
 # IMPORTS FROM OS: General file system browsing

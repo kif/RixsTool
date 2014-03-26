@@ -31,13 +31,15 @@ __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 # uic: allows processing of ui files
 # qt: PyMca version of qt
 #
-from PyMca import PyMcaQt as qt
 from PyQt4 import uic
+
+from PyMca import PyMcaQt as qt
+
 
 #
 # IMPORTS FROM RixsTool
 #
-from RixsTool.Models import ProjectModel
+from RixsTool.widgets.Models import ProjectModel
 from RixsTool.Items import SpecItem, ScanItem, ImageItem
 from RixsTool.datahandling import ItemContainer
 

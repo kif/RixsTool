@@ -130,7 +130,7 @@ class DummyNotifier(qt.QObject):
 
 
 if __name__ == '__main__':
-    from RixsTool.Models import ProjectModel
+    from RixsTool.widgets.Models import ProjectModel
 
     directory = '/home/truter/lab/mock_folder'
     proj = ProjectModel()
