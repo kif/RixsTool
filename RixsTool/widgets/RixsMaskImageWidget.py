@@ -45,9 +45,28 @@ from PyMca.widgets import MaskImageWidget
 # TODO: platform is import for dev purposes, remove me
 #
 import platform
+import numpy
 
 DEBUG = 1
 PLATFORM = platform.system()
+
+
+class FlipWidget(object):
+
+    def __init__(self):
+        self._active = False
+
+    def active(self):
+        return self._active
+
+    def setActive(self, val):
+        self._active = val
+
+    def process(self, image, param):
+        return numpy.flipud(image)
+
+    def getValues(self):
+        return {}
 
 
 class RixsMaskImageWidget(MaskImageWidget.MaskImageWidget):
@@ -87,6 +106,9 @@ class RixsMaskImageWidget(MaskImageWidget.MaskImageWidget):
         # ATTRIBUTES CONCERNING DATA MANIPULATION
         #
 
+        # FLIPING
+        self.flipWidget = FlipWidget()
+
         # FILTER: General preprocessing
         self.filterDict = {
             'bandpass': BandPassFilterWindow(),
@@ -109,6 +131,7 @@ class RixsMaskImageWidget(MaskImageWidget.MaskImageWidget):
         # ORDER: Operations must happen in fixed order
         #
         self.toolList = [
+            self.flipWidget,
             self.filterWidget,
             self.alignmentWidget
         ]
@@ -116,9 +139,15 @@ class RixsMaskImageWidget(MaskImageWidget.MaskImageWidget):
         self.energyScaleTool = EnergyScaleTool()
         self.showEnergyScaleTool()
 
+
+        self.graphWidget.hFlipToolButton.clicked.disconnect(self._hFlipIconSignal)
+        self.graphWidget.hFlipToolButton.clicked.connect(self.hflip)
+        #self._hFlipIconSignal.connect(self.hflip)
+
     #
     # METHODS CONCERNING DATA MANIPULATION TOOLS
     #
+
     def setCurrentFilter(self, key):
         """
         :param str key: Key of the filter to be used. Currently either 'bandpass' or 'bandpassID32'
@@ -169,6 +198,8 @@ class RixsMaskImageWidget(MaskImageWidget.MaskImageWidget):
         # AVOID RECALCULATION: If change occured in tool at position idx,
         # perform recalculation for self.toolList[idx:] ...
         #
+        if not self.currentImageItem:
+            return
         key = self.currentImageItem.key()
         imageData = self.currentImageItem.array
 
@@ -185,6 +216,14 @@ class RixsMaskImageWidget(MaskImageWidget.MaskImageWidget):
             xScale=self.currentImageItem.scaleX,
             yScale=self.currentImageItem.scaleY
         )
+
+    def hflip(self, **kw):
+        print('RixsMaskImageWidget.hflip -- called. kw: %s' % str(kw))
+        if self.flipWidget.active():
+            self.flipWidget.setActive(False)
+        else:
+            self.flipWidget.setActive(True)
+        self.toolWindowValuesChanged({})
 
     def getActiveImage(self, just_legend=True):
         """

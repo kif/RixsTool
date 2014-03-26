@@ -32,9 +32,7 @@ __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 # qt: PyMca version of qt
 #
 from PyQt4 import uic
-
 from PyMca import PyMcaQt as qt
-
 
 #
 # IMPORTS FROM RixsTool
@@ -294,20 +292,20 @@ class RIXSMainWindow(qt.QMainWindow):
             if DEBUG >= 1:
                 print("RIXSMainWindow.saveSpectra -- header: type(header):%s\n'%s'" % (type(item.header),
                                                                                        item.header))
-            headerLines = item.header.split('\n')
-            # Determine order of magnitude
-            if len(headerLines) > 0 and len(item.header) > 0:
-                magnitude = len(str(len(headerLines)))
-                for jdx, line in enumerate(headerLines):
-                    # Format string explanation:
-                    # #U              -> prefix, indicates header in spec file
-                    # {idx:0>{width}} -> write value 'idx' in a string with 'width' letters,
-                    #                    align value of 'idx' on the right and fill the
-                    #                    remaining space with zeros (i.e. leading zeros)
-                    # {line}          -> place value 'line' here
-                    specString.write(
-                        '#U{idx:0>{width}} {line}'.format(idx=jdx, width=magnitude, line=line) + OsLineSep
-                    )
+            #headerLines = item.header.split('\n')
+            ## Determine order of magnitude
+            #if len(headerLines) > 0 and len(item.header) > 0:
+            #    magnitude = len(str(len(headerLines)))
+            #    for jdx, line in enumerate(headerLines):
+            #        # Format string explanation:
+            #        # #U              -> prefix, indicates header in spec file
+            #        # {idx:0>{width}} -> write value 'idx' in a string with 'width' letters,
+            #        #                    align value of 'idx' on the right and fill the
+            #        #                    remaining space with zeros (i.e. leading zeros)
+            #        # {line}          -> place value 'line' here
+            #        specString.write(
+            #            '#U{idx:0>{width}} {line}'.format(idx=jdx, width=magnitude, line=line) + OsLineSep
+            #        )
 
             #
             # .. finish to write spec file header
