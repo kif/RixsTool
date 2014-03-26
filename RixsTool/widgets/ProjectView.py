@@ -27,10 +27,12 @@
 __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 # Imports for GUI
 from PyMca import PyMcaQt as qt
+
 from RixsTool.Utils import unique as RixsUtilsUnique
-from RixsTool.ContextMenu import ProjectContextMenu, RemoveAction, RemoveItemAction, RemoveContainerAction,\
+from RixsTool.widgets.ContextMenu import ProjectContextMenu, RemoveAction, RemoveItemAction, RemoveContainerAction,\
     ShowAction, ExpandAction, RenameAction
 from RixsTool.datahandling import ItemContainer
+
 
 DEBUG = 1
 

@@ -28,8 +28,10 @@ __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 #
 # IMPORTS FOR GUI
 #
-from PyMca import PyMcaQt as qt
 from PyQt4 import uic
+
+from PyMca import PyMcaQt as qt
+
 
 #
 # IMPORTS FROM RIXSTOOL
@@ -39,7 +41,7 @@ from PyQt4 import uic
 #   QDirListModel: Simple list model to manage directories
 #
 from RixsTool.Utils import unique as RixsUtilsUnique
-from RixsTool.ContextMenu import FileContextMenu, AddFilesAction
+from RixsTool.widgets.ContextMenu import FileContextMenu, AddFilesAction
 from RixsTool.Models import QDirListModel
 
 #
