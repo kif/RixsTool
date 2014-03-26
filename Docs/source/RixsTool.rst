@@ -9,14 +9,6 @@ RixsTool Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`ContextMenu` Module
--------------------------
-
-.. automodule:: RixsTool.ContextMenu
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`Functions` Module
 -----------------------
 
@@ -37,14 +29,6 @@ RixsTool Package
 -------------------
 
 .. automodule:: RixsTool.Items
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`Models` Module
---------------------
-
-.. automodule:: RixsTool.Models
     :members:
     :undoc-members:
     :show-inheritance:
@@ -81,14 +65,6 @@ RixsTool Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`RixsToolMain` Module
---------------------------
-
-.. automodule:: RixsTool.RixsToolMain
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 :mod:`Utils` Module
 -------------------
 
@@ -121,18 +97,11 @@ RixsTool Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`window` Module
---------------------
-
-.. automodule:: RixsTool.window
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 Subpackages
 -----------
 
 .. toctree::
 
+    RixsTool.deprecated
     RixsTool.widgets
 
