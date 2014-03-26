@@ -24,7 +24,8 @@
 # Please contact the ESRF industrial unit (industry@esrf.fr) if this license
 # is a problem for you.
 #############################################################################*/
-from RixsTool.widgets.ToolWindows import BandPassFilterWindow, BandPassID32Window, ImageAlignmenWindow, SumImageTool
+from RixsTool.widgets.ToolWindows import BandPassFilterWindow, BandPassID32Window, ImageAlignmenWindow,\
+    SumImageTool, EnergyAlignmentTool
 from RixsTool.datahandling import ItemContainer
 
 __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
@@ -113,7 +114,8 @@ class RixsMaskImageWidget(MaskImageWidget.MaskImageWidget):
             self.alignmentWidget
         ]
 
-#        self.graphWidget.graph.addDockWidget
+        self.energyAlignmentTool = EnergyAlignmentTool()
+        self.showEnergyAlignmentTool()
 
     #
     # METHODS CONCERNING DATA MANIPULATION TOOLS
@@ -241,6 +243,10 @@ class RixsMaskImageWidget(MaskImageWidget.MaskImageWidget):
         self.addDockWidget(qt.Qt.LeftDockWidgetArea,
                            self.exportWidget)
 
+    def showEnergyAlignmentTool(self):
+        self.addDockWidget(qt.Qt.LeftDockWidgetArea,
+                           self.energyAlignmentTool)
+
     def addDockWidget(self, area, widget, orientation=qt.Qt.Vertical):
         self.graphWidget.graph.addDockWidget(area, widget, orientation)
 
@@ -321,6 +327,16 @@ class RIXSMainWindow(qt.QMainWindow):
         #
         self.imageView.exportWidget.exportSelectedSignal.connect(self.exportSelectedImage)
         self.imageView.exportWidget.exportCurrentSignal.connect(self.exportCurrentImage)
+
+        #
+        # ENERGY SCALE
+        #
+        self.imageView.energyScaleTool.energyScaleSignal.connect(self.setEnergyScale)
+
+
+    def setEnergyScale(self):
+        scale = self.imageView.energyScaleTool.energyScale()
+        print('RIXSMainWindow.setEnergyScale -- scale: %s' % str(scale))
 
     def exportSelectedImage(self):
         #items = self.projectBrowser.selectedItems()
