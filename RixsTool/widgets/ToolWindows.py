@@ -350,14 +350,14 @@ class SumImageTool(AbstractToolWindow):
             'axis': self.axisComboBox
         }
 
-        self.setValues({
-            'axis': 'columns'
-        })
-
         self.axisComboBox.addItems([
             'columns',
             'rows'
         ])
+
+        self.setValues({
+            'axis': 'columns'
+        })
 
         #
         # Connect the buttons
@@ -379,10 +379,77 @@ class SumImageTool(AbstractToolWindow):
         return Integration.axisSum(image, {'axis': axis})
 
 
+class EnergyAlignmentTool(AbstractToolWindow):
+    __doc__ = """GUI to transform image to spectrum by summation along lines/columns"""
+
+    exportSelectedSignal = qt.pyqtSignal()
+    exportCurrentSignal = qt.pyqtSignal()
+
+    def __init__(self, parent=None):
+
+        if PLATFORM == 'Linux':
+            uiPath = '/home/truter/lab/RixsTool/RixsTool/ui/energyalignment.ui'
+        elif PLATFORM == 'Windows':
+            uiPath = 'C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\energyalignment.ui'
+        elif PLATFORM == 'Darwin':
+            uiPath = '/Users/tonn/GIT/RixsTool/RixsTool/ui/energyalignment.ui'
+        else:
+            raise OSError('BandPassFilterWindow.__init__ -- Unknown system type')
+
+        super(EnergyAlignmentTool, self).__init__(uiPath=uiPath,
+                                                  parent=parent)
+        self.setUI()
+        self.setWindowTitle('Energy alignment')
+
+        self._values = {
+            'slope': self.slopeSpinBox,
+            'zero': self.zeroSpinBox
+        }
+
+        self.setValues({
+            'slope': 1.0,
+            'zero': 0.
+        })
+
+        #
+        # Connect the spin boxes
+        #
+        self.slopeSpinBox.valueChanged.connect(self.emitValuesChangedSignal)
+        self.zeroSpinBox.valueChanged.connect(self.emitValuesChangedSignal)
+
+        #
+        # Process
+        #
+        self.process = self.energyScale
+
+    def energyScale(self):
+        #
+        # Create function item
+        #
+        scale = FunctionItem('Energy scale', '')
+
+        #
+        # Set expression
+        #
+        scale.setExpression(lambda x, a, b: a*x + b)
+
+        #
+        # Set parameters
+        #
+        parameters = self.getValues()
+        scale.setParameters({
+            'a': parameters['slope'],
+            'b': parameters['zero']
+        })
+
+        print('EnergyAlignmentTool.energyScale -- called')
+        return scale
+
+
 def unitTest_BandPassFilter():
     dummy = DummyNotifier()
     app = qt.QApplication([])
-    filterWindow = ImageAlignmenWindow()
+    filterWindow = EnergyAlignmentTool()
     #filterWindow.exportSelectedSignal.connect(dummy.signalReceived)
     #filterWindow.exportCurrentSignal.connect(dummy.signalReceived)
     filterWindow.show()
