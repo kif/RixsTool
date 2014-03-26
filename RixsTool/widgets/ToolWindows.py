@@ -25,6 +25,8 @@
 # is a problem for you.
 #############################################################################*/
 __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
+__doc__ = """Module provides a base class for a data manipulation GUI for py:mod:`PyMca.widgets.PlotWindow`"""
+
 # Imports for GUI
 from PyMca import PyMcaQt as qt
 from PyQt4 import uic
@@ -39,6 +41,8 @@ PLATFORM = platform.system()
 
 
 class AbstractToolTitleBar(qt.QWidget):
+
+    __doc__ = """Customized version of a generic title bar, mainly to include a check box."""
 
     if PLATFORM == 'Linux':
         __uiPath = '/home/truter/lab/RixsTool/RixsTool/ui/abtracttitletoolbar.ui'
@@ -56,8 +60,26 @@ class AbstractToolTitleBar(qt.QWidget):
 
 
 class AbstractToolWindow(qt.QDockWidget):
+
+    __doc__ = """py:class:`RixsTool.widgets.AbstractToolWindow` is the base class for widgets that can be placed in the
+    dock area of a py:mod:`PyMca.widgets.PlotWindow`. Tool windows can be divided into two types: inplace
+    calculations with the result being immediately displayed and export tools that take data present in the visualization
+    (or an underlying data structure for that matter), performs operations on it and inject the results of these
+    operations into a data structure (in case of the RixsTool this is py:class:`RixsProject`)
+
+    While the former uses the :py:attribute::`valuesChangedSignal` to indicate a change in the tools parameters (i.e.
+    the GUI elements) the latter needs custom signals (e.g. :py:attribute::`exportSelectedSignal` in
+    :py:class:'SumImageTool') to propagate the demand for calculation to a parent GUI element. The parent GUI element
+    can then perform the calculations itself or delegate them to other entities.
+
+    **TODO:**
+        * Make class hierarchy reflect the two types of tool windows"""
+
+    #
+    # valuesChangedSignal tranports the tool parameters in dict
+    # TODO: Maybe this is unnecessary, since the tools parameters can be recovered using the getValue function
+    #
     valuesChangedSignal = qt.pyqtSignal(object)
-    #toolStateChangedSignal = qt.pyqtSignal(int, object)
 
     def __init__(self, uiPath=None, parent=None):
         super(AbstractToolWindow, self).__init__(parent)

@@ -152,13 +152,13 @@ class RixsMaskImageWidget(MaskImageWidget.MaskImageWidget):
         """
         :param dict ddict: Remove parameter
 
-        Function is trigger by :py:function:`RixsTool.widgets.ToolWindows.AbstractToolWindow.valuesChangedSignal`. The
+        Function is trigger by :py:func:`RixsTool.widgets.ToolWindows.AbstractToolWindow.valuesChangedSignal`. The
         dictionary parameter is not used and should be removed. The present function requests the tool parameter using
-        the :py:function:`RixsTool.widgets.ToolWindows.AbstractToolWindow.getValues` function and calls the generic
-        :py:function:`RixsTool.widgets.ToolWindows.AbstractToolWindow.process` function to obtain the result.
+        the :py:func:`RixsTool.widgets.ToolWindows.AbstractToolWindow.getValues` function and calls the generic
+        :py:func:`RixsTool.widgets.ToolWindows.AbstractToolWindow.process` function to obtain the result.
 
         To allow the image processing, the process function must be implemented in subclasses of
-         :py:function:`RixsTool.widgets.ToolWindows.AbstractToolWindow.process` and has to feature a two parameter
+         :py:func:`RixsTool.widgets.ToolWindows.AbstractToolWindow.process` and has to feature a two parameter
          interface. The first parameter is the current image itself, the second is a dictionary of parameter values.
 
         Calculated results are displayed using the :py:func:`addImage` function.
