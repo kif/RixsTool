@@ -43,6 +43,9 @@ from RixsTool.datahandling import ItemContainer
 
 import numpy
 import platform
+from cStringIO import StringIO
+from os import linesep as OsLineSep
+from os.path import splitext as OsPathSplitExt
 
 DEBUG = 1
 PLATFORM = platform.system()
@@ -280,13 +283,159 @@ class RIXSMainWindow(qt.QMainWindow):
         print('All Actions connected..')
 
     def saveSpectra(self):
-        print('RIXSMainWindow.saveSpectra')
+        try:
+            (fileNameList, singleFile, comment) = RixsSaveSpectraDialog.\
+                getSaveFileName(parent=self,
+                                caption='Save spectra',
+                                directory=str(qt.QDir.home().absolutePath()))
+            fileName = fileNameList[0]
+        except IndexError:
+            # Returned list is empty
+            return
+        except ValueError:
+            # Returned list is empty
+            return
+
+        print('RIXSMainWindow.saveSpectra -- result: %s' % str(fileNameList))
+        #return
+
+        #
+        # Loop through all spectra in the top level of 'Spectra' group
+        #
+        specNode = self.currentProject['Spectra']
+        specString = StringIO()
+        specString.write(OsLineSep)
+
+        itemList = [node.item() for node in specNode.children if node.hasItem]
+        for idx, item in enumerate(itemList):
+            #
+            # Determine data shall be written
+            #
+            if isinstance(item, ScanItem):
+                data = numpy.vstack((item.scale(), item.array)).T  # Stack and transpose
+            elif isinstance(item, SpecItem):
+                data = item.array
+            else:
+                raise NotImplementedError('RIXSMainWindow.saveSpectra -- Unknown item type: %s' % type(item))
+
+            if data.ndim == 1:
+                nRows, nCols = data.shape[0], 1
+            elif data.ndim == 2:
+                nRows, nCols = data.shape
+            else:
+                raise NotImplementedError('RIXSMainWindow.saveSpectra -- Can write item with dimensionality > 2')
+
+            scanNo = 1
+
+            #
+            # Start to write spec file header...
+            #
+            specString.write('#S %d %s' % (scanNo, item.key()) + OsLineSep)
+
+            #
+            # Write EDF header in #U comments
+            #
+            if DEBUG >= 1:
+                print("RIXSMainWindow.saveSpectra -- header: type(header):%s\n'%s'" % (type(item.header),
+                                                                                       item.header))
+            headerLines = item.header.split('\n')
+            # Determine order of magnitude
+            if len(headerLines) > 0 and len(item.header) > 0:
+                magnitude = len(str(len(headerLines)))
+                for jdx, line in enumerate(headerLines):
+                    # Format string explanation:
+                    # #U              -> prefix, indicates header in spec file
+                    # {idx:0>{width}} -> write value 'idx' in a string with 'width' letters,
+                    #                    align value of 'idx' on the right and fill the
+                    #                    remaining space with zeros (i.e. leading zeros)
+                    # {line}          -> place value 'line' here
+                    specString.write(
+                        '#U{idx:0>{width}} {line}'.format(idx=jdx, width=magnitude, line=line) + OsLineSep
+                    )
+
+            #
+            # .. finish to write spec file header
+            #
+            specString.write('#N %d' % nCols + OsLineSep)  # Number of columns
+            specString.write('#L PixelNo  Counts' + OsLineSep)  # Column labels
+
+            #
+            # Write data using numpy.savetxt, parameter fname can be file handle
+            #
+            numpy.savetxt(
+                fname=specString,
+                X=data,
+                fmt='%.6f',
+                delimiter=' ',
+                newline=OsLineSep
+            )
+
+            specString.write(2 * OsLineSep)
+
+            if not singleFile:
+                #
+                # File names feature indexation
+                #
+                path, ext = OsPathSplitExt(fileName)
+                numberedPath = '{path}_{idx:0>{width}}{ext}'.format(
+                    path=path,
+                    idx=idx,
+                    width=len(itemList),
+                    ext=ext
+                )
+                with open(numberedPath, 'wb') as fileHandle:
+                    fileHandle.write(specString.getvalue())
+
+                #
+                # Reset StringIO
+                #
+                specString = StringIO()
+
+        if singleFile:
+            with open(fileName, 'wb') as fileHandle:
+                fileHandle.write(specString.getvalue())
+
+        print('RIXSMainWindow.saveSpectra -- Done!')
 
     def openBandPassTool(self):
         self.imageView.setCurrentFilter('bandpass')
 
     def openBandPassID32Tool(self):
         self.imageView.setCurrentFilter('bandpassID32')
+
+
+class RixsSaveSpectraDialog(qt.QFileDialog):
+    def __init__(self, parent, caption, directory):
+        qt.QFileDialog.__init__(self, parent, caption, directory, '')
+
+        saveOptsGB = qt.QGroupBox('Save options', self)
+        saveOptsBG = qt.QButtonGroup()
+        self.singleFile = qt.QRadioButton('Save spectra in one single file', self)
+        self.individualFiles = qt.QRadioButton('Save spectra in individual files', self)
+        self.singleFile.setChecked(True)
+
+        saveOptsBG.addButton(self.individualFiles)
+        saveOptsBG.addButton(self.singleFile)
+        saveOptsBG.setExclusive(True)  # Only one button at a time can be checked
+
+        mainLayout = self.layout()
+        optsLayout = qt.QGridLayout()
+        optsLayout.addWidget(self.individualFiles, 0, 0)
+        optsLayout.addWidget(self.singleFile, 1, 0)
+        saveOptsGB.setLayout(optsLayout)
+        mainLayout.addWidget(saveOptsGB, 4, 0, 1, 3)
+
+    @staticmethod
+    def getSaveFileName(parent, caption, directory, typeFilter=None, selectedFilter=None, options=None):
+        dial = RixsSaveSpectraDialog(parent, caption, directory)
+        dial.setAcceptMode(qt.QFileDialog.AcceptSave)
+        singleFile = None
+        comment = None
+        fileNameList = []
+        if dial.exec_():
+            singleFile = dial.singleFile.isChecked()
+            fileNameList = [qt.safe_str(fn) for fn in dial.selectedFiles()]
+        return fileNameList, singleFile, comment
 
 
 class DummyNotifier(qt.QObject):
