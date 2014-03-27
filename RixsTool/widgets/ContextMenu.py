@@ -28,16 +28,21 @@ __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 
 from PyMca import PyMcaQt as qt
 
-__doc__ = """
+__doc__ = """Module provides actions and context menus for views. Based on the abstract base class
+:py:class:`AbstractAction`, the actions remain empty child classes. This procedure allows to distinguish
+them later on in a clear and concise manner by using the isinstance(..) builtin method.
+
+The context menus are composed of the aforementioned actions and define the way a user can act upon the contents
+of a view.
 """
+
 
 #
 # AbstractContextMenu class
 #
-
-
 class AbstractAction(qt.QAction):
     __doc__ = """Base class for actions"""
+
     def __init__(self, icon=None, text=None, parent=None):
         self.__icon = icon
         self.__text = text
@@ -48,11 +53,10 @@ class AbstractAction(qt.QAction):
         else:
             super(AbstractAction, self).__init__(parent)
 
+
 #
 # Actions concerning the Project View
 #
-
-
 class RemoveAction(AbstractAction):
     pass
 
@@ -80,8 +84,6 @@ class RenameAction(AbstractAction):
 #
 # Actions concerning the FileSystemBrowser
 #
-
-
 class AddFilesAction(AbstractAction):
     pass
 
@@ -89,10 +91,9 @@ class AddFilesAction(AbstractAction):
 #
 # AbstractContextMenu class
 #
-
-
 class AbstractContextMenu(qt.QMenu):
     __doc__ = """Base class for context menus"""
+
     def __init__(self, parent=None):
         super(AbstractContextMenu, self).__init__()
         self.actionList = []
@@ -120,11 +121,10 @@ class AbstractContextMenu(qt.QMenu):
             else:
                 raise ValueError("ProjectContextMenu.build -- unknown type '%s' in actionList"%str(type(action)))
 
+
 #
 # ContextMenus concerning the ProjectView
 #
-
-
 class ProjectContextMenu(AbstractContextMenu):
     def __init__(self, parent=None):
         super(ProjectContextMenu, self).__init__(parent)
@@ -168,11 +168,10 @@ class ProjectContextMenu(AbstractContextMenu):
             removeContainerAction
         ]
 
+
 #
 # ContextMenus concerning the FileSystemBrowser
 #
-
-
 class FileContextMenu(AbstractContextMenu):
     def __init__(self, parent=None):
         super(FileContextMenu, self).__init__(parent)
@@ -186,7 +185,6 @@ class FileContextMenu(AbstractContextMenu):
         self.actionList = [
             addToProjectAction
         ]
-
 
 
 if __name__ == '__main__':
