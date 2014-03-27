@@ -35,7 +35,7 @@ from uuid import uuid4
 from RixsTool.IO import IODict
 from RixsTool.Items import SpecItem, ScanItem, ImageItem, StackItem
 
-DEBUG = 1
+DEBUG = 0
 
 
 class ItemContainer(object):
@@ -188,7 +188,8 @@ class ItemContainer(object):
         """
         if len(self.children) and DEBUG >= 1:
             # TODO: Raise exception? Return False?
-            print('ItemContainer.setItem -- Instance has children!')
+            if DEBUG >= 1:
+                print('ItemContainer.setItem -- Instance has children!')
         self._item = item
         return True
 
@@ -265,8 +266,9 @@ class RixsProject(object):
         #     for key in ['Spectra', 'Images', 'Stacks']])
         for label in ['Spectra', 'Images', 'Stacks']:
             self.addGroup(label)
-        print('RixsProject.__init__ -- projectRoot.childCount: %d' % self.projectRoot.childCount())
-        print('RixsProject.__init__ -- projectRoot.__idDict: %s' % str(self.__idDict))
+        if DEBUG >= 1:
+            print('RixsProject.__init__ -- projectRoot.childCount: %d' % self.projectRoot.childCount())
+            print('RixsProject.__init__ -- projectRoot.__idDict: %s' % str(self.__idDict))
 
     def __getitem__(self, key):
         result = None
@@ -424,7 +426,8 @@ class RixsProject(object):
         # Try to guess filetype
         name, ext = OsPathSplitext(fileName)
         fileType = ext.replace('.', '').lower()
-        print("RixsProject.read -- Received '%s' file" % fileType)
+        if DEBUG >= 1:
+            print("RixsProject.read -- Received '%s' file" % fileType)
         if fileType in self.inputReaders.keys():
             reader = self.inputReaders[fileType]
         else:
