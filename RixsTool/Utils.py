@@ -78,11 +78,12 @@ def unique(seq, ident=''):
 
 
 def unitTest_unique():
+    from copy import deepcopy
     #
     # Test if unique works on list of ints
     #
     l0 = [i for i in range(10)] + [i for i in range(10)]
-    l1 = l0.copy()
+    l1 = deepcopy(l0)
     unique(l1)
 
     print('RixsUtils.unitTest_unique -- Reducing list of ints to unique elements:')
@@ -115,9 +116,9 @@ def unitTest_unique():
 
 
     l0 = [Foo(i) for i in range(10)] + [Foo(i) for i in range(10)]
-    l1 = l0.copy()
+    l1 = deepcopy(l0)
     unique(l1)
-    l2 = l0.copy()
+    l2 = deepcopy(l0)
     unique(l2, 'a')
 
     print('RixsUtils.unitTest_unique -- Reducing list of class Foo to unique elements:')
@@ -131,9 +132,9 @@ def unitTest_unique():
         second = False
 
     l0 = [Foo(i) for i in range(10)] + [Foo(i) for i in range(10)]
-    l1 = l0.copy()
+    l1 = deepcopy(l0)
     unique(l1)
-    l2 = l0.copy()
+    l2 = deepcopy(l0)
     unique(l2, 'foo')
 
     print('RixsUtils.unitTest_unique -- Reducing list of class Foo to unique elements using member method:')
@@ -147,9 +148,9 @@ def unitTest_unique():
         third = False
 
     l0 = [Foo(i) for i in range(10)] + [Foo(i) for i in range(10)]
-    l1 = l0.copy()
+    l1 = deepcopy(l0)
     unique(l1)
-    l2 = l0.copy()
+    l2 = deepcopy(l0)
     unique(l2, 'staticFoo')
 
     print('RixsUtils.unitTest_unique -- Reducing list of class Foo to unique elements static method:')
