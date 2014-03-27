@@ -174,7 +174,7 @@ class AbstractToolWindow(qt.QDockWidget):
                     isinstance(obj, qt.QDoubleSpinBox):
                 obj.setValue(val)
             else:
-                if DEBUG == 1:
+                if DEBUG >= 1:
                     print("AbstractToolWindow.setValues -- Could not set value for key '%s'" % str(key))
 
 
@@ -462,7 +462,8 @@ class EnergyScaleTool(AbstractToolWindow):
             'b': parameters['zero']
         })
 
-        print('EnergyScaleTool.energyScale -- called')
+        if DEBUG >= 1:
+            print('EnergyScaleTool.energyScale -- called')
         return scale
 
 
