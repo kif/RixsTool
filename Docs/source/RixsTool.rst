@@ -25,18 +25,18 @@ RixsTool Package
     :undoc-members:
     :show-inheritance:
 
-:mod:`Items` Module
--------------------
+:mod:`ItemContainer` Module
+---------------------------
 
-.. automodule:: RixsTool.Items
+.. automodule:: RixsTool.ItemContainer
     :members:
     :undoc-members:
     :show-inheritance:
 
-:mod:`OperationQueue` Module
-----------------------------
+:mod:`Items` Module
+-------------------
 
-.. automodule:: RixsTool.OperationQueue
+.. automodule:: RixsTool.Items
     :members:
     :undoc-members:
     :show-inheritance:
@@ -57,6 +57,14 @@ RixsTool Package
     :undoc-members:
     :show-inheritance:
 
+:mod:`Project` Module
+---------------------
+
+.. automodule:: RixsTool.Project
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 :mod:`RixsIcons` Module
 -----------------------
 
@@ -65,26 +73,18 @@ RixsTool Package
     :undoc-members:
     :show-inheritance:
 
+:mod:`UiPaths` Module
+---------------------
+
+.. automodule:: RixsTool.UiPaths
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 :mod:`Utils` Module
 -------------------
 
 .. automodule:: RixsTool.Utils
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`calculations` Module
---------------------------
-
-.. automodule:: RixsTool.calculations
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-:mod:`datahandling` Module
---------------------------
-
-.. automodule:: RixsTool.datahandling
     :members:
     :undoc-members:
     :show-inheritance:
@@ -102,6 +102,5 @@ Subpackages
 
 .. toctree::
 
-    RixsTool.deprecated
     RixsTool.widgets
 
