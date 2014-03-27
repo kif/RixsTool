@@ -31,7 +31,6 @@ __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 #
 from RixsTool.widgets.ToolWindows import BandPassFilterWindow, BandPassID32Window, ImageAlignmenWindow,\
     SumImageTool, EnergyScaleTool
-from RixsTool.datahandling import ItemContainer
 
 #
 # Imports from PyMca
@@ -47,7 +46,7 @@ from PyMca.widgets import MaskImageWidget
 import platform
 import numpy
 
-DEBUG = 1
+DEBUG = 0
 PLATFORM = platform.system()
 
 
