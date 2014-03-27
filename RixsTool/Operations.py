@@ -35,7 +35,7 @@ from PyMca.SpecfitFuns import gauss as gaussianModel
 from PyMca import SNIPModule as SNIP
 
 # IO and Datahandling from RixsTool
-from RixsTool.datahandling import RixsProject
+from RixsTool.Project import RixsProject
 from RixsTool.Items import FunctionItem
 from RixsTool.Functions import Fit
 

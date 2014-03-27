@@ -39,7 +39,8 @@ from PyMca import PyMcaQt as qt
 #
 from RixsTool.widgets.Models import ProjectModel
 from RixsTool.Items import SpecItem, ScanItem, ImageItem
-from RixsTool.datahandling import ItemContainer
+from RixsTool.ItemContainer import ItemContainer
+from RixsTool.UiPaths import UiPaths
 
 import numpy
 import platform
@@ -56,14 +57,10 @@ class RIXSMainWindow(qt.QMainWindow):
     def __init__(self, parent=None):
         qt.QMainWindow.__init__(self, parent)
 
-        if PLATFORM == 'Linux':
-            uic.loadUi('/home/truter/lab/RixsTool/RixsTool/ui/mainwindow_imageView.ui', self)
-        elif PLATFORM == 'Windows':
-            uic.loadUi('C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\mainwindow_imageView.ui', self)
-        elif PLATFORM == 'Darwin':
-            uic.loadUi('/Users/tonn/GIT/RixsTool/RixsTool/ui/mainwindow_imageView.ui', self)
-        else:
-            raise OSError('RIXSMainWindow.__init__ -- Unknown system type')
+        uiFilePath = UiPaths.mainWindowUiPath()
+        uic.loadUi(uiFilePath, self)
+
+        self.setWindowTitle('RixsTool')
 
         # TODO: Move this connect to RixsMaskImageWidget
         self.imageView.sigMaskImageWidgetSignal.connect(self.handleMaskImageSignal)

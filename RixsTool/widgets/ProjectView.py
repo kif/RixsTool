@@ -31,7 +31,7 @@ from PyMca import PyMcaQt as qt
 from RixsTool.Utils import unique as RixsUtilsUnique
 from RixsTool.widgets.ContextMenu import ProjectContextMenu, RemoveAction, RemoveItemAction, RemoveContainerAction,\
     ShowAction, ExpandAction, RenameAction
-from RixsTool.datahandling import ItemContainer
+from RixsTool.Project import ItemContainer
 
 DEBUG = 0
 
