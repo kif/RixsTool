@@ -57,7 +57,7 @@ from os.path import join as OsPathJoin
 #
 import platform
 
-DEBUG = 1
+DEBUG = 0
 PLATFORM = platform.system()
 
 
@@ -195,9 +195,11 @@ class DirTree(qt.QTreeView):
 
         if all([elem.isFile() for elem in fileInfoList]):
             menu = FileContextMenu(self)
-            print('DirTree.contextMenuEvent -- All files!')
+            if DEBUG >= 1:
+                print('DirTree.contextMenuEvent -- All files!')
         else:
-            print('DirTree.contextMenuEvent -- Not all files!')
+            if DEBUG >= 1:
+                print('DirTree.contextMenuEvent -- Not all files!')
             return
         menu.build()
         action = menu.exec_(event.globalPos())
@@ -292,20 +294,23 @@ class FileSystemBrowser(qt.QWidget):
         # Check if files shall be automatically added to the project
         #
         if self.autoAddCheckBox.checkState() == qt.Qt.Unchecked:
-            print('FileSystemBrowser.handleFilesChanged -- AutoAdd off')
+            if DEBUG >= 1:
+                print('FileSystemBrowser.handleFilesChanged -- AutoAdd off')
             return
 
         #
         # Create a file info list
         #
-        print('FileSystemBrowser.handleFilesChanged -- \n\tfileList: %s' % str(fileList))
+        if DEBUG >= 1:
+            print('FileSystemBrowser.handleFilesChanged -- \n\tfileList: %s' % str(fileList))
         fileInfoList = [qt.QFileInfo(path) for path in fileList]
         self.addSignal.emit(fileInfoList)
 
     def handleWorkingDirectoryChanged(self, **kw):
         # TODO: Reset the fsView watcher
-        print('FileSystemBrowser.handleWorkingDirectoryChanged -- kw:\n\t%s' % str(kw))
-        print(kw)
+        if DEBUG >= 1:
+            print('FileSystemBrowser.handleWorkingDirectoryChanged -- kw:\n\t%s' % str(kw))
+            print(kw)
         pass
 
     def handleContextMenuAction(self, action, param=None):
@@ -325,7 +330,8 @@ class FileSystemBrowser(qt.QWidget):
             fileInfoList = param.get('fileInfoList', None)
             if fileInfoList:
                 self.addSignal.emit(fileInfoList)
-        print('FileSystemBrowser.handleContextMenuAction -- finished!')
+        if DEBUG >= 1:
+            print('FileSystemBrowser.handleContextMenuAction -- finished!')
 
     #
     # Adding/Removing working directories
@@ -347,7 +353,7 @@ class FileSystemBrowser(qt.QWidget):
             msg.setText('Are you shure you want to close the current working directory?')
             msg.setStandardButtons(qt.QMessageBox.Ok | qt.QMessageBox.Cancel)
             if msg.exec_() == qt.QMessageBox.Cancel:
-                if DEBUG == 1:
+                if DEBUG >= 1:
                     print('FileSystemBrowser.closeDir -- Abort')
                 return
 
