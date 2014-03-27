@@ -157,7 +157,8 @@ class EdfReader(InputReader):
             llist += [newItem]
 
         timeEnd = time.time()
-        print('EdfInputReader.itemize -- Method finished in %.3f s' % (timeEnd - timeStart))
+        if DEBUG >= 1:
+            print('EdfInputReader.itemize -- Method finished in %.3f s' % (timeEnd - timeStart))
         return llist
 
 
@@ -178,27 +179,32 @@ class RawReader(InputReader):
         # Guess key
         #
         key = OsPathSplit(fileName)[-1]
-        print("RawReader -- key: '%s'" % key)
+        if DEBUG >= 1:
+            print("RawReader -- key: '%s'" % key)
 
         raw = self.reader.read()
         raw = raw.strip().split(NEWLINE)
-        print("RawReader -- raw: %s" % str(raw))
+        if DEBUG >= 1:
+            print("RawReader -- raw: %s" % str(raw))
 
         if not len(raw):
-            print('RawReader.itemize -- Received empty file')
+            if DEBUG >= 1:
+                print('RawReader.itemize -- Received empty file')
             return []
 
         #
         # Try to determine the number of columns
         #
         nRows = len(raw)
-        print('RawReader.itemize -- Determined %d rows' % nRows)
+        if DEBUG >= 1:
+            print('RawReader.itemize -- Determined %d rows' % nRows)
 
         #
         # Try to determine the number of columns
         #
         nCols = len(raw[0].split())
-        print('RawReader.itemize -- Determined %d columns' % nCols)
+        if DEBUG >= 1:
+            print('RawReader.itemize -- Determined %d columns' % nCols)
 
         data = np.zeros((nRows, nCols))
 
@@ -207,7 +213,8 @@ class RawReader(InputReader):
             data[idx, :] = np.fromiter(iterator, dtype=float)
         data = np.squeeze(data.T)
 
-        print('RawReader.itemize -- data.shape %s, data:\n%s' % (str(data.shape), data))
+        if DEBUG >= 1:
+            print('RawReader.itemize -- data.shape %s, data:\n%s' % (str(data.shape), data))
 
         if len(data.shape) == 1:
             item = SpecItem(
@@ -233,7 +240,8 @@ class RawReader(InputReader):
         llist = [item]
 
         timeEnd = time.time()
-        print('RawReader.itemize -- Method finished in %.3f s, item %s' % ((timeEnd - timeStart), str(item)))
+        if DEBUG >= 1:
+            print('RawReader.itemize -- Method finished in %.3f s, item %s' % ((timeEnd - timeStart), str(item)))
         return llist
 
 
@@ -242,6 +250,7 @@ def unitTest_RawReader():
 
     reader = RawReader()
     reader.itemize(fname)
+
 
 def unitTest_InputReader():
     #rixsImageDir = '/Users/tonn/DATA/rixs_data/Images'
