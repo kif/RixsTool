@@ -94,9 +94,20 @@ class Filter(ImageOp):
         offset = params.get('offset', 0.)
         replace = params.get('replace', 0.)
 
+        #print('Filter.bandPassFilter -- calculating..')
+        #print('\thi = %s (type: %s)' % (str(hi), str(type(hi))))
+        #print('\tlo = %s (type: %s)' % (str(lo), str(type(lo))))
+        #print('\toffset = %s (type: %s)' % (str(offset), str(type(offset))))
+        #print('\treplace = %s (type: %s)' % (str(replace), str(type(replace))))
+
         out = image.astype(type(offset)) - offset
         out = numpy.where((lo <= out), out, replace)
         out = numpy.where((out <= hi), out, replace)
+
+        #print('\timage.min = %s (type: %s)' % (str(image.min()), str(type(image.min()))))
+        #print('\timage.max = %s (type: %s)' % (str(image.max()), str(type(image.max()))))
+        #print('\tout.min = %s (type: %s)' % (str(out.min()), str(type(out.min()))))
+        #print('\tout.max = %s (type: %s)' % (str(out.max()), str(type(out.max()))))
 
         return out
 
