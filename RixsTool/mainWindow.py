@@ -47,7 +47,7 @@ from cStringIO import StringIO
 #from os import linesep as OsLineSep
 from os.path import splitext as OsPathSplitExt
 
-DEBUG = 1
+DEBUG = 0
 PLATFORM = platform.system()
 NEWLINE = '\n'  # instead of OsLineSep
 
@@ -73,8 +73,6 @@ class RIXSMainWindow(qt.QMainWindow):
         # New actions can be registered in the functions body.
         #
         self.connectActions()
-
-        print('RIXSMainWindow -- type(self.imageView) = %s' % str(type(self.imageView)))
 
         # TODO: Do i really need more than one project at a time? This is currently unused anyway...
         self.projectDict = {
@@ -111,7 +109,8 @@ class RIXSMainWindow(qt.QMainWindow):
 
     def setEnergyScale(self):
         scale = self.imageView.energyScaleTool.energyScale()
-        print('RIXSMainWindow.setEnergyScale -- scale: %s' % str(scale))
+        if DEBUG >= 1:
+            print('RIXSMainWindow.setEnergyScale -- scale: %s' % str(scale))
 
     def exportSelectedImage(self):
         #items = self.projectBrowser.selectedItems()
@@ -133,7 +132,8 @@ class RIXSMainWindow(qt.QMainWindow):
 
     def exportingImages(self, itemContainerList):
         #def imageToSpectrum(self, imageItemList):
-        print('ProjectView.exportingImages -- Received %d item' % len(itemContainerList))
+        if DEBUG >= 1:
+            print('ProjectView.exportingImages -- Received %d item' % len(itemContainerList))
         toolList = self.imageView.toolList
         exportWidget = self.imageView.exportWidget
         #specContainer = self.currentProject['Spectra']
@@ -143,7 +143,8 @@ class RIXSMainWindow(qt.QMainWindow):
                 item = container.item()
                 data = item.array
 
-                print('ProjectView.exportingImages -- Found it! %s' % container.label)
+                if DEBUG >= 1:
+                    print('ProjectView.exportingImages -- Found it! %s' % container.label)
                 for step in toolList:
                     #
                     # HERE BE PROCESSING.. Apply filter and alignment to all images
@@ -157,7 +158,6 @@ class RIXSMainWindow(qt.QMainWindow):
                 # Build new tree item
                 #
                 result = exportWidget.process(data, {})
-                print(result.shape)
 
                 key = item.key()
                 newKey = key.replace('.edf', '.dat')
@@ -178,21 +178,23 @@ class RIXSMainWindow(qt.QMainWindow):
                 self.currentProject.addItem(newItem)
 
     def handleMaskImageSignal(self, ddict):
-        print("RIXSMainWindow.handleMaskImageSignal -- ddict: %s" % str(ddict))
+        if DEBUG >= 1:
+            print("RIXSMainWindow.handleMaskImageSignal -- ddict: %s" % str(ddict))
 
     def handleToolStateChangedSignal(self, state, tool):
-        print("RIXSMainWindow.handleToolStateChangedSignal -- state: %d" % state)
-        print("\t%s" % str(tool))
-
-    def showAlignmentFilter(self):
-        self.imageView.addDockWidget(qt.Qt.LeftDockWidgetArea,
-                                     self.alignmentWidget)
+        if DEBUG >= 1:
+            print("RIXSMainWindow.handleToolStateChangedSignal -- state: %d" % state)
+            print("\t%s" % str(tool))
 
     def setCurrentProject(self, key='<default>'):
+        """
+        Changes the project. Function is not used at the moment.
+        """
         #project = self.projectDict.get(key, None)
         model = self.projectDict['<default>']
         if not model:
-            print('RIXSMainWindow.setCurrentProject -- project not found')
+            if DEBUG >= 1:
+                print('RIXSMainWindow.setCurrentProject -- project not found')
             return self.projectDict['<default>']
         else:
             model = ProjectModel()
@@ -203,12 +205,26 @@ class RIXSMainWindow(qt.QMainWindow):
         return model
 
     def _handleShowSignal(self, itemList):
+        """
+        :param list itemList: List of :py:class:`RixsTool.Items.ProjectItem`
+
+        Slot to handle the showSignal emitted by :py:class:`RixsTool.Items.ProjectItem`. Depeding on the item type,
+         the item data is visualized.
+        """
         for item in itemList:
             if isinstance(item, ImageItem):
+                #
+                # Received 2-D data, use imageView
+                #
                 self.imageView.setImageItem(item)
-                print('RIXSMainWindow._handleShowSignal -- Received ImageItem')
+                if DEBUG >= 1:
+                    print('RIXSMainWindow._handleShowSignal -- Received ImageItem')
             elif isinstance(item, ScanItem) or isinstance(item, SpecItem):
-                print('RIXSMainWindow._handleShowSignal -- Received SpecItem')
+                #
+                # Received 1-D data, use specView
+                #
+                if DEBUG >= 1:
+                    print('RIXSMainWindow._handleShowSignal -- Received SpecItem')
                 if hasattr(item, 'scale'):
                     scale = item.scale()
                 else:
@@ -223,21 +239,30 @@ class RIXSMainWindow(qt.QMainWindow):
                     replot=True
                 )
                 #raise NotImplementedError('RIXSMainWindow._handleShowSignal -- Received ScanItem')
-        print('RIXSMainWindow._handleShowSignal -- Done!')
+        if DEBUG >= 1:
+            print('RIXSMainWindow._handleShowSignal -- Done!')
 
     def connectActions(self):
+        """
+        Routine that connects the actions that can be triggered in the menu bar to the proper functions. This
+        should only be done during instantiation.
+        """
         actionList = [(self.colormapAction, self.imageView.selectColormap),
                       (self.bandPassFilterAction, self.openBandPassTool),
                       (self.integrationAction, self.imageView.showExportWidget),
                       (self.bandPassFilterID32Action, self.openBandPassID32Tool),
                       (self.energyScaleAction, self.imageView.energyScaleTool.show),
                       (self.saveSpectraAction, self.saveSpectra),
-                      (self.projectBrowserShowAction, self.openBandPassID32Tool)]
+                      (self.projectBrowserShowAction, self.openProjectView)]
         for action, function in actionList:
             action.triggered[()].connect(function)
-        print('All Actions connected..')
+        if DEBUG >= 1:
+            print('All Actions connected..')
 
     def saveSpectra(self):
+        """
+        Save routine that writes exports all spectra of the 'Spectra' node in a text file.
+        """
         try:
             (fileNameList, singleFile, comment) = RixsSaveSpectraDialog.\
                 getSaveFileName(parent=self,
@@ -251,7 +276,8 @@ class RIXSMainWindow(qt.QMainWindow):
             # Returned list is empty
             return
 
-        print('RIXSMainWindow.saveSpectra -- result: %s' % str(fileNameList))
+        if DEBUG >= 1:
+            print('RIXSMainWindow.saveSpectra -- result: %s' % str(fileNameList))
         #return
 
         #
@@ -357,13 +383,17 @@ class RIXSMainWindow(qt.QMainWindow):
             with open(fileName, 'wb') as fileHandle:
                 fileHandle.write(specString.getvalue())
 
-        print('RIXSMainWindow.saveSpectra -- Done!')
+        if DEBUG >= 1:
+            print('RIXSMainWindow.saveSpectra -- Done!')
 
     def openBandPassTool(self):
         self.imageView.setCurrentFilter('bandpass')
 
     def openBandPassID32Tool(self):
         self.imageView.setCurrentFilter('bandpassID32')
+
+    def openProjectView(self):
+        self.projectBrowser.show()
 
 
 class RixsSaveSpectraDialog(qt.QFileDialog):
