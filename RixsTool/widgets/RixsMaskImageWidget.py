@@ -106,8 +106,17 @@ class RixsMaskImageWidget(MaskImageWidget.MaskImageWidget):
         # ATTRIBUTES CONCERNING DATA MANIPULATION
         #
 
+        # ORDER: Operations must happen in fixed order
+        #self.toolList = [
+        #    self.flipWidget,
+        #    self.filterWidget,
+        #    self.alignmentWidget
+        #]
+        self.toolList = 3*[None]
+
         # FLIPING
         self.flipWidget = FlipWidget()
+        self.toolList[0] = self.flipWidget
 
         # FILTER: General preprocessing
         self.filterDict = {
@@ -115,34 +124,30 @@ class RixsMaskImageWidget(MaskImageWidget.MaskImageWidget):
             'bandpassID32': BandPassID32Window()
         }
         self.filterWidget = None
-        self.setCurrentFilter('bandpass')
+        self.setCurrentFilter('bandpass')  # self.toolList[1] is set to bandpassfilter
 
         # ALIGNMENT: Shift image along columns
         self.alignmentWidget = ImageAlignmenWindow()
         self.alignmentWidget.valuesChangedSignal.connect(self.toolWindowValuesChanged)
         self.showAlignmentFilter()
+        self.toolList[2] = self.alignmentWidget
 
         # EXPORT: Sum up shifted images along an axis and export
         # the resulting spectra to the project
         self.exportWidget = SumImageTool()
         self.showExportWidget()
 
-        #
-        # ORDER: Operations must happen in fixed order
-        #
-        self.toolList = [
-            self.flipWidget,
-            self.filterWidget,
-            self.alignmentWidget
-        ]
-
         self.energyScaleTool = EnergyScaleTool()
         self.showEnergyScaleTool()
 
-
+        #
+        # Disconnect the horizontal flip button from its usual purposes
+        #
         self.graphWidget.hFlipToolButton.clicked.disconnect(self._hFlipIconSignal)
         self.graphWidget.hFlipToolButton.clicked.connect(self.hflip)
-        #self._hFlipIconSignal.connect(self.hflip)
+
+        if DEBUG >= 1:
+            print('RixsMaskImageWidget.__init__ finished')
 
     #
     # METHODS CONCERNING DATA MANIPULATION TOOLS
@@ -177,6 +182,11 @@ class RixsMaskImageWidget(MaskImageWidget.MaskImageWidget):
                            currentFilter)
         currentFilter.show()
         self.filterWidget = currentFilter
+        self.toolList[1] = self.filterWidget
+
+        if DEBUG >= 1:
+            print('RixsMaskImageWidget.setCurrentFilter -- Filter changed: %s' % str(self.filterWidget))
+            print('RixsMaskImageWidget.setCurrentFilter -- Tool list: %s' % str(self.toolList))
 
     def toolWindowValuesChanged(self, ddict):
         """
@@ -209,7 +219,8 @@ class RixsMaskImageWidget(MaskImageWidget.MaskImageWidget):
             parameters = tool.getValues()
             imageData = tool.process(imageData, parameters)
 
-        print("RixsMaskImageWidget.filterValuesChanged -- key: '%s'" % key)
+        if DEBUG >= 1:
+            print("RixsMaskImageWidget.filterValuesChanged -- key: '%s'" % key)
         self.setImageData(
             data=imageData,
             clearmask=False,
@@ -218,7 +229,8 @@ class RixsMaskImageWidget(MaskImageWidget.MaskImageWidget):
         )
 
     def hflip(self, **kw):
-        print('RixsMaskImageWidget.hflip -- called. kw: %s' % str(kw))
+        if DEBUG >= 1:
+            print('RixsMaskImageWidget.hflip -- called. kw: %s' % str(kw))
         if self.flipWidget.active():
             self.flipWidget.setActive(False)
         else:
