@@ -26,8 +26,6 @@
 #############################################################################*/
 __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 
-from matplotlib import pyplot as plt
-
 import numpy
 
 # Numeric routines from PyMca
@@ -40,12 +38,8 @@ from PyMca import SNIPModule as SNIP
 from RixsTool.datahandling import RixsProject
 from RixsTool.Items import FunctionItem
 from RixsTool.Functions import Fit
-from os.path import normpath as OsPathNormpath
-from os.path import splitext as OsPathSplitext
-from os.path import sep as OsPathSep
-from os import walk as OsWalk
 
-DEBUG = 1
+DEBUG = 0
 
 
 class ImageOp(object):
@@ -94,20 +88,22 @@ class Filter(ImageOp):
         offset = params.get('offset', 0.)
         replace = params.get('replace', 0.)
 
-        #print('Filter.bandPassFilter -- calculating..')
-        #print('\thi = %s (type: %s)' % (str(hi), str(type(hi))))
-        #print('\tlo = %s (type: %s)' % (str(lo), str(type(lo))))
-        #print('\toffset = %s (type: %s)' % (str(offset), str(type(offset))))
-        #print('\treplace = %s (type: %s)' % (str(replace), str(type(replace))))
+        if DEBUG >= 1:
+            print('Filter.bandPassFilter -- calculating..')
+            print('\thi = %s (type: %s)' % (str(hi), str(type(hi))))
+            print('\tlo = %s (type: %s)' % (str(lo), str(type(lo))))
+            print('\toffset = %s (type: %s)' % (str(offset), str(type(offset))))
+            print('\treplace = %s (type: %s)' % (str(replace), str(type(replace))))
 
         out = image.astype(type(offset)) - offset
         out = numpy.where((lo <= out), out, replace)
         out = numpy.where((out <= hi), out, replace)
 
-        #print('\timage.min = %s (type: %s)' % (str(image.min()), str(type(image.min()))))
-        #print('\timage.max = %s (type: %s)' % (str(image.max()), str(type(image.max()))))
-        #print('\tout.min = %s (type: %s)' % (str(out.min()), str(type(out.min()))))
-        #print('\tout.max = %s (type: %s)' % (str(out.max()), str(type(out.max()))))
+        if DEBUG >= 1:
+            print('\timage.min = %s (type: %s)' % (str(image.min()), str(type(image.min()))))
+            print('\timage.max = %s (type: %s)' % (str(image.max()), str(type(image.max()))))
+            print('\tout.min = %s (type: %s)' % (str(out.min()), str(type(out.min()))))
+            print('\tout.max = %s (type: %s)' % (str(out.max()), str(type(out.max()))))
 
         return out
 
@@ -159,7 +155,12 @@ class Filter(ImageOp):
             'replace': 0
         }
 
-        print('Filter.bandPassFilterID32 -- parameters:\n\t%s' % str(parameters))
+        if DEBUG >= 1:
+            print('Filter.bandPassFilterID32 -- values:')
+            for key, value in parameters.items():
+                print('\t%s = %s (type: %s)' % (str(key), str(value), str(type(value))))
+
+        #print('Filter.bandPassFilterID32 -- parameters:\n\t%s' % str(parameters))
         return Filter.bandPassFilter(image, parameters)
 
 
@@ -280,9 +281,10 @@ class Alignment(ImageOp):
             if left < 0 or right >= nPoints:
                 raise IndexError('Alignment.centerOfMassAlignment: index out of range (left: %d, right: %d)'%(left, right))
             mask = numpy.arange(left, right+1, dtype=int)
-            print('mask:', mask)
+            if DEBUG >= 1:
+                print('mask:', mask)
             shift = pos0 - numpy.trapz(ynormed[mask] * mask) / numpy.trapz(ynormed[mask])
-            if DEBUG:
+            if DEBUG >= 1:
                 print('\t%d\t%f'%(idx, shift))
             shiftList[idx] = shift
 
@@ -334,19 +336,23 @@ class Alignment(ImageOp):
             dtype=numpy.uint16
         )
         #print('fftAlignment -- window: %s' % str(window))
-        print('fftAlignment -- window.shape: %s' % str(window.shape))
+        if DEBUG >= 1:
+            print('fftAlignment -- window.shape: %s' % str(window.shape))
 
         shiftList = nCurves * [float('NaN')]
 
         #y0 = curves[idx0]
         y0 = curves[idx0][window]
-        print('fftAlignment -- y0.shape: %s' % str(y0.shape))
+        if DEBUG >= 1:
+            print('fftAlignment -- y0.shape: %s' % str(y0.shape))
         fft0 = numpy.fft.fft(y0)
 
         for idx, y in enumerate(curves):
-            print('fftAlignment -- y.shape: %s' % str(y.shape))
+            if DEBUG >= 1:
+                print('fftAlignment -- y.shape: %s' % str(y.shape))
             data = y[window]
-            print('fftAlignment -- data.shape: %s' % str(data.shape))
+            if DEBUG >= 1:
+                print('fftAlignment -- data.shape: %s' % str(data.shape))
             ffty = numpy.fft.fft(data)
             #ffty = numpy.fft.fft(y)
             shiftTmp = numpy.fft.ifft(fft0 * ffty.conjugate()).real
@@ -360,9 +366,11 @@ class Alignment(ImageOp):
             shiftPhaseMax = shiftPhase.max()
             normFactor = shiftPhaseMax - shiftPhaseMin
             if float(normFactor) <= 0.:
-                print('fftAlignment -- normFactor is zero')
+                if DEBUG >= 1:
+                    print('fftAlignment -- normFactor is zero')
                 continue
-            print('fftAlignment -- \n\t\t\tshiftPhaseMin: %f\n\t\t\tshiftPhaseMax: %f' % (shiftPhaseMin, shiftPhaseMax))
+            if DEBUG >= 1:
+                print('fftAlignment -- \n\t\t\tshiftPhaseMin: %f\n\t\t\tshiftPhaseMax: %f' % (shiftPhaseMin, shiftPhaseMax))
             shiftPhase = (shiftPhase-shiftPhaseMin)/normFactor
 
             # Thresholding: The noisier the data is, the more likely it is for the
@@ -373,26 +381,30 @@ class Alignment(ImageOp):
             threshold = portion
             while shiftPhase[left] >= threshold:
                 if left <= 0:
-                    print('fftAlignment -- reached left limit')
+                    if DEBUG >= 1:
+                        print('fftAlignment -- reached left limit')
                     left = 0
                     break
                 left -= 1
             while shiftPhase[right] >= threshold:
                 if right >= len(shiftPhase)-1:
-                    print('fftAlignment -- reached right limit')
+                    if DEBUG >= 1:
+                        print('fftAlignment -- reached right limit')
                     right = len(shiftPhase)-1
                     break
                 right += 1
 
             mask = numpy.arange(left, right+1, 1, dtype=numpy.uint16)
-            print('fftAlignment -- mask: %s' % str(mask))
+            if DEBUG >= 1:
+                print('fftAlignment -- mask: %s' % str(mask))
             # The shift is determined by center-of-mass around idxMax
             shiftTmp = numpy.sum((shiftPhase[mask] * mask/shiftPhase[mask].sum()))
             #shift = (shiftTmp - m) * (x[1] - x[0])
             # x-range is pixel count..
             shift = (shiftTmp - m)
             shiftList[idx] = shift
-            print('fftAlignment -- shiftList[%d]: %s' % (idx, str(shift)))
+            if DEBUG >= 1:
+                print('fftAlignment -- shiftList[%d]: %s' % (idx, str(shift)))
 
         #ddict = {
         #    'op': 'fftAlignment',
@@ -452,7 +464,7 @@ class Alignment(ImageOp):
         # Loop through curves: Find peak (max..), Estimate fit params, Perform Gaussian fit
         #
         fitList = nCurves * [float('NaN')]
-        if DEBUG == 1:
+        if DEBUG >= 1:
             print('Alignment.fitAlignment -- fitting..')
         for idx, y in enumerate(subtracted):
             #
@@ -466,11 +478,11 @@ class Alignment(ImageOp):
                     # Extract highest feature
                     maxIdx = y[peakIdx].argsort()[-1]
                 except IndexError:
-                    if DEBUG == 1:
+                    if DEBUG >= 1:
                         print('Alignment.fitAlignment -- No peaks found..')
                     return None
                 except SystemError:
-                    if DEBUG == 1:
+                    if DEBUG >= 1:
                         print('Alignment.fitAlignment -- Peak search failed. Continue with y maximum')
                     peakIdx = [y.argmax()]
                     maxIdx = 0
@@ -499,7 +511,7 @@ class Alignment(ImageOp):
                                          numpy.asarray([height, pos, fwhm]),
                                          xdata=mask,
                                          ydata=(ydata-ydata.min()))
-                if DEBUG == 1:
+                if DEBUG >= 1:
                     print('\tCurve %d -- fitp: %s' % (idx, str(fitp)))
                     print('\tCurve %d -- chisq: %s' % (idx, str(chisq)))
                     print('\tCurve %d -- sigma: %s' % (idx, str(sigma)))
@@ -507,7 +519,7 @@ class Alignment(ImageOp):
                 fitp, chisq, sigma = [None, None, None],\
                                      float('Nan'),\
                                      float('Nan')
-                if DEBUG == 1:
+                if DEBUG >= 1:
                     print('\tCurve %d -- Fit failed!' % idx)
             fitList[idx] = fitp # ftip is 3-tuple..
 
@@ -541,7 +553,8 @@ class Interpolation(ImageOp):
             else:
                 axis = 0
         ddict = {}
-        print('Interpolation.axisInterpolation -- not implemented')
+        if DEBUG >= 1:
+            print('Interpolation.axisInterpolation -- not implemented')
         return ddict
 
 
@@ -592,7 +605,8 @@ class Integration(ImageOp):
         #    'summedSlices': result
         #}
         #return ddict
-        print('Integration.sliceAndSum -- result.shape: %s' % str(result.shape))
+        if DEBUG >= 1:
+            print('Integration.sliceAndSum -- result.shape: %s' % str(result.shape))
         return result
 
 
@@ -609,14 +623,16 @@ class Normalization(ImageOp):
         maximum = image.max()
         normFactor = maximum - offset
 
-        print('zeroToOne, before -- min: %.3f, max: %.3f'%(offset, maximum))
+        if DEBUG >= 1:
+            print('zeroToOne, before -- min: %.3f, max: %.3f'%(offset, maximum))
 
         if normFactor == 0.:
             normalized = numpy.zeros(shape=image.shape,
                                      dtype=image.dtype)
         else:
             normalized = (image - offset)/normFactor
-        print('zeroToOne, after  -- min: %.3f, max: %.3f' % (normalized.min(), normalized.max()))
+        if DEBUG >= 1:
+            print('zeroToOne, after  -- min: %.3f, max: %.3f' % (normalized.min(), normalized.max()))
         ddict = {
             'op': 'zeroToOne',
             'image': normalized
@@ -731,95 +747,10 @@ class Manipulation(ImageOp):
             else:
                 # Slice along rows (axis==0)
                 tmpList[idx] = numpy.copy(image[lower:upper, :])
-            print('Manipulation.slice -- tmpList[%d].shape: %s' % (idx, str(tmpList[idx].shape)))
+            if DEBUG >= 1:
+                print('Manipulation.slice -- tmpList[%d].shape: %s' % (idx, str(tmpList[idx].shape)))
 
         return tmpList
-
-
-class Stats2D(ImageOp):
-    def __init__(self=None):
-        ImageOp.__init__(self)
-        self._minVal = float('NaN')
-        self._maxVal = float('NaN')
-        self._avgVal = float('NaN')
-        self._medVal = float('NaN')
-        self._ops = {
-            'basics': self.basics,
-            'histogram': self.histogram
-        }
-
-    def normalize(self, image, params):
-        print('Stats2D.normalize -- not implemented')
-        ddict = {}
-        return ddict
-
-    def basics(self, image, params):
-        flat = numpy.sort(image.reshape(-1), kind='mergesort')
-        #flat = sorted(image.reshape(-1)) # 10x slower than above
-        if len(flat) > 0:
-            self._minVal = flat[0]
-            self._maxVal = flat[-1]
-            if len(flat) % 2:
-                middle = len(flat)//2
-                self._medVal = .5 * (flat[middle-1] + flat[middle])
-            else:
-                self._medVal = flat[len(flat)//2 - 1]
-            self._avgVal = numpy.average(flat)
-        else:
-            self._minVal = float('NaN')
-            self._maxVal = float('NaN')
-            self._avgVal = float('NaN')
-            self._medVal = float('NaN')
-        ddict = {
-            'op': 'basics',
-            'min': self._minVal,
-            'max': self._maxVal,
-            'average': self._medVal,
-            'median': self._medVal
-        }
-        return ddict
-
-    def histogram(self, image, params):
-        y, x = numpy.histogram(image.reshape(-1),
-                               bins=1000)
-        ddict = {
-            'op': 'histogram',
-            'bins': .5*(x[:-1]+x[1:]),
-            'counts': y
-        }
-        return ddict
-
-
-def showImage(image):
-    plt.imshow(image)
-    plt.show()
-
-
-def plotImageAlongAxis(image, axis=-1, offset=False, returnPlot=False):
-    if (axis > 1) or (len(image.shape) > 2):
-        raise ValueError('Image must be 2D and axis must be either -1, 0 or 1')
-
-    # If axis is default value, take longer axis to be x
-    # and loop along smaller axis
-    if axis < 0:
-        loop = numpy.argmax(image.shape)
-
-    yOffset = 0.
-    for idx in range(8):
-        if axis:
-            # axis == 1
-            curve = image[idx, :]
-        else:
-            # axis == 0
-            curve = image[:, idx]
-        if offset:
-            yOffset += (curve.max() - curve.min())
-        plt.plot(curve + yOffset)
-
-    if returnPlot:
-        return plt
-    else:
-        plt.show()
 
 
 class SlopeCorrection(object):
@@ -921,6 +852,8 @@ class SlopeCorrection(object):
 
 
 def run_test():
+
+    from matplotlib import pyplot as plt
 
     directory = '/home/truter/lab/mock_folder/Images'
     project = RixsProject()
