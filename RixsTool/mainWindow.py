@@ -44,11 +44,12 @@ from RixsTool.datahandling import ItemContainer
 import numpy
 import platform
 from cStringIO import StringIO
-from os import linesep as OsLineSep
+#from os import linesep as OsLineSep
 from os.path import splitext as OsPathSplitExt
 
 DEBUG = 1
 PLATFORM = platform.system()
+NEWLINE = '\n'  # instead of OsLineSep
 
 
 class RIXSMainWindow(qt.QMainWindow):
@@ -258,7 +259,7 @@ class RIXSMainWindow(qt.QMainWindow):
         #
         specNode = self.currentProject['Spectra']
         specString = StringIO()
-        specString.write(OsLineSep)
+        specString.write(NEWLINE)
 
         itemList = [node.item() for node in specNode.children if node.hasItem]
         for idx, item in enumerate(itemList):
@@ -268,7 +269,14 @@ class RIXSMainWindow(qt.QMainWindow):
             if isinstance(item, ScanItem):
                 data = numpy.vstack((item.scale(), item.array)).T  # Stack and transpose
             elif isinstance(item, SpecItem):
-                data = item.array
+                #
+                # SpecItem does not have a scale, generate one by
+                #
+                scale = numpy.arange(
+                    start=0,
+                    stop=len(item.array),
+                    dtype=item.array.dtype)
+                data = numpy.vstack((scale, item.array)).T  # Stack and transpose
             else:
                 raise NotImplementedError('RIXSMainWindow.saveSpectra -- Unknown item type: %s' % type(item))
 
@@ -284,7 +292,7 @@ class RIXSMainWindow(qt.QMainWindow):
             #
             # Start to write spec file header...
             #
-            specString.write('#S %d %s' % (scanNo, item.key()) + OsLineSep)
+            specString.write('#S %d %s' % (scanNo, item.key()) + NEWLINE)
 
             #
             # Write EDF header in #U comments
@@ -304,14 +312,14 @@ class RIXSMainWindow(qt.QMainWindow):
             #        #                    remaining space with zeros (i.e. leading zeros)
             #        # {line}          -> place value 'line' here
             #        specString.write(
-            #            '#U{idx:0>{width}} {line}'.format(idx=jdx, width=magnitude, line=line) + OsLineSep
+            #            '#U{idx:0>{width}} {line}'.format(idx=jdx, width=magnitude, line=line) + NEWLINE
             #        )
 
             #
             # .. finish to write spec file header
             #
-            specString.write('#N %d' % nCols + OsLineSep)  # Number of columns
-            specString.write('#L PixelNo  Counts' + OsLineSep)  # Column labels
+            specString.write('#N %d' % nCols + NEWLINE)  # Number of columns
+            specString.write('#L PixelNo  Counts' + NEWLINE)  # Column labels
 
             #
             # Write data using numpy.savetxt, parameter fname can be file handle
@@ -321,10 +329,10 @@ class RIXSMainWindow(qt.QMainWindow):
                 X=data,
                 fmt='%.6f',
                 delimiter=' ',
-                newline=OsLineSep
+                newline=NEWLINE
             )
 
-            specString.write(2 * OsLineSep)
+            specString.write(NEWLINE)
 
             if not singleFile:
                 #
