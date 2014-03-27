@@ -56,7 +56,7 @@ import time
 #
 from RixsTool.Items import ImageItem, SpecItem, ScanItem
 
-DEBUG = 1
+DEBUG = 0
 
 
 class IODict(object):

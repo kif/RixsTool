@@ -33,14 +33,11 @@ from RixsTool.widgets.ContextMenu import ProjectContextMenu, RemoveAction, Remov
     ShowAction, ExpandAction, RenameAction
 from RixsTool.datahandling import ItemContainer
 
-
-DEBUG = 1
+DEBUG = 0
 
 
 class ProjectView(qt.QTreeView):
     showSignal = qt.pyqtSignal(object)
-    #showSpecSignal = qt.pyqtSignal(object)
-    #showStackSignal = qt.pyqtSignal(object)
 
     def __init__(self, parent=None):
         super(ProjectView, self).__init__(parent)
@@ -63,10 +60,12 @@ class ProjectView(qt.QTreeView):
         self.showSignal.emit(itemList)
 
     def selectedContainers(self):
-        print('ProjectView.selectedItems -- called')
+        if DEBUG >= 1:
+            print('ProjectView.selectedItems -- called')
         model = self.model()
         if not model:
-            print('ProjectView.contextMenuEvent -- Model is none. Abort')
+            if DEBUG >= 1:
+                print('ProjectView.contextMenuEvent -- Model is none. Abort')
             return []
 
         modelIndexList = self.selectedIndexes()
@@ -77,18 +76,21 @@ class ProjectView(qt.QTreeView):
         return [container.item() for container in self.selectedContainers() if container.hasItem()]
 
     def contextMenuEvent(self, event):
-        print('ProjectView.contextMenuEvent -- called')
+        if DEBUG >= 1:
+            print('ProjectView.contextMenuEvent -- called')
         model = self.model()
         if not model:
-            print('ProjectView.contextMenuEvent -- Model is none. Abort')
+            if DEBUG >= 1:
+                print('ProjectView.contextMenuEvent -- Model is none. Abort')
             return
 
         modelIndexList = self.selectedIndexes()
         RixsUtilsUnique(modelIndexList, "row")
         containerList = [model.containerAt(idx) for idx in modelIndexList]
-        print('ProjectView.contextMenuEvent -- Received %d element(s)' % len(modelIndexList))
-        for idx in modelIndexList:
-            print('\t', idx.row(), idx.column())
+        if DEBUG >= 1:
+            print('ProjectView.contextMenuEvent -- Received %d element(s)' % len(modelIndexList))
+            for idx in modelIndexList:
+                print('\t%d %d' % (idx.row(), idx.column()))
 
         menu = ProjectContextMenu()
         if not any([container.hasItem() for container in containerList]):
@@ -107,9 +109,11 @@ class ProjectView(qt.QTreeView):
         menu.build()
         action = menu.exec_(event.globalPos())
 
-        print("ProjectView.contextMenuEvent -- received action '%s'" % str(type(action)))
+        if DEBUG >= 1:
+            print("ProjectView.contextMenuEvent -- received action '%s'" % str(type(action)))
         if isinstance(action, RemoveAction):
-            print("\tRemoving item(s)")
+            if DEBUG >= 1:
+                print("\tRemoving item(s)")
             for idx in modelIndexList:
                 model.removeContainer(idx)
         elif isinstance(action, ShowAction):
