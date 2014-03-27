@@ -34,7 +34,7 @@ from RixsTool.datahandling import RixsProject
 from PyMca import PyMcaQt as qt
 from os.path import normpath as OsPathNormpath
 
-DEBUG = 1
+DEBUG = 0
 
 
 class ProjectModel(RixsProject, qt.QAbstractItemModel):
@@ -304,7 +304,7 @@ class QDirListModel(qt.QAbstractListModel):
         if modelIndex.isValid():
             return qt.Qt.ItemIsSelectable | qt.Qt.ItemIsEditable | qt.Qt.ItemIsEnabled
         else:
-            if DEBUG == 1:
+            if DEBUG >= 1:
                 print('QDirListModel.flags -- received invalid modelIndex')
             return 0
 
@@ -337,7 +337,7 @@ class QDirListModel(qt.QAbstractListModel):
                 # Call copy ctor
                 newDir = qt.QDir(elem)
             else:
-                if DEBUG == 1:
+                if DEBUG >= 1:
                     print('QDirListModel.insertDirs -- Element %d: Neither instance of str nor QDir'%idx)
                 continue
             new[idx] = newDir
@@ -375,7 +375,7 @@ class QDirListModel(qt.QAbstractListModel):
         if modelIndex.isValid():
             idx = modelIndex.row()
         else:
-            if DEBUG == 1:
+            if DEBUG >= 1:
                 print('WorkingDirModel.data -- received invalid index')
             return None
         if idx >= len(self.__directoryList):
@@ -386,9 +386,6 @@ class QDirListModel(qt.QAbstractListModel):
             dirPath = qdir.absolutePath()
             return qt.QDir.toNativeSeparators(dirPath)
         else:
-            if DEBUG == 1:
-                #print('WorkingDirModel.data -- received invalid index')
-                pass
             return None
 
 
