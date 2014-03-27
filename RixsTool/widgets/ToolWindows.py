@@ -31,6 +31,7 @@ __doc__ = """Module provides a base class for a data manipulation GUI for py:mod
 from PyMca import PyMcaQt as qt
 from PyQt4 import uic
 
+from RixsTool.UiPaths import UiPaths
 from RixsTool.Operations import Filter, SlopeCorrection, Integration
 from RixsTool.Items import FunctionItem
 
@@ -44,18 +45,10 @@ class AbstractToolTitleBar(qt.QWidget):
 
     __doc__ = """Customized version of a generic title bar, mainly to include a check box."""
 
-    if PLATFORM == 'Linux':
-        __uiPath = '/home/truter/lab/RixsTool/RixsTool/ui/abtracttitletoolbar.ui'
-    elif PLATFORM == 'Windows':
-        __uiPath = 'C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\abtractTitleToolBar.ui'
-    elif PLATFORM == 'Darwin':
-        __uiPath = '/Users/tonn/GIT/RixsTool/RixsTool/ui/abtracttitletoolbar.ui'
-    else:
-        raise OSError('AbstractToolTitleBar.__init__ -- Unknown system type')
-
     def __init__(self, parent=None):
         super(AbstractToolTitleBar, self).__init__(parent)
-        uic.loadUi(self.__uiPath, self)
+        uiFilePath = UiPaths.abstractTitleToolBar()
+        uic.loadUi(uiFilePath, self)
         self.closeButton.setFlat(True)
 
 
@@ -180,16 +173,7 @@ class AbstractToolWindow(qt.QDockWidget):
 
 class BandPassFilterWindow(AbstractToolWindow):
     def __init__(self, parent=None):
-
-        if PLATFORM == 'Linux':
-            uiPath = '/home/truter/lab/RixsTool/RixsTool/ui/bandpassfilter.ui'
-        elif PLATFORM == 'Windows':
-             uiPath = 'C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\bandpassfilter.ui'
-        elif PLATFORM == 'Darwin':
-            uiPath = '/Users/tonn/GIT/RixsTool/RixsTool/ui/bandpassfilter.ui'
-        else:
-            raise OSError('BandPassFilterWindow.__init__ -- Unknown system type')
-
+        uiPath = UiPaths.bandPassFilterUiPath()
         super(BandPassFilterWindow, self).__init__(uiPath=uiPath,
                                                    parent=parent)
         self.setUI()
@@ -202,9 +186,9 @@ class BandPassFilterWindow(AbstractToolWindow):
         }
 
         self.setValues({
-            'high': 140,
-            'low': 100,
-            'offset': 0
+            'high': 800.,
+            'low': 8.,
+            'offset': 114.
         })
 
         #
@@ -222,16 +206,7 @@ class BandPassFilterWindow(AbstractToolWindow):
 
 class BandPassID32Window(AbstractToolWindow):
     def __init__(self, parent=None):
-
-        if PLATFORM == 'Linux':
-            uiPath = '/home/truter/lab/RixsTool/RixsTool/ui/bandpassfilterID32.ui'
-        elif PLATFORM == 'Windows':
-            uiPath = 'C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\bandpassfilterID32.ui'
-        elif PLATFORM == 'Darwin':
-            uiPath = '/Users/tonn/GIT/RixsTool/RixsTool/ui/bandpassfilterID32.ui'
-        else:
-            raise OSError('BandPassFilterWindow.__init__ -- Unknown system type')
-
+        uiPath = UiPaths.bandPassFilterID32UiPath()
         super(BandPassID32Window, self).__init__(uiPath=uiPath,
                                                  parent=parent)
         self.setUI()
@@ -294,16 +269,7 @@ class BandPassID32Window(AbstractToolWindow):
 
 class ImageAlignmenWindow(AbstractToolWindow):
     def __init__(self, parent=None):
-
-        if PLATFORM == 'Linux':
-            uiPath = '/home/truter/lab/RixsTool/RixsTool/ui/alignmentfilter.ui'
-        elif PLATFORM == 'Windows':
-            uiPath = 'C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\alignmentfilter.ui'
-        elif PLATFORM == 'Darwin':
-            uiPath = '/Users/tonn/GIT/RixsTool/RixsTool/ui/alignmentfilter.ui'
-        else:
-            raise OSError('BandPassFilterWindow.__init__ -- Unknown system type')
-
+        uiPath = UiPaths.alignmentFilterUiPath()
         super(ImageAlignmenWindow, self).__init__(uiPath=uiPath,
                                                   parent=parent)
         self.setUI()
@@ -353,16 +319,7 @@ class SumImageTool(AbstractToolWindow):
     exportCurrentSignal = qt.pyqtSignal()
 
     def __init__(self, parent=None):
-
-        if PLATFORM == 'Linux':
-            uiPath = '/home/truter/lab/RixsTool/RixsTool/ui/sumtool.ui'
-        elif PLATFORM == 'Windows':
-            uiPath = 'C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\sumtool.ui'
-        elif PLATFORM == 'Darwin':
-            uiPath = '/Users/tonn/GIT/RixsTool/RixsTool/ui/sumtool.ui'
-        else:
-            raise OSError('BandPassFilterWindow.__init__ -- Unknown system type')
-
+        uiPath = UiPaths.sumToolUiPath()
         super(SumImageTool, self).__init__(uiPath=uiPath,
                                            parent=parent)
         self.setUI()
@@ -407,18 +364,9 @@ class EnergyScaleTool(AbstractToolWindow):
     energyScaleSignal = qt.pyqtSignal()
 
     def __init__(self, parent=None):
-
-        if PLATFORM == 'Linux':
-            uiPath = '/home/truter/lab/RixsTool/RixsTool/ui/energyalignment.ui'
-        elif PLATFORM == 'Windows':
-            uiPath = 'C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\energyalignment.ui'
-        elif PLATFORM == 'Darwin':
-            uiPath = '/Users/tonn/GIT/RixsTool/RixsTool/ui/energyalignment.ui'
-        else:
-            raise OSError('BandPassFilterWindow.__init__ -- Unknown system type')
-
+        uiPath = UiPaths.energyAlignmentUiPath()
         super(EnergyScaleTool, self).__init__(uiPath=uiPath,
-                                                  parent=parent)
+                                              parent=parent)
         self.setUI()
         self.setWindowTitle('Energy alignment')
 
@@ -470,7 +418,7 @@ class EnergyScaleTool(AbstractToolWindow):
 def unitTest_BandPassFilter():
     dummy = DummyNotifier()
     app = qt.QApplication([])
-    filterWindow = EnergyScaleTool()
+    filterWindow = ImageAlignmenWindow()
     #filterWindow.exportSelectedSignal.connect(dummy.signalReceived)
     #filterWindow.exportCurrentSignal.connect(dummy.signalReceived)
     filterWindow.show()

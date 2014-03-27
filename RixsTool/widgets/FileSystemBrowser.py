@@ -29,6 +29,7 @@ __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 # IMPORTS FOR GUI
 #
 from PyQt4 import uic
+from RixsTool.UiPaths import UiPaths
 
 from PyMca import PyMcaQt as qt
 
@@ -238,14 +239,8 @@ class FileSystemBrowser(qt.QWidget):
 
     def __init__(self, parent=None):
         qt.QWidget.__init__(self, parent)
-        if PLATFORM == 'Linux':
-            uic.loadUi('/home/truter/lab/RixsTool/RixsTool/ui/filesystembrowser.ui', self)
-        elif PLATFORM == 'Windows':
-            uic.loadUi('C:\\Users\\tonn\\lab\\RixsTool\\RixsTool\\ui\\filesystembrowser.ui', self)
-        elif PLATFORM == 'Darwin':
-            uic.loadUi('/Users/tonn/GIT/RixsTool/RixsTool/ui/filesystembrowser.ui', self)
-        else:
-            raise OSError('FileSystemBrowser.__init__ -- Unknown system type')
+        uiFilePath = UiPaths.fileSystemBrowserUiPath()
+        uic.loadUi(uiFilePath, self)
 
         #
         # Set start directory to qt.QDir.home()
@@ -268,12 +263,14 @@ class FileSystemBrowser(qt.QWidget):
         self.closeDirButton.clicked[()].connect(self.closeDir)
 
         # TODO: change startDir = qt.QDir.home()
-        if PLATFORM == 'Linux':
-            startDir = qt.QDir('/home/truter/lab/mock_folder/')
-        elif PLATFORM == 'Darwin':
-            startDir = qt.QDir('/Users/tonn/DATA/mock_folder')
-        else:
-            raise OSError('FileSystemBrowser.__init__ -- Setting start dir .. Unknown system type')
+        #if PLATFORM == 'Linux':
+        #    startDir = qt.QDir('/home/truter/lab/mock_folder/')
+        #elif PLATFORM == 'Darwin':
+        #    startDir = qt.QDir('/Users/tonn/DATA/mock_folder')
+        #else:
+        #    raise OSError('FileSystemBrowser.__init__ -- Setting start dir .. Unknown system type')
+
+        startDir = qt.QDir.home()
 
         self.addDir(startDir.absolutePath())
 
