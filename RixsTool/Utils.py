@@ -26,6 +26,7 @@
 #############################################################################*/
 __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 
+
 def reduce(llist):
     """
     :param llist: List of lists
@@ -35,6 +36,7 @@ def reduce(llist):
     """
     return sum(llist, [])
 
+
 def unique(seq, ident=''):
     """
     :param seq: Container
@@ -43,7 +45,7 @@ def unique(seq, ident=''):
     :type ident: str
 
     In place removal of redundant elements in a sequence using the given identifier. If ident is not defined, python natively
-    uses id(). Notice that if ident is a (member *, class *, or static *) method the return type of ident must be non-mutuable and
+    uses id(). Notice that if ident is a (member, class , or static) method the return type of ident must be non-mutuable and
     hashable. Only parameterless functions are supported.
 
     Extended solution of stackoverflow user J.F. Sebastian:
