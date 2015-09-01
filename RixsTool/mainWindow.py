@@ -253,6 +253,7 @@ class RIXSMainWindow(qt.QMainWindow):
                       (self.projectBrowserShowAction, self.showProjectView),
                       (self.fileBrowserShowAction, self.showFileView),
                       (self.exitAction, sys.exit),
+                      (self.aboutAction, self.about)
                       ]
         for action, function in actionList:
             action.triggered[()].connect(function)
@@ -395,6 +396,14 @@ class RIXSMainWindow(qt.QMainWindow):
     def showFileView(self):
         print('in showFileView')
         self.fileBrowserDock.setVisible(self.fileBrowserShowAction.isChecked())
+
+    def about(self):
+        txt = """Software toolkit for the analysis of 
+Resonant Inelastic X-ray Scattering (RIXS) experiments 
+as performed at beamline ID32 of the ESRF. 
+Based on Armando Sole's X-ray fluoresence toolkit PyMCA 
+(https://github.com/vasole/pymca)."""
+        qt.QMessageBox.about(self, "RixsTool", txt)
 
 
 class RixsSaveSpectraDialog(qt.QFileDialog):
