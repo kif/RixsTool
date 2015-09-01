@@ -29,15 +29,15 @@ __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 import numpy
 
 # Numeric routines from PyMca
-from PyMca.Gefit import LeastSquaresFit as LSF
-from PyMca import SpecfitFunctions as SF
-from PyMca.SpecfitFuns import gauss as gaussianModel
-from PyMca import SNIPModule as SNIP
+from PyMca5.PyMca.Gefit import LeastSquaresFit as LSF
+from PyMca5.PyMca import SpecfitFunctions as SF
+from PyMca5.PyMca.SpecfitFuns import gauss as gaussianModel
+from PyMca5.PyMca import SNIPModule as SNIP
 
 # IO and Datahandling from RixsTool
-from RixsTool.Project import RixsProject
-from RixsTool.Items import FunctionItem
-from RixsTool.Functions import Fit
+from .Project import RixsProject
+from .Items import FunctionItem
+from .Functions import Fit
 
 DEBUG = 0
 
@@ -55,7 +55,7 @@ class Filter(ImageOp):
             'bandpass': self.bandPassFilter
         }
 
-    #def bandPassFilter(self, image, params):
+    # def bandPassFilter(self, image, params):
     @staticmethod
     def bandPassFilter(image, params):
         """
@@ -160,7 +160,7 @@ class Filter(ImageOp):
             for key, value in parameters.items():
                 print('\t%s = %s (type: %s)' % (str(key), str(value), str(type(value))))
 
-        #print('Filter.bandPassFilterID32 -- parameters:\n\t%s' % str(parameters))
+        # print('Filter.bandPassFilterID32 -- parameters:\n\t%s' % str(parameters))
         return Filter.bandPassFilter(image, parameters)
 
 
@@ -177,7 +177,7 @@ class Alignment(ImageOp):
     def maxAlignment(image, params):
         # TODO: Add normalization flag
         idx0 = params.get('idx0', 0)
-        axis = params.get('axis', -1) # Axis defines direction of curves
+        axis = params.get('axis', -1)  # Axis defines direction of curves
         scale = params.get('scale', None)
 
         if axis < 0:
@@ -208,17 +208,17 @@ class Alignment(ImageOp):
         if scale:
             shiftArray *= numpy.average(numpy.diff(scale))
 
-        #ddict = {
+        # ddict = {
         #    'op': 'maxAlignment',
         #    'shiftList': shiftArray
-        #}
-        #return ddict
+        # }
+        # return ddict
         return shiftArray
 
     @staticmethod
     def centerOfMassAlignment(image, params):
         idx0 = params.get('idx0', 0)
-        axis = params.get('axis', -1) # Axis defines direction of curves
+        axis = params.get('axis', -1)  # Axis defines direction of curves
         portion = params.get('portion', .80)
         scale = params.get('scale', None)
 
@@ -246,11 +246,11 @@ class Alignment(ImageOp):
         y0 = curves[idx0]
         pos0 = y0.argmax()
         ymin0, ymax0 = y0.min(), y0.max()
-        normFactor = ymax0-ymin0
+        normFactor = ymax0 - ymin0
         if float(normFactor) <= 0.:
             # Curve is constant
             raise ZeroDivisionError('Alignment.centerOfMass -- Trying to align on constant curve')
-        ynormed0 = (y0-ymin0)/normFactor
+        ynormed0 = (y0 - ymin0) / normFactor
 
         threshold = portion * float(ynormed0[pos0])
         left, right = pos0, pos0
@@ -259,18 +259,18 @@ class Alignment(ImageOp):
         while  ynormed0[right] > threshold:
             right += 1
         if left < 0 or right >= nPoints:
-            raise IndexError('Alignment.centerOfMassAlignment: 0-th index out of range (left: %d, right: %d)'%(left, right))
-        mask = numpy.arange(left, right+1, dtype=int)
+            raise IndexError('Alignment.centerOfMassAlignment: 0-th index out of range (left: %d, right: %d)' % (left, right))
+        mask = numpy.arange(left, right + 1, dtype=int)
         pos0 = numpy.trapz(ynormed0[mask] * mask) / numpy.trapz(ynormed0[mask])
 
         for idx, y in enumerate(curves):
             # Normalize betw. zero an one
             ymin, ymax = y.min(), y.max()
-            normFactor = ymax-ymin
+            normFactor = ymax - ymin
             if float(normFactor) <= 0.:
                 # Curve is constant
                 continue
-            ynormed = (y-ymin)/normFactor
+            ynormed = (y - ymin) / normFactor
 
             idxMax = ynormed.argmax()
             left, right = idxMax, idxMax
@@ -279,23 +279,23 @@ class Alignment(ImageOp):
             while ynormed[right] > threshold:
                 right += 1
             if left < 0 or right >= nPoints:
-                raise IndexError('Alignment.centerOfMassAlignment: index out of range (left: %d, right: %d)'%(left, right))
-            mask = numpy.arange(left, right+1, dtype=int)
+                raise IndexError('Alignment.centerOfMassAlignment: index out of range (left: %d, right: %d)' % (left, right))
+            mask = numpy.arange(left, right + 1, dtype=int)
             if DEBUG >= 1:
                 print('mask:', mask)
             shift = pos0 - numpy.trapz(ynormed[mask] * mask) / numpy.trapz(ynormed[mask])
             if DEBUG >= 1:
-                print('\t%d\t%f'%(idx, shift))
+                print('\t%d\t%f' % (idx, shift))
             shiftList[idx] = shift
 
         shiftArray = numpy.asarray(shiftList)
         if scale:
             shiftArray *= numpy.average(numpy.diff(scale))
-        #ddict = {
+        # ddict = {
         #    'op': 'centerOfMassAlignment',
         #    'shiftList': shiftArray
-        #}
-        #return ddict
+        # }
+        # return ddict
         return shiftArray
 
     @staticmethod
@@ -335,13 +335,13 @@ class Alignment(ImageOp):
             step=1,
             dtype=numpy.uint16
         )
-        #print('fftAlignment -- window: %s' % str(window))
+        # print('fftAlignment -- window: %s' % str(window))
         if DEBUG >= 1:
             print('fftAlignment -- window.shape: %s' % str(window.shape))
 
         shiftList = nCurves * [float('NaN')]
 
-        #y0 = curves[idx0]
+        # y0 = curves[idx0]
         y0 = curves[idx0][window]
         if DEBUG >= 1:
             print('fftAlignment -- y0.shape: %s' % str(y0.shape))
@@ -354,10 +354,10 @@ class Alignment(ImageOp):
             if DEBUG >= 1:
                 print('fftAlignment -- data.shape: %s' % str(data.shape))
             ffty = numpy.fft.fft(data)
-            #ffty = numpy.fft.fft(y)
+            # ffty = numpy.fft.fft(y)
             shiftTmp = numpy.fft.ifft(fft0 * ffty.conjugate()).real
             shiftPhase = numpy.zeros(shiftTmp.shape, dtype=shiftTmp.dtype)
-            m = shiftTmp.size//2
+            m = shiftTmp.size // 2
             shiftPhase[m:] = shiftTmp[:-m]
             shiftPhase[:m] = shiftTmp[-m:]
 
@@ -371,7 +371,7 @@ class Alignment(ImageOp):
                 continue
             if DEBUG >= 1:
                 print('fftAlignment -- \n\t\t\tshiftPhaseMin: %f\n\t\t\tshiftPhaseMax: %f' % (shiftPhaseMin, shiftPhaseMax))
-            shiftPhase = (shiftPhase-shiftPhaseMin)/normFactor
+            shiftPhase = (shiftPhase - shiftPhaseMin) / normFactor
 
             # Thresholding: The noisier the data is, the more likely it is for the
             # normalization to be ineffective, i.e. the whole range of shiftPhase
@@ -387,31 +387,31 @@ class Alignment(ImageOp):
                     break
                 left -= 1
             while shiftPhase[right] >= threshold:
-                if right >= len(shiftPhase)-1:
+                if right >= len(shiftPhase) - 1:
                     if DEBUG >= 1:
                         print('fftAlignment -- reached right limit')
-                    right = len(shiftPhase)-1
+                    right = len(shiftPhase) - 1
                     break
                 right += 1
 
-            mask = numpy.arange(left, right+1, 1, dtype=numpy.uint16)
+            mask = numpy.arange(left, right + 1, 1, dtype=numpy.uint16)
             if DEBUG >= 1:
                 print('fftAlignment -- mask: %s' % str(mask))
             # The shift is determined by center-of-mass around idxMax
-            shiftTmp = numpy.sum((shiftPhase[mask] * mask/shiftPhase[mask].sum()))
-            #shift = (shiftTmp - m) * (x[1] - x[0])
+            shiftTmp = numpy.sum((shiftPhase[mask] * mask / shiftPhase[mask].sum()))
+            # shift = (shiftTmp - m) * (x[1] - x[0])
             # x-range is pixel count..
             shift = (shiftTmp - m)
             shiftList[idx] = shift
             if DEBUG >= 1:
                 print('fftAlignment -- shiftList[%d]: %s' % (idx, str(shift)))
 
-        #ddict = {
+        # ddict = {
         #    'op': 'fftAlignment',
         #    'shiftList': shiftList
-        #}
-        #return ddict
-        #return shiftList
+        # }
+        # return ddict
+        # return shiftList
         return numpy.ascontiguousarray(shiftList)
 
     @staticmethod
@@ -448,14 +448,14 @@ class Alignment(ImageOp):
         #
         imRows, imCols = image.shape
         if snipWidth is None:
-            snipWidth = max(imRows, imCols)//10
+            snipWidth = max(imRows, imCols) // 10
         specfitObj = SF.SpecfitFunctions()
 
         background = numpy.zeros(shape=curves.shape,
                                  dtype=numpy.float64)
         for idx, curve in enumerate(curves):
             background[idx] = SNIP.getSnip1DBackground(curve, snipWidth)
-        subtracted = curves-background
+        subtracted = curves - background
         normResult = Normalization.zeroToOne(image=subtracted,
                                              params={})
         normalized = normResult['image']
@@ -495,43 +495,43 @@ class Alignment(ImageOp):
             #
             # Estimate FWHM
             #
-            fwhmIdx = numpy.nonzero(y >= .5*normalized[idx])[0]
+            fwhmIdx = numpy.nonzero(y >= .5 * normalized[idx])[0]
             # Underestimates FWHM, since carried out on normalized image
-            fwhm = float(fwhmIdx.max()-fwhmIdx.min())
+            fwhm = float(fwhmIdx.max() - fwhmIdx.min())
 
             #
             # Peak fit: Uses actual data
             #
-            #xrange = numpy.arange(0, len(y), dtype=y.dtype) # Full range
-            mask = numpy.nonzero(y >= .1*normalized[idx])[0]
-            ydata = curves[idx,mask]
-            #ydata -= ydata.min()
+            # xrange = numpy.arange(0, len(y), dtype=y.dtype) # Full range
+            mask = numpy.nonzero(y >= .1 * normalized[idx])[0]
+            ydata = curves[idx, mask]
+            # ydata -= ydata.min()
             try:
                 fitp, chisq, sigma = LSF(gaussianModel,
                                          numpy.asarray([height, pos, fwhm]),
                                          xdata=mask,
-                                         ydata=(ydata-ydata.min()))
+                                         ydata=(ydata - ydata.min()))
                 if DEBUG >= 1:
                     print('\tCurve %d -- fitp: %s' % (idx, str(fitp)))
                     print('\tCurve %d -- chisq: %s' % (idx, str(chisq)))
                     print('\tCurve %d -- sigma: %s' % (idx, str(sigma)))
             except numpy.linalg.linalg.LinAlgError:
-                fitp, chisq, sigma = [None, None, None],\
-                                     float('Nan'),\
+                fitp, chisq, sigma = [None, None, None], \
+                                     float('Nan'), \
                                      float('Nan')
                 if DEBUG >= 1:
                     print('\tCurve %d -- Fit failed!' % idx)
-            fitList[idx] = fitp # ftip is 3-tuple..
+            fitList[idx] = fitp  # ftip is 3-tuple..
 
         posIdx = 1  # ..2nd argument of fitp is peak position
         shift0 = fitList[idx0][posIdx]
-        shiftList = [shift0-fit[posIdx] for fit in fitList]
+        shiftList = [shift0 - fit[posIdx] for fit in fitList]
 
-        #ddict = {
+        # ddict = {
         #    'op': 'fitAlignment',
         #    'shiftList': shiftList
-        #}
-        #return ddict
+        # }
+        # return ddict
         return shiftList
 
 
@@ -585,7 +585,7 @@ class Integration(ImageOp):
         sliceAxis = params.get('sliceAxis', 1)
         params['axis'] = sliceAxis
         slices = Manipulation.slice(image, params)
-        #result = [slice_.sum(axis=sumAxis) for slice_ in slices]
+        # result = [slice_.sum(axis=sumAxis) for slice_ in slices]
 
         nRows, nCols = image.shape
         if sliceAxis == 1:
@@ -599,12 +599,12 @@ class Integration(ImageOp):
                 result[:, idx] = slice_.sum(axis=sumAxis)
             else:
                 result[idx, :] = slice_.sum(axis=sumAxis)
-        #result = numpy.asarray([slice_.sum(axis=sumAxis) for slice_ in slices], dtype=image.dtype)
-        #ddict = {
+        # result = numpy.asarray([slice_.sum(axis=sumAxis) for slice_ in slices], dtype=image.dtype)
+        # ddict = {
         #    'op': 'sliceAndSum',
         #    'summedSlices': result
-        #}
-        #return ddict
+        # }
+        # return ddict
         if DEBUG >= 1:
             print('Integration.sliceAndSum -- result.shape: %s' % str(result.shape))
         return result
@@ -619,18 +619,18 @@ class Normalization(ImageOp):
 
     @staticmethod
     def zeroToOne(image, params):
-        offset  = image.min()
+        offset = image.min()
         maximum = image.max()
         normFactor = maximum - offset
 
         if DEBUG >= 1:
-            print('zeroToOne, before -- min: %.3f, max: %.3f'%(offset, maximum))
+            print('zeroToOne, before -- min: %.3f, max: %.3f' % (offset, maximum))
 
         if normFactor == 0.:
             normalized = numpy.zeros(shape=image.shape,
                                      dtype=image.dtype)
         else:
-            normalized = (image - offset)/normFactor
+            normalized = (image - offset) / normFactor
         if DEBUG >= 1:
             print('zeroToOne, after  -- min: %.3f, max: %.3f' % (normalized.min(), normalized.max()))
         ddict = {
@@ -681,12 +681,12 @@ class Manipulation(ImageOp):
         else:
             points = numpy.arange(0, image.shape[0], 1, dtype=numpy.uint16)
 
-        #print(shortAxis)
-        #print(longAxis)
-        #print(image.shape)
-        #print(result.shape)
-        #print(len(interpRange))
-        #print(len(points))
+        # print(shortAxis)
+        # print(longAxis)
+        # print(image.shape)
+        # print(result.shape)
+        # print(len(interpRange))
+        # print(len(points))
 
         for idx in range(image.shape[shortAxis]):
             if shortAxis == 0:
@@ -699,7 +699,7 @@ class Manipulation(ImageOp):
             # Perform interpolation. Values outside the function range are set to not-a-number values
             #
             interpolated = numpy.interp(
-                x=interpRange-shift,
+                x=interpRange - shift,
                 xp=points,
                 fp=vector,
                 right=float('NaN'),
@@ -734,8 +734,8 @@ class Manipulation(ImageOp):
             raise ValueError('Integration.binning: Unknown mode %s' % mode)
         if lim % binWidth and mode == 'relaxed':
             raise Warning('Binning neglects curves at the end')
-        numberOfBins = lim//binWidth
-        tmpList = numberOfBins*[numpy.zeros(size, dtype=image.dtype)]
+        numberOfBins = lim // binWidth
+        tmpList = numberOfBins * [numpy.zeros(size, dtype=image.dtype)]
         for idx in range(numberOfBins):
             lower = idx * binWidth
             upper = lower + binWidth
@@ -819,7 +819,7 @@ class SlopeCorrection(object):
             'binWidth': binWidth
         }
         sliced = Integration.sliceAndSum(image, sliceParams)
-        #print('SlopeCorrection.slopeCorrection -- sliced.shape: %s' % str(sliced.shape))
+        # print('SlopeCorrection.slopeCorrection -- sliced.shape: %s' % str(sliced.shape))
 
         #
         # Calculate the inter-column shift using FFT cross correlation alignment
@@ -841,7 +841,7 @@ class SlopeCorrection(object):
         #
         # Fit a quadratic function to the shifts. poly is of type AnalyticItem
         #
-        fitRange = binWidth//2 + numpy.arange(len(shifts)) * binWidth
+        fitRange = binWidth // 2 + numpy.arange(len(shifts)) * binWidth
         smileFunction = Fit.quadratic(
             fitvalues=shifts,
             x=fitRange,
@@ -860,7 +860,7 @@ def run_test():
     project.crawl(directory)
 
     carbonTape = project['LBCO0483.edf'].item()
-    #filtered = Filter.bandPassFilterID32(carbonTape.array, {})
+    # filtered = Filter.bandPassFilterID32(carbonTape.array, {})
     filtered = Filter.bandPassFilter(carbonTape.array, {
         'offset': 114,
         'low': 8,
@@ -868,14 +868,14 @@ def run_test():
     })
 
     plt.plot(filtered.sum(axis=1))
-    #plt.plot(carbonTape.array.sum(axis=1))
+    # plt.plot(carbonTape.array.sum(axis=1))
     plt.show()
 
     return
 
     itemList = [child.item() for child in project['Images'].children]
     filteredList = [Filter.bandPassFilterID32(item.array, {}) for item in itemList]
-    #polyList = [SlopeCorrection.slopeCorrection(arr, 64) for arr in filteredList]
+    # polyList = [SlopeCorrection.slopeCorrection(arr, 64) for arr in filteredList]
     polyList = [SlopeCorrection.slopeCorrection(im, 128) for im in filteredList]
     corretedList = [SlopeCorrection.alignImage(im, func) for im, func in zip(filteredList, polyList)]
 
@@ -899,29 +899,29 @@ def run_test():
         f.write('#N 1\n')
 
         f.write('#L col0  %s\n' % item.key())
-        #numpy.vstack((summed, points)).tofile(f, sep='\n')
+        # numpy.vstack((summed, points)).tofile(f, sep='\n')
         summed.tofile(f, sep='\n')
         f.write('\n\n')
     f.close()
     return
 
-    #poly0 = SlopeCorrection.slopeCorrection(filtered, 16, (940, 1030))
+    # poly0 = SlopeCorrection.slopeCorrection(filtered, 16, (940, 1030))
 
     poly = FunctionItem('', '')
-    expression = lambda x, a, b, c: a * x**2 + b * x + c
+    expression = lambda x, a, b, c: a * x ** 2 + b * x + c
     parameters = {
-        'a': -5.25213*10**-5,
+        'a':-5.25213 * 10 ** -5,
         'b': 0.18877,
         'c': 0.
     }
     poly.setExpression(expression)
     poly.setParameters(parameters)
 
-    #poly0 = SlopeCorrection.slopeCorrection(filtered, 128)
+    # poly0 = SlopeCorrection.slopeCorrection(filtered, 128)
     carbonTapeCorrected = SlopeCorrection.alignImage(filtered, poly)
     sum0 = carbonTapeCorrected.sum(axis=1)[::-1]
     carbonOut = open('/home/truter/lab/rixs_own/own0482.dat', 'w')
-    (sum0-sum0.min()).tofile(carbonOut, sep='\n')
+    (sum0 - sum0.min()).tofile(carbonOut, sep='\n')
 
     plt.plot(sum0)
     plt.show()
@@ -934,7 +934,7 @@ def run_test():
     firstCorrected = SlopeCorrection.alignImage(filtered, poly)
     sumCarbon = firstCorrected.sum(axis=1)[::-1]
     carbonOut = open('/home/truter/lab/rixs_own/own0482_CuCalib.dat', 'w')
-    (sumCarbon-sumCarbon.min()).tofile(carbonOut, sep='\n')
+    (sumCarbon - sumCarbon.min()).tofile(carbonOut, sep='\n')
 
     poly1 = SlopeCorrection.slopeCorrection(filtered, 16, (930, 1040))
     poly2 = SlopeCorrection.slopeCorrection(filtered, 32, (930, 1040))
@@ -957,21 +957,21 @@ def run_test():
     firstResonantOut4 = open('/home/truter/lab/rixs_own/own0483_128.dat', 'w')
     firstResonantOut5 = open('/home/truter/lab/rixs_own/own0483_256.dat', 'w')
 
-    #plt.plot(sum0-sum0.min())
-    plt.plot(sum1-sum1.min(), label='poly1')
-    plt.plot(sum2-sum2.min(), label='poly2')
-    plt.plot(sum3-sum3.min(), label='poly3')
-    plt.plot(sum4-sum4.min(), label='poly4')
-    plt.plot(sum5-sum5.min(), label='poly5')
+    # plt.plot(sum0-sum0.min())
+    plt.plot(sum1 - sum1.min(), label='poly1')
+    plt.plot(sum2 - sum2.min(), label='poly2')
+    plt.plot(sum3 - sum3.min(), label='poly3')
+    plt.plot(sum4 - sum4.min(), label='poly4')
+    plt.plot(sum5 - sum5.min(), label='poly5')
     plt.legend()
     plt.show()
 
-    #(sum0-sum0.min()).tofile(carbonOut, sep='\n')
-    (sum1-sum1.min()).tofile(firstResonantOut1, sep='\n')
-    (sum2-sum2.min()).tofile(firstResonantOut2, sep='\n')
-    (sum3-sum3.min()).tofile(firstResonantOut3, sep='\n')
-    (sum4-sum4.min()).tofile(firstResonantOut4, sep='\n')
-    (sum5-sum5.min()).tofile(firstResonantOut5, sep='\n')
+    # (sum0-sum0.min()).tofile(carbonOut, sep='\n')
+    (sum1 - sum1.min()).tofile(firstResonantOut1, sep='\n')
+    (sum2 - sum2.min()).tofile(firstResonantOut2, sep='\n')
+    (sum3 - sum3.min()).tofile(firstResonantOut3, sep='\n')
+    (sum4 - sum4.min()).tofile(firstResonantOut4, sep='\n')
+    (sum5 - sum5.min()).tofile(firstResonantOut5, sep='\n')
 
 
 if __name__ == '__main__':

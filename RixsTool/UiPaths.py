@@ -29,55 +29,41 @@ __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 import os
 import os.path
 
+absolutePath = os.path.dirname(os.path.abspath(__file__))
+
 
 class UiPaths(object):
     @staticmethod
     def abstractTitleToolBar():
-        relativeUiPath = os.path.join('..', 'ui')
-        absolutePath = os.path.abspath(relativeUiPath)
-        return os.path.join(absolutePath, 'abtracttitletoolbar.ui')
+        return os.path.join(absolutePath, "ui", 'abtracttitletoolbar.ui')
 
     @staticmethod
     def alignmentFilterUiPath():
-        relativeUiPath = os.path.join('..', 'ui')
-        absolutePath = os.path.abspath(relativeUiPath)
-        return os.path.join(absolutePath, 'alignmentfilter.ui')
+        return os.path.join(absolutePath, "ui", 'alignmentfilter.ui')
 
     @staticmethod
     def bandPassFilterUiPath():
-        relativeUiPath = os.path.join('..', 'ui')
-        absolutePath = os.path.abspath(relativeUiPath)
-        return os.path.join(absolutePath, 'bandpassfilter.ui')
+        return os.path.join(absolutePath, "ui", 'bandpassfilter.ui')
 
     @staticmethod
     def bandPassFilterID32UiPath():
-        relativeUiPath = os.path.join('..', 'ui')
-        absolutePath = os.path.abspath(relativeUiPath)
-        return os.path.join(absolutePath, 'bandpassfilterID32.ui')
+        return os.path.join(absolutePath, "ui", 'bandpassfilterID32.ui')
 
     @staticmethod
     def energyAlignmentUiPath():
-        relativeUiPath = os.path.join('..', 'ui')
-        absolutePath = os.path.abspath(relativeUiPath)
-        return os.path.join(absolutePath, 'energyalignment.ui')
+        return os.path.join(absolutePath, "ui", 'energyalignment.ui')
 
     @staticmethod
     def fileSystemBrowserUiPath():
-        relativeUiPath = os.path.join('..', 'ui')
-        absolutePath = os.path.abspath(relativeUiPath)
-        return os.path.join(absolutePath, 'filesystembrowser.ui')
+        return os.path.join(absolutePath, "ui", 'filesystembrowser.ui')
 
     @staticmethod
     def mainWindowUiPath():
-        relativeUiPath = os.path.join('.', 'ui')
-        absolutePath = os.path.abspath(relativeUiPath)
-        return os.path.join(absolutePath, 'mainwindow_imageView.ui')
+        return os.path.join(absolutePath, "ui", 'mainwindow_imageView.ui')
 
     @staticmethod
     def sumToolUiPath():
-        relativeUiPath = os.path.join('..', 'ui')
-        absolutePath = os.path.abspath(relativeUiPath)
-        return os.path.join(absolutePath, 'sumtool.ui')
+        return os.path.join(absolutePath, "ui", 'sumtool.ui')
 
 
 if __name__ == '__main__':

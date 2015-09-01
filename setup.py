@@ -24,20 +24,25 @@
 # Please contact the ESRF industrial unit (industry@esrf.fr) if this license
 # is a problem for you.
 #############################################################################*/
-__author__ = "Tonn Rueter - ESRF Data Analysis Unit"
+__author__ = "Tonn Rueter and Rainer Wilcke - ESRF Data Analysis Unit"
 __version__ = '0.0'
-
+import sys
+import glob
+import os
+import distutils.sysconfig
 from distutils.core import setup
 
 distribution = setup(
     name="RixsTool",
-    version= __version__,
-    description = "Here be short desciption",
-    author = __author__,
-    author_email="tonn.ruter@esrf.fr",
-    license= "GPL - Please read LICENSE.GPL for details",
-    url = "https://github.com/tonnrueter/RixsTool",
-    long_description = "Here be long description",
+    version=__version__,
+    description="Software toolkit for the analysis of RIXS experiments",
+    author=__author__,
+    author_email="wilcke@esrf.fr",
+    license="GPL - Please read LICENSE.GPL for details",
+    url="https://github.com/tonnrueter/RixsTool",
+    long_description="Here be long description",
     platforms='any',
-    packages=['RixsTool']
+    packages=['RixsTool', 'RixsTool.widgets'],
+    package_data={'RixsTool': ['ui/*.ui']},
+    scripts=["scripts/rixstool"]
 )

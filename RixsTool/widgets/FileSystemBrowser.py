@@ -29,9 +29,9 @@ __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 # IMPORTS FOR GUI
 #
 from PyQt4 import uic
-from RixsTool.UiPaths import UiPaths
+from ..UiPaths import UiPaths
 
-from PyMca import PyMcaQt as qt
+from PyMca5.PyMca import PyMcaQt as qt
 
 
 #
@@ -41,9 +41,9 @@ from PyMca import PyMcaQt as qt
 #   AddFilesAction: Custom action in context menu
 #   QDirListModel: Simple list model to manage directories
 #
-from RixsTool.Utils import unique as RixsUtilsUnique
-from RixsTool.widgets.ContextMenu import FileContextMenu, AddFilesAction
-from RixsTool.widgets.Models import QDirListModel
+from ..Utils import unique as RixsUtilsUnique
+from .ContextMenu import FileContextMenu, AddFilesAction
+from .Models import QDirListModel
 
 #
 # IMPORTS FROM OS: General file system browsing
@@ -189,7 +189,7 @@ class DirTree(qt.QTreeView):
         """
         modelIndexList = self.selectedIndexes()
         RixsUtilsUnique(modelIndexList, "row")
-        #modelIndexList = [self.indexAt(event.pos())]
+        # modelIndexList = [self.indexAt(event.pos())]
 
         model = self.model()
         fileInfoList = [model.fileInfo(idx) for idx in modelIndexList]
@@ -263,11 +263,11 @@ class FileSystemBrowser(qt.QWidget):
         self.closeDirButton.clicked[()].connect(self.closeDir)
 
         # TODO: change startDir = qt.QDir.home()
-        #if PLATFORM == 'Linux':
+        # if PLATFORM == 'Linux':
         #    startDir = qt.QDir('/home/truter/lab/mock_folder/')
-        #elif PLATFORM == 'Darwin':
+        # elif PLATFORM == 'Darwin':
         #    startDir = qt.QDir('/Users/tonn/DATA/mock_folder')
-        #else:
+        # else:
         #    raise OSError('FileSystemBrowser.__init__ -- Setting start dir .. Unknown system type')
 
         startDir = qt.QDir.home()

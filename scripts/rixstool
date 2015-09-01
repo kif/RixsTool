@@ -1,0 +1,9 @@
+#!/usr/bin/python
+
+from PyMca5.PyMcaGui import PyMcaQt as qt
+from RixsTool import mainWindow
+app = qt.QApplication([])
+win = mainWindow.RIXSMainWindow()
+win.show()
+app.exec_()
+  

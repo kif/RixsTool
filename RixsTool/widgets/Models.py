@@ -29,9 +29,9 @@ from RixsTool.widgets import ProjectView
 __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 
 from RixsTool.Utils import unique as RixsUtilsUnique
-#from RixsTool.Datahandling import RixsProject
-from RixsTool.Project import RixsProject
-from PyMca import PyMcaQt as qt
+# from RixsTool.Datahandling import RixsProject
+from ..Project import RixsProject
+from PyMca5.PyMcaGui import PyMcaQt as qt
 from os.path import normpath as OsPathNormpath
 
 DEBUG = 0
@@ -60,15 +60,15 @@ class ProjectModel(RixsProject, qt.QAbstractItemModel):
 
         self.beginRemoveRows(parentIndex, container.childNumber(), container.childNumber())
 
-        #if container.childCount():
+        # if container.childCount():
         #    print('Has children')
         #    # Child count is nonzero
         #    for child in container.children:
         #        del(child)
 
-        #parentContainer = self.containerAt(parentIndex)
-        #idx = container.childNumber()
-        #del(parentContainer.children[idx])
+        # parentContainer = self.containerAt(parentIndex)
+        # idx = container.childNumber()
+        # del(parentContainer.children[idx])
 
         RixsProject.removeContainer(self, container.label)
         self.endRemoveRows()
@@ -112,10 +112,10 @@ class ProjectModel(RixsProject, qt.QAbstractItemModel):
             return False
 
         # TODO: calling self.createIndex creates RuntimeError! W\o calling it, the method works though..
-        #modelIndex = self.createIndex(container.childNumber(), 0, container)
-        #parentIndex = self.parent(modelIndex)
-        #self.beginInsertRows(parentIndex, container.childNumber(), container.childNumber())
-        #self.endInsertRows()
+        # modelIndex = self.createIndex(container.childNumber(), 0, container)
+        # parentIndex = self.parent(modelIndex)
+        # self.beginInsertRows(parentIndex, container.childNumber(), container.childNumber())
+        # self.endInsertRows()
         return True
 
     def containerAt(self, modelIndex):
@@ -168,7 +168,7 @@ class ProjectModel(RixsProject, qt.QAbstractItemModel):
             if not modelIndex.column():
                 # Not the 0-th column, change key!
                 return False
-            container.label = str(value) # TODO: Changes label but not item key...
+            container.label = str(value)  # TODO: Changes label but not item key...
         self.dataChanged.emit(modelIndex, modelIndex)
 
     def headerData(self, section, orientation, role=qt.Qt.DisplayRole):
@@ -268,7 +268,7 @@ class ProjectModel(RixsProject, qt.QAbstractItemModel):
             return qt.QModelIndex()
 
         child = self.containerAt(modelIndex)
-        #print('ProjectView.parent -- type(child):', type(child), hasattr(child, 'parent'))
+        # print('ProjectView.parent -- type(child):', type(child), hasattr(child, 'parent'))
         parentContainer = child.parent
 
         if parentContainer == self.projectRoot:
@@ -282,7 +282,7 @@ class ProjectModel(RixsProject, qt.QAbstractItemModel):
         itemList = []
         for info in fileInfoList:
             absFilePath = OsPathNormpath(str(info.canonicalFilePath()))
-            #self.read(absFilePath)
+            # self.read(absFilePath)
             itemList += RixsProject.read(self, absFilePath)
         for item in itemList:
             self.addItem(item)
@@ -311,7 +311,7 @@ class QDirListModel(qt.QAbstractListModel):
     def __len__(self):
         return len(self.__directoryList)
 
-    def rowCount(self, modelIndex = qt.QModelIndex()):
+    def rowCount(self, modelIndex=qt.QModelIndex()):
         return len(self.__directoryList)
 
     def insertDirs(self, row, directoryList):
@@ -321,15 +321,15 @@ class QDirListModel(qt.QAbstractListModel):
         :param directoryList: Carries the new legend information
         :type directoryList: list of either strings or QDirs
         """
-        modelIndex = self.createIndex(row,  0)
+        modelIndex = self.createIndex(row, 0)
         count = len(directoryList)
         qt.QAbstractListModel.beginInsertRows(self,
                                               modelIndex,
                                               row,
-                                              row+count)
+                                              row + count)
         head = self.__directoryList[0:row]
         tail = self.__directoryList[row:]
-        new  = [qt.QDir()] * count
+        new = [qt.QDir()] * count
         for idx, elem in enumerate(directoryList):
             if isinstance(elem, str):
                 newDir = qt.QDir(elem)
@@ -338,7 +338,7 @@ class QDirListModel(qt.QAbstractListModel):
                 newDir = qt.QDir(elem)
             else:
                 if DEBUG >= 1:
-                    print('QDirListModel.insertDirs -- Element %d: Neither instance of str nor QDir'%idx)
+                    print('QDirListModel.insertDirs -- Element %d: Neither instance of str nor QDir' % idx)
                 continue
             new[idx] = newDir
         self.__directoryList = head + new + tail
@@ -363,12 +363,12 @@ class QDirListModel(qt.QAbstractListModel):
         qt.QAbstractListModel.beginRemoveRows(self,
                                               modelIndex,
                                               row,
-                                              row+count)
-        del(self.__directoryList[row:row+count])
+                                              row + count)
+        del(self.__directoryList[row:row + count])
         qt.QAbstractListModel.endRemoveRows(self)
         return True
 
-    def removeRows(self, row, count, modelIndex = qt.QModelIndex()):
+    def removeRows(self, row, count, modelIndex=qt.QModelIndex()):
         raise NotImplementedError('QDirListModel.removeRows -- Not implemented, use QDirListModel.removeDirs instead')
 
     def data(self, modelIndex, role):
@@ -405,9 +405,9 @@ def unitTest_QDirListModel():
         qdir = listModel[idx]
 
         second &= isinstance(displayRole, str)
-        third  &= isinstance(qdir, qt.QDir)
+        third &= isinstance(qdir, qt.QDir)
 
-        print('\t%d: %s\t%s\t%s\t%s'%\
+        print('\t%d: %s\t%s\t%s\t%s' % \
               (idx, str(displayRole), type(displayRole), int(flag), str(qdir)))
 
     if first and second and third:
@@ -424,13 +424,13 @@ def unitTest_ProjectModel():
             print('DummyNotifier.signal received -- kw:\n', str(val0), str(val1))
     dummy = DummyNotifier()
 
-    #directory = r'C:\Users\tonn\lab\mockFolder'  # On windows
-    #directory = '/Users/tonn/DATA/rixs_data/'  # On mac
+    # directory = r'C:\Users\tonn\lab\mockFolder'  # On windows
+    # directory = '/Users/tonn/DATA/rixs_data/'  # On mac
     directory = '/home/truter/lab/mock_folder'  # On linkarkouli
     project = ProjectModel()
     project.dataChanged.connect(dummy.signalReceived)
 
-    #for result in osWalk(directory):
+    # for result in osWalk(directory):
     #    currentPath = result[0]
     #    files = result[2]
     #    for ffile in files:
@@ -447,12 +447,12 @@ def unitTest_ProjectModel():
 
     app = qt.QApplication([])
     view = ProjectView.ProjectView()
-    #model = QContainerTreeModel(project.projectRoot, win)
-    #win.setModel(model)
+    # model = QContainerTreeModel(project.projectRoot, win)
+    # win.setModel(model)
     view.setModel(project)
 
     removeButton = qt.QPushButton("Remove something")
-    #removeButton.clicked.connect(view.removeLastItem)
+    # removeButton.clicked.connect(view.removeLastItem)
 
     layout = qt.QVBoxLayout()
     layout.addWidget(removeButton)
@@ -466,5 +466,5 @@ def unitTest_ProjectModel():
 
 
 if __name__ == '__main__':
-    #unitTest_QDirListModel()
+    # unitTest_QDirListModel()
     unitTest_ProjectModel()

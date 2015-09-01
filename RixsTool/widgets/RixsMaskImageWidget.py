@@ -29,7 +29,7 @@ __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 #
 # Import tool windows
 #
-from RixsTool.widgets.ToolWindows import BandPassFilterWindow, BandPassID32Window, ImageAlignmenWindow,\
+from RixsTool.widgets.ToolWindows import BandPassFilterWindow, BandPassID32Window, ImageAlignmenWindow, \
     SumImageTool, EnergyScaleTool
 
 #
@@ -37,9 +37,8 @@ from RixsTool.widgets.ToolWindows import BandPassFilterWindow, BandPassID32Windo
 # PyMcaQt: qt version of pymca
 # MaskImageWidget: Base class for image visualization
 #
-from PyMca import PyMcaQt as qt
-from PyMca.widgets import MaskImageWidget
-
+from PyMca5.PyMcaGui import PyMcaQt as qt
+from PyMca5.PyMca import MaskImageWidget
 #
 # TODO: platform is import for dev purposes, remove me
 #
@@ -106,12 +105,12 @@ class RixsMaskImageWidget(MaskImageWidget.MaskImageWidget):
         #
 
         # ORDER: Operations must happen in fixed order
-        #self.toolList = [
+        # self.toolList = [
         #    self.flipWidget,
         #    self.filterWidget,
         #    self.alignmentWidget
-        #]
-        self.toolList = 3*[None]
+        # ]
+        self.toolList = 3 * [None]
 
         # FLIPING
         self.flipWidget = FlipWidget()

@@ -26,12 +26,12 @@
 #############################################################################*/
 __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 # Imports for GUI
-from PyMca import PyMcaQt as qt
+from PyMca5.PyMcaGui import PyMcaQt as qt
 
-from RixsTool.Utils import unique as RixsUtilsUnique
-from RixsTool.widgets.ContextMenu import ProjectContextMenu, RemoveAction, RemoveItemAction, RemoveContainerAction,\
+from ..Utils import unique as RixsUtilsUnique
+from ..widgets.ContextMenu import ProjectContextMenu, RemoveAction, RemoveItemAction, RemoveContainerAction, \
     ShowAction, ExpandAction, RenameAction
-from RixsTool.Project import ItemContainer
+from ..Project import ItemContainer
 
 DEBUG = 0
 
@@ -42,10 +42,10 @@ class ProjectView(qt.QTreeView):
     def __init__(self, parent=None):
         super(ProjectView, self).__init__(parent)
         # TODO: Check if project is instance of RixsProject
-        #self.project = project
+        # self.project = project
         self.setSelectionMode(qt.QAbstractItemView.ExtendedSelection)
         self.setContextMenuPolicy(qt.Qt.DefaultContextMenu)
-        #self.customContextMenuRequested.connect(self.contextMenuRequest)
+        # self.customContextMenuRequested.connect(self.contextMenuRequest)
 
     def _emitShowSignal(self, containerList):
         """
@@ -99,7 +99,7 @@ class ProjectView(qt.QTreeView):
                 if isinstance(action, ShowAction) or isinstance(action, RemoveItemAction):
                     action.setEnabled(False)
         else:
-            #if not any([container.childCount() for container in containerList]):
+            # if not any([container.childCount() for container in containerList]):
             # No containers in selection, deactivate actions aimt at containers
             for action in menu.actionList:
                 if isinstance(action, ExpandAction)\
@@ -141,8 +141,8 @@ if __name__ == '__main__':
     proj.crawl(directory)
 
     app = qt.QApplication([])
-    #win = BandPassFilterWindow()
-    #win = FileSystemBrowser()
+    # win = BandPassFilterWindow()
+    # win = FileSystemBrowser()
     win = ProjectView()
     win.setModel(proj)
 

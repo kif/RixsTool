@@ -28,12 +28,12 @@ __author__ = "Tonn Rueter - ESRF Data Analysis Unit"
 __doc__ = """Module provides a base class for a data manipulation GUI for py:mod:`PyMca.widgets.PlotWindow`"""
 
 # Imports for GUI
-from PyMca import PyMcaQt as qt
+from PyMca5.PyMca import PyMcaQt as qt
 from PyQt4 import uic
 
-from RixsTool.UiPaths import UiPaths
-from RixsTool.Operations import Filter, SlopeCorrection, Integration
-from RixsTool.Items import FunctionItem
+from ..UiPaths import UiPaths
+from ..Operations import Filter, SlopeCorrection, Integration
+from ..Items import FunctionItem
 
 import platform
 
@@ -103,13 +103,13 @@ class AbstractToolWindow(qt.QDockWidget):
         if uiPath is None:
             uiPath = self.__uiPath
         try:
-            #uic.loadUi(uiPath, self._widget)
+            # uic.loadUi(uiPath, self._widget)
             uic.loadUi(uiPath, self)
         except IOError:
             self.__uiLoaded = False
             raise IOError("AbstractToolWindow.setUI -- failed to find ui-file: '%s'" % uiPath)
         titleBar = AbstractToolTitleBar()
-        #titleBar.closeButton.clicked.connect(self.destroy)  # Ends the whole process
+        # titleBar.closeButton.clicked.connect(self.destroy)  # Ends the whole process
         titleBar.closeButton.clicked.connect(self.close)  # Hides the tool
         titleBar.activeCheckBox.stateChanged.connect(self.stateChanged)
         self.__active = (titleBar.activeCheckBox.checkState() == qt.Qt.Checked)
@@ -124,7 +124,7 @@ class AbstractToolWindow(qt.QDockWidget):
         else:
             titleBar.titleLabel.setEnabled(True)
             self.__active = True
-        #self.toolStateChangedSignal.emit(state, self)
+        # self.toolStateChangedSignal.emit(state, self)
         parameters = self.getValues()
         self.valuesChangedSignal.emit(parameters)
 
@@ -282,7 +282,7 @@ class ImageAlignmenWindow(AbstractToolWindow):
         }
 
         self.setValues({
-            'a': -5.25*10**-5,
+            'a':-5.25 * 10 ** -5,
             'b': 0.18877,
             'c': 0.
         })
@@ -301,10 +301,10 @@ class ImageAlignmenWindow(AbstractToolWindow):
 
     def alignImage(self, image, params):
         func = FunctionItem('Slope Function', '')
-        expression = lambda x, a, b, c: a*x**2 + b*x + c
+        expression = lambda x, a, b, c: a * x ** 2 + b * x + c
         params = self.getValues()
 
-        params['a'] *= 10.**-5
+        params['a'] *= 10.** -5
 
         func.setExpression(expression)
         func.setParameters(params)
@@ -399,7 +399,7 @@ class EnergyScaleTool(AbstractToolWindow):
         #
         # Set expression
         #
-        scale.setExpression(lambda x, a, b: a*x + b)
+        scale.setExpression(lambda x, a, b: a * x + b)
 
         #
         # Set parameters
@@ -419,8 +419,8 @@ def unitTest_BandPassFilter():
     dummy = DummyNotifier()
     app = qt.QApplication([])
     filterWindow = ImageAlignmenWindow()
-    #filterWindow.exportSelectedSignal.connect(dummy.signalReceived)
-    #filterWindow.exportCurrentSignal.connect(dummy.signalReceived)
+    # filterWindow.exportSelectedSignal.connect(dummy.signalReceived)
+    # filterWindow.exportCurrentSignal.connect(dummy.signalReceived)
     filterWindow.show()
     app.exec_()
 

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>800</width>
-    <height>508</height>
+    <width>580</width>
+    <height>520</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -76,8 +76,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>800</width>
-     <height>24</height>
+     <width>580</width>
+     <height>27</height>
     </rect>
    </property>
    <widget class="QMenu" name="menuFile">
@@ -99,7 +99,7 @@
     <property name="title">
      <string>Window</string>
     </property>
-    <addaction name="showIntensityOverTimeAction"/>
+    <addaction name="fileBrowserShowAction"/>
     <addaction name="projectBrowserShowAction"/>
    </widget>
    <widget class="QMenu" name="menuImage">
@@ -132,6 +132,9 @@
      <verstretch>0</verstretch>
     </sizepolicy>
    </property>
+   <property name="features">
+    <set>QDockWidget::DockWidgetFloatable|QDockWidget::DockWidgetMovable</set>
+   </property>
    <property name="windowTitle">
     <string>File system browser</string>
    </property>
@@ -163,6 +166,9 @@
    </widget>
   </widget>
   <widget class="QDockWidget" name="projectBrowserDock">
+   <property name="features">
+    <set>QDockWidget::DockWidgetFloatable|QDockWidget::DockWidgetMovable</set>
+   </property>
    <property name="windowTitle">
     <string>Project browser</string>
    </property>
@@ -207,9 +213,15 @@
     <string>F1</string>
    </property>
   </action>
-  <action name="showIntensityOverTimeAction">
+  <action name="fileBrowserShowAction">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
    <property name="enabled">
-    <bool>false</bool>
+    <bool>true</bool>
    </property>
    <property name="text">
     <string>File System Browser</string>
@@ -269,6 +281,12 @@
    </property>
   </action>
   <action name="projectBrowserShowAction">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="checked">
+    <bool>true</bool>
+   </property>
    <property name="text">
     <string>Project Browser</string>
    </property>
@@ -285,7 +303,7 @@
   <customwidget>
    <class>ScanWindow</class>
    <extends>QWidget</extends>
-   <header>PyMca.widgets.ScanWindow</header>
+   <header>PyMca5.PyMca.ScanWindow</header>
    <container>1</container>
   </customwidget>
   <customwidget>
